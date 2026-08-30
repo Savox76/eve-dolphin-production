@@ -156,9 +156,9 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Scope-Schutz:** Version 1.0 bleibt unverändert auf PI und Manufacturing begrenzt. Die Umbenennung erhöht weder die Abnahmekriterien noch den Fortschrittswert.
 - **Technik:** Projektkennung, Python-Paket, Startkommando, lokale App-Pfade und Release-Pakete werden vor dem ersten öffentlichen Release auf `eve-dolphin`, `eve_dolphin` und `EVE-Dolphin` umgestellt. Es existieren noch keine produktiven Nutzerdaten oder gespeicherten Live-Tokens, die migriert werden müssten.
 - **Branding:** Die Anwendung bleibt klar als unabhängige Drittanbieter-Anwendung gekennzeichnet. Offizielle EVE-Logos werden nicht so mit dem eigenen Erscheinungsbild kombiniert, dass eine Unterstützung durch CCP suggeriert wird.
-- **Veröffentlichung:** Die private Python-Codebasis liegt in `Savox76/eve-dolphin-production`.
-  Das öffentliche `Savox76/eve-dolphin-releases` enthält ausschließlich geprüfte
-  Binärpakete, Prüfsummen und Changelogs.
+- **Veröffentlichung:** Die Python-Codebasis liegt in `Savox76/eve-dolphin-production`.
+  Quellcode, Prüfungen, Binärpakete, Prüfsummen und Changelogs sind dort öffentlich
+  nachvollziehbar.
 
 ### D-019 – Mining und PVE nach Version 1.0
 
@@ -246,11 +246,11 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Begründung:** Die aktuelle Industrie-/PI-Anwendung ist nach einem Login vollständig
   nutzbar, ohne zwei weitere Freigabedialoge oder manuelle Synchronisation.
 
-### D-027 – Getrennte und manuell ausgelöste Updateverteilung
+### D-027 – Öffentliche und manuell ausgelöste Updateverteilung
 
 - **Status:** beschlossen am 30.08.2026
-- **Trennung:** `eve-dolphin-production` bleibt privat; `eve-dolphin-releases` ist öffentlich
-  und enthält nur Windows-Pakete, Prüfsummen und Release Notes.
+- **Repository:** `eve-dolphin-production` ist öffentlich und enthält Quellcode, CI sowie
+  Windows-Pakete, Prüfsummen und Release Notes als GitHub Releases.
 - **Prüfung:** Der Client liest Releases anonym über HTTPS und akzeptiert nur den festen
   Repositorypfad, erwartete Dateinamen, begrenzte Größen und den von GitHub gelieferten
   SHA-256-Digest.
@@ -262,5 +262,6 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Rollback:** Schlägt Kopieren oder Selbsttest fehl, wird die vorherige Installation
   wiederhergestellt und gestartet. Lokale Daten, Backups und OS-Tokens liegen außerhalb des
   Installationsordners und werden nicht ersetzt.
-- **Geheimnisse:** Kein GitHub-Token liegt im Client. Das eingeschränkte Veröffentlichungs-
-  Token existiert ausschließlich als Secret des privaten GitHub-Actions-Workflows.
+- **Geheimnisse:** Kein GitHub-Token liegt im Client. Der Veröffentlichungsworkflow verwendet
+  nur das kurzlebige, auf dasselbe Repository begrenzte `GITHUB_TOKEN`; ein Personal Access
+  Token oder zusätzliches Secret ist nicht erforderlich.
