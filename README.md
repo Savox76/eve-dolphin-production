@@ -1,16 +1,18 @@
-# EVE Production Tool
+# EVE Dolphin
 
-Lokal betriebenes Produktions-Cockpit für **EVE Online**, das Planetare Industrie (PI) und klassische Fertigung in einer gemeinsamen Planung verbindet. Jede Installation verwaltet ausschließlich die eigenen Charaktere und Daten des jeweiligen Spielers.
+**EVE Dolphin** ist ein lokaler, modularer Begleiter für **EVE Online**. Jede Installation bündelt die freigegebenen Daten der eigenen Charaktere, ohne dass dafür ein Hoster, ein zentrales Konto oder das Einloggen jedes Charakters im Spiel nötig ist. Die erste Version konzentriert sich bewusst auf Planetare Industrie (PI) und klassische Fertigung.
 
 ## Projektziel
 
-Das Tool soll aus Blueprints, Kolonien, Assets, Marktpreisen und laufenden Jobs einen nachvollziehbaren Produktionsplan erstellen. Es beantwortet insbesondere:
+Das erste Modul soll aus Blueprints, Kolonien, Assets, Marktpreisen und laufenden Jobs einen nachvollziehbaren Produktionsplan erstellen. Es beantwortet insbesondere:
 
 - Welche Materialien und PI-Produkte werden benötigt?
 - Was ist bereits vorhanden oder wird durch Kolonien erzeugt?
 - Welche Zwischenprodukte sollten hergestellt und welche gekauft werden?
 - Welche Kosten, Laufzeiten, Transporte und Produktionsslots entstehen?
 - Welcher realistische Nettogewinn bleibt übrig?
+
+Die gemeinsame Charakter-, Daten-, Markt- und Inventarbasis wird später von Mining- und PVE-/Missionsmodulen mitgenutzt. Diese Erweiterungen folgen erst nach der stabilen Industrie-/PI-Version und verändern den Umfang von Version 1.0 nicht.
 
 ## Geplanter Umfang von Version 1.0
 
@@ -29,6 +31,13 @@ Das Tool soll aus Blueprints, Kolonien, Assets, Marktpreisen und laufenden Jobs 
 
 Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md), die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md), der [Formel- und Bewertungskatalog](docs/FORMULA_CATALOG.md), die [Seitenstruktur und Wireframes](docs/UX_STRUCTURE.md), die Abnahmen von [Phase 0](docs/PHASE_0_ACCEPTANCE.md) und [Phase 1](docs/PHASE_1_ACCEPTANCE.md) sowie der [aktuelle Stand von Phase 2](docs/PHASE_2_STATUS.md).
 
+## Geplante Module nach Version 1.0
+
+- **Mining und Reprocessing:** persönliches Mining-Ledger, Ertrag, Bewertung, Aufbereitung, Ziele und lokal fortgeschriebene Historie
+- **PVE und Missionen:** charakterübergreifende Sicht auf Standing, Wallet-Ereignisse, Beute, Verluste und Standortdaten sowie ein lokales Missionsjournal
+
+ESI liefert nicht jeden aktiven Missionsschritt als vollständigen Live-Status. EVE Dolphin kombiniert deshalb später verfügbare ESI-Signale mit ausdrücklich gekennzeichneten lokalen Einträgen, statt eine nicht vorhandene Echtzeitüberwachung vorzutäuschen.
+
 ## Projektstatus
 
 **Gesamtfortschritt: 15 %**
@@ -43,8 +52,8 @@ Voraussetzungen für die Entwicklung sind Python 3.12 und `uv`. Endnutzer benöt
 
 ```bash
 uv sync --locked --all-groups
-uv run eve-production-tool --self-check
-uv run eve-production-tool
+uv run eve-dolphin --self-check
+uv run eve-dolphin
 ```
 
 Qualitätsprüfungen:
@@ -57,6 +66,15 @@ uv run pytest
 ```
 
 Der Client legt veränderliche Daten im Anwendungsdatenverzeichnis des jeweiligen Betriebssystemnutzers ab. Ein explizites Testprofil kann mit `--data-dir <pfad>` gewählt werden. Build-Artefakte aus Pull Requests sind technische Testpakete und noch keine öffentlich signierten Releases.
+
+## Veröffentlichung
+
+- eine gemeinsame, plattformunabhängig strukturierte Python-Codebasis
+- getrennte Installationspakete je Betriebssystem, zunächst Windows
+- privates Quellcode-Repository während der Entwicklung
+- später ein getrenntes öffentliches Release-Repository mit Installationsdateien, Prüfsummen und Änderungsprotokoll, aber ohne privaten Quellcode
+
+Systemunabhängige Entwicklung bedeutet damit nicht automatisch, dass der Quellcode öffentlich sein muss.
 
 ## Entwicklungsgrundsätze
 
@@ -83,7 +101,7 @@ Der Client legt veränderliche Daten im Anwendungsdatenverzeichnis des jeweilige
 
 ## Rechtlicher Hinweis
 
-EVE Production Tool ist eine unabhängige Drittanbieter-Anwendung und wird weder von CCP hf. entwickelt noch unterstützt oder offiziell empfohlen.
+EVE Dolphin ist eine unabhängige Drittanbieter-Anwendung und wird weder von CCP hf. entwickelt noch unterstützt oder offiziell empfohlen.
 
 > © 2014 CCP hf. All rights reserved. "EVE", "EVE Online", "CCP", and all related logos and images are trademarks or registered trademarks of CCP hf.
 

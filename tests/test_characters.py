@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from eve_production_tool.characters import CharacterRepository, EveCharacter
-from eve_production_tool.database import Database
+from eve_dolphin.characters import CharacterRepository, EveCharacter
+from eve_dolphin.database import Database
 
 
 def test_repository_supports_multiple_characters_and_relinking(tmp_path: Path) -> None:

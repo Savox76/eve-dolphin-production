@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from urllib.parse import parse_qs, urlsplit
 
-from eve_production_tool.sso.client import METADATA_URL, EveSsoClient
-from eve_production_tool.sso.config import SsoConfig
-from eve_production_tool.sso.models import SsoMetadata
+from eve_dolphin.sso.client import METADATA_URL, EveSsoClient
+from eve_dolphin.sso.config import SsoConfig
+from eve_dolphin.sso.models import SsoMetadata
 
 
 class FakeTransport:

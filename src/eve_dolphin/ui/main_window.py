@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from eve_production_tool.i18n import Translator
+from eve_dolphin.i18n import Translator
 
 
 @dataclass(frozen=True, slots=True)

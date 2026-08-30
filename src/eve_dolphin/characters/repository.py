@@ -7,8 +7,8 @@ import sqlite3
 from datetime import datetime
 from typing import Protocol
 
-from eve_production_tool.characters.models import EveCharacter
-from eve_production_tool.database import Database
+from eve_dolphin.characters.models import EveCharacter
+from eve_dolphin.database import Database
 
 
 class CharacterWriter(Protocol):

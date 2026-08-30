@@ -10,13 +10,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from eve_production_tool import __version__
-from eve_production_tool.app.logging import configure_logging
-from eve_production_tool.app.paths import AppPaths
-from eve_production_tool.characters import CharacterRepository
-from eve_production_tool.database import Database
-from eve_production_tool.i18n import Translator
-from eve_production_tool.sso.pkce import generate_pkce_pair
+from eve_dolphin import __version__
+from eve_dolphin.app.logging import configure_logging
+from eve_dolphin.app.paths import AppPaths
+from eve_dolphin.characters import CharacterRepository
+from eve_dolphin.database import Database
+from eve_dolphin.i18n import Translator
+from eve_dolphin.sso.pkce import generate_pkce_pair
 
 LOGGER = logging.getLogger(__name__)
 
@@ -56,12 +56,12 @@ def run_self_check(paths: AppPaths) -> int:
     pkce = generate_pkce_pair(bytes(range(32)))
     if len(pkce.verifier) != 43 or len(pkce.challenge) != 43:
         return 1
-    print(f"EVE Production Tool {__version__}: OK (schema {context.database.schema_version()})")
+    print(f"EVE Dolphin {__version__}: OK (schema {context.database.schema_version()})")
     return 0
 
 
 def parse_arguments(arguments: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="eve-production-tool")
+    parser = argparse.ArgumentParser(prog="eve-dolphin")
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--self-check", action="store_true")
     parser.add_argument("--data-dir", type=Path)
@@ -73,7 +73,7 @@ def main(arguments: list[str] | None = None) -> int:
     options = parse_arguments(sys.argv[1:] if arguments is None else arguments)
 
     if options.self_check and options.data_dir is None:
-        with TemporaryDirectory(prefix="eve-production-tool-check-") as temporary_dir:
+        with TemporaryDirectory(prefix="eve-dolphin-check-") as temporary_dir:
             return run_self_check(AppPaths.in_directory(Path(temporary_dir)))
 
     paths = (
@@ -93,11 +93,11 @@ def main(arguments: list[str] | None = None) -> int:
 
     from PySide6.QtWidgets import QApplication
 
-    from eve_production_tool.ui import MainWindow
-    from eve_production_tool.ui.theme import apply_theme
+    from eve_dolphin.ui import MainWindow
+    from eve_dolphin.ui.theme import apply_theme
 
     application = QApplication([sys.argv[0]])
-    application.setApplicationName("EVE Production Tool")
+    application.setApplicationName("EVE Dolphin")
     application.setApplicationVersion(__version__)
     apply_theme(application)
 

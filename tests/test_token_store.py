@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from eve_production_tool.security.token_store import SERVICE_NAME, KeyringTokenStore
+from eve_dolphin.security.token_store import SERVICE_NAME, KeyringTokenStore
 
 
 class FakeCredentialBackend:
@@ -23,6 +23,7 @@ def test_refresh_tokens_are_isolated_by_character() -> None:
     backend = FakeCredentialBackend()
     store = KeyringTokenStore(backend)
 
+    assert SERVICE_NAME == "EVE Dolphin"
     store.set_refresh_token(1001, "token-a")
     store.set_refresh_token(1002, "token-b")
 

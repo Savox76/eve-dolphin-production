@@ -5,7 +5,7 @@
     .bg{fill:#08111f}.side{fill:#0f1b2d}.surface{fill:#111f33}.surface2{fill:#16263c}.line{stroke:#31445f;stroke-width:1}.text{fill:#f3f7fb;font-family:Inter,Arial,sans-serif}.muted{fill:#9aacbf;font-family:Inter,Arial,sans-serif}.accent{fill:#38bdf8}.good{fill:#34d399}.warn{fill:#fbbf24}.estimate{fill:#c084fc}.manual{fill:#60a5fa}.blocked{fill:#fb7185}.h1{font-size:26px;font-weight:600}.h2{font-size:16px;font-weight:600}.body{font-size:14px}.small{font-size:12px}.num{font-size:22px;font-weight:600}
   </style></defs>
   <rect class="bg" width="1440" height="900"/><rect class="side" width="264" height="900"/>
-  <text class="text h2" x="24" y="34">EVE Production Tool</text><text class="muted small" x="24" y="55">Produktionsplanung für EVE Online</text>
+  <text class="text h2" x="24" y="34">EVE Dolphin</text><text class="muted small" x="24" y="55">Produktionsplanung für EVE Online</text>
   <text class="muted body" x="48" y="108">Übersicht</text><text class="muted body" x="48" y="154">Planetare Industrie</text><text class="muted body" x="48" y="200">PI-Zielplaner</text>
   <rect class="surface2" x="12" y="220" width="240" height="42" rx="8"/><circle class="accent" cx="32" cy="241" r="5"/><text class="text body" x="48" y="246">Produktionsprojekte</text>
   <text class="muted body" x="48" y="292">Blueprints</text><text class="muted body" x="48" y="338">Inventar &amp; Logistik</text><text class="muted body" x="48" y="384">Markt &amp; Kalkulation</text><text class="muted body" x="48" y="430">Einstellungen &amp; Charaktere</text>

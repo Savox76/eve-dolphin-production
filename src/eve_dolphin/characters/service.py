@@ -7,17 +7,17 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Protocol
 
-from eve_production_tool.characters.models import EveCharacter
-from eve_production_tool.characters.repository import CharacterWriter
-from eve_production_tool.security import TokenStore
-from eve_production_tool.sso.config import SsoConfig
-from eve_production_tool.sso.models import (
+from eve_dolphin.characters.models import EveCharacter
+from eve_dolphin.characters.repository import CharacterWriter
+from eve_dolphin.security import TokenStore
+from eve_dolphin.sso.config import SsoConfig
+from eve_dolphin.sso.models import (
     AuthorizationRequest,
     CallbackResult,
     SsoMetadata,
     TokenResponse,
 )
-from eve_production_tool.sso.validation import AccessTokenValidator
+from eve_dolphin.sso.validation import AccessTokenValidator
 
 
 class SsoAuthorizationError(ValueError):

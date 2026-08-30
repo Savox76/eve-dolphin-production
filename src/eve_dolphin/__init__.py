@@ -1,4 +1,4 @@
-"""EVE Production Tool package."""
+"""EVE Dolphin package."""
 
 __all__ = ["__version__"]
 

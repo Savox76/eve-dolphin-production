@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from eve_production_tool.app.bootstrap import build_context, main, run_self_check
-from eve_production_tool.app.paths import AppPaths
+from eve_dolphin.app.bootstrap import build_context, main, run_self_check
+from eve_dolphin.app.paths import AppPaths
 
 
 def test_context_initializes_local_database(tmp_path: Path) -> None:
@@ -31,4 +31,4 @@ def test_self_check_reports_version_and_schema(
 
 def test_cli_self_check_uses_temporary_profile(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--self-check"]) == 0
-    assert "EVE Production Tool" in capsys.readouterr().out
+    assert "EVE Dolphin" in capsys.readouterr().out

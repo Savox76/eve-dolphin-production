@@ -4,8 +4,8 @@ import sqlite3
 from contextlib import suppress
 from pathlib import Path
 
-from eve_production_tool.database import Database
-from eve_production_tool.database.migrations import LATEST_SCHEMA_VERSION
+from eve_dolphin.database import Database
+from eve_dolphin.database.migrations import LATEST_SCHEMA_VERSION
 
 
 def test_initialize_is_repeatable_and_reaches_latest_schema(tmp_path: Path) -> None:

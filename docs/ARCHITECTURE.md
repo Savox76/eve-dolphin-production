@@ -12,6 +12,7 @@ Diese Architektur ersetzt mit Beschluss D-014 die zuvor geplante gehostete TypeS
 - vollständig getrennte Daten je Installation
 - sichere EVE-SSO-Anbindung ohne eingebettetes Client Secret
 - gemeinsame, exakt testbare Berechnungslogik für PI und Manufacturing
+- modularer Kern für spätere Mining- und PVE-Funktionen
 - nachvollziehbare lokale Backups und Datenexporte
 - spätere Portierung auf weitere Desktop-Systeme ohne fachlichen Neubau
 
@@ -20,7 +21,7 @@ Diese Architektur ersetzt mit Beschluss D-014 die zuvor geplante gehostete TypeS
 | Komponente | Verantwortung |
 |---|---|
 | Desktop-Oberfläche | Navigation, Tabellen, Diagramme, Eingaben und Datenstatus |
-| Domänenkern | PI-, Blueprint-, Bestands-, Logistik- und Gewinnberechnungen |
+| Domänenkern | PI-, Blueprint-, Bestands-, Logistik- und Gewinnberechnungen; später Mining und PVE |
 | Synchronisation | EVE SSO, ESI, SDE, Marktpreise, Cache und Wiederholungen |
 | Aufgabensteuerung | lokale Hintergrundaufgaben, Fortschritt und Fehlerstatus |
 | SQLite | Anwendungsdaten, Snapshots, Projekte und Synchronisationshistorie |
@@ -45,10 +46,12 @@ Die Berechnungs- und Datenzugriffsschicht darf keine Abhängigkeit von Qt besitz
 ## Repository-Struktur
 
 ```text
-src/eve_production_tool/
+src/eve_dolphin/
   app/                 Programmstart, Lebenszyklus und globale Konfiguration
   ui/                  PySide6-Fenster, Ansichten, Dialoge und View-Modelle
   domain/              PI-, Blueprint-, Bestands- und Gewinnlogik
+  mining/              späteres Mining- und Reprocessing-Modul
+  pve/                 späteres PVE- und Missionsjournal-Modul
   database/            SQLite-Schema, Migrationen und Repositories
   esi/                 ESI-Client, Cache und Datenadapter
   sso/                 PKCE, lokaler Callback und Tokenverwaltung
@@ -170,6 +173,10 @@ Geldbeträge und Mengen verwenden Python `Decimal` beziehungsweise explizite gan
 - Ein späterer Update-Check darf eine neue Version melden; Download und Installation benötigen eine Bestätigung.
 - Entwicklung erfolgt in einer reproduzierbaren Python-Umgebung mit gesperrten Abhängigkeiten.
 
+Die Python-Codebasis bleibt gemeinsam und wird nicht pro Betriebssystem aufgeteilt. Installation, Signierung, OS-Anmeldedatenspeicher und Paketprüfung erzeugen dennoch getrennte Release-Pakete. Windows wird zuerst abgenommen; weitere Desktop-Systeme erhalten eigene Builds und Tests.
+
+Während der Entwicklung bleibt das Quellcode-Repository privat. Für eine spätere Weitergabe ist ein getrenntes öffentliches Release-Repository vorgesehen, das Installationspakete, Prüfsummen und Änderungsprotokolle enthält, ohne dadurch den privaten Quellcode offenzulegen.
+
 ## Backup und Wiederherstellung
 
 - manueller Export eines lokalen Backup-Pakets
@@ -191,6 +198,8 @@ Geldbeträge und Mengen verwenden Python `Decimal` beziehungsweise explizite gan
 8. Tokens werden weder protokolliert noch in SQLite oder Exporte geschrieben.
 9. Datenpfade werden über die Betriebssystem-APIs ermittelt und nicht relativ zum Installationsordner angenommen.
 10. Jede Datenmigration ist getestet und besitzt einen klaren Fehler- und Wiederherstellungsweg.
+11. Fachmodule verwenden den gemeinsamen Charakter-, Berechtigungs-, Asset-, Markt- und Datenstatuskern, bleiben aber untereinander lose gekoppelt.
+12. Ein Modul fordert seine ESI-Scopes erst bei ausdrücklicher Aktivierung an.
 
 ## Offene Releaseentscheidungen
 

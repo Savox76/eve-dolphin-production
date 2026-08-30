@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from eve_production_tool.i18n import Translator
-from eve_production_tool.i18n.catalog import CATALOG
+from eve_dolphin.i18n import Translator
+from eve_dolphin.i18n.catalog import CATALOG
 
 
 def test_german_and_english_catalogs_have_identical_keys() -> None:

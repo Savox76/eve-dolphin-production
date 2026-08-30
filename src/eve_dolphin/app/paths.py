@@ -7,7 +7,7 @@ from pathlib import Path
 
 from platformdirs import PlatformDirs
 
-APP_NAME = "EVE Production Tool"
+APP_NAME = "EVE Dolphin"
 APP_AUTHOR = "Savox76"
 
 
@@ -28,7 +28,7 @@ class AppPaths:
         data_dir = Path(directories.user_data_path)
         return cls(
             data_dir=data_dir,
-            database_path=data_dir / "eve-production-tool.sqlite3",
+            database_path=data_dir / "eve-dolphin.sqlite3",
             backup_dir=data_dir / "backups",
             log_dir=Path(directories.user_log_path),
         )
@@ -40,7 +40,7 @@ class AppPaths:
         base_dir = base_dir.resolve()
         return cls(
             data_dir=base_dir,
-            database_path=base_dir / "eve-production-tool.sqlite3",
+            database_path=base_dir / "eve-dolphin.sqlite3",
             backup_dir=base_dir / "backups",
             log_dir=base_dir / "logs",
         )

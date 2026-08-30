@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
-  <title id="title">Desktop-Wireframe der EVE Production Tool Übersicht</title>
+  <title id="title">Desktop-Wireframe der EVE Dolphin Übersicht</title>
   <desc id="desc">Linke Hauptnavigation, obere Statusleiste, nächste Aktionen, aktive Projekte, PI-Zustand und eine Legende für Datenqualität.</desc>
   <defs>
     <style>
@@ -8,7 +8,7 @@
   </defs>
   <rect class="bg" width="1440" height="900"/>
   <rect class="side" width="264" height="900"/>
-  <text class="text h2" x="24" y="34">EVE Production Tool</text>
+  <text class="text h2" x="24" y="34">EVE Dolphin</text>
   <text class="muted small" x="24" y="55">Unabhängiges Produktions-Cockpit</text>
 
   <g aria-label="Hauptnavigation">

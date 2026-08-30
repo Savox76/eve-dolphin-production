@@ -26,7 +26,7 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 
 ### D-004 – Produktname
 
-- **Status:** beschlossen am 30.08.2026
+- **Status:** ersetzt am 30.08.2026 durch D-018
 - **Entscheidung:** Der Produktname lautet **EVE Production Tool**.
 - **Beschreibung:** Die deutsche Funktionsbeschreibung lautet „Produktionsplanung für EVE Online“.
 - **Branding:** Das Produkt wird deutlich als unabhängige Drittanbieter-Anwendung gekennzeichnet und verwendet den von CCP geforderten Schutzvermerk.
@@ -147,3 +147,23 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Persistenz:** Nur das Refresh Token wird charakterbezogen im OS-Anmeldedatenspeicher abgelegt. Charakter-ID, Name, Owner-Hash, Scopes und Zeitstempel liegen in SQLite; bei einem Speicherfehler wird ein ersetztes Token wiederhergestellt.
 - **Abhängigkeiten:** HTTPX `0.28.1` übernimmt begrenzte HTTPS-Anfragen; PyJWT `2.13.0` mit `cryptography` validiert EVE-JWTs. Alle Versionen sind im Lockfile festgeschrieben.
 - **Begründung:** Die lokale Anwendung ist ein öffentlicher OAuth-Client. PKCE, ein strikt begrenzter Loopback-Callback und vollständige Tokenvalidierung bilden gemeinsam die notwendige Vertrauensgrenze.
+
+### D-018 – EVE Dolphin als modulares Produktdach
+
+- **Status:** beschlossen am 30.08.2026
+- **Entscheidung:** Der Produktname lautet **EVE Dolphin** und ersetzt **EVE Production Tool** aus D-004.
+- **Begründung:** Ein reiner Produktionsname wäre zu eng, weil nach PI und Manufacturing auch Mining sowie PVE/Missionen unterstützt werden sollen.
+- **Scope-Schutz:** Version 1.0 bleibt unverändert auf PI und Manufacturing begrenzt. Die Umbenennung erhöht weder die Abnahmekriterien noch den Fortschrittswert.
+- **Technik:** Projektkennung, Python-Paket, Startkommando, lokale App-Pfade und Release-Pakete werden vor dem ersten öffentlichen Release auf `eve-dolphin`, `eve_dolphin` und `EVE-Dolphin` umgestellt. Es existieren noch keine produktiven Nutzerdaten oder gespeicherten Live-Tokens, die migriert werden müssten.
+- **Branding:** Die Anwendung bleibt klar als unabhängige Drittanbieter-Anwendung gekennzeichnet. Offizielle EVE-Logos werden nicht so mit dem eigenen Erscheinungsbild kombiniert, dass eine Unterstützung durch CCP suggeriert wird.
+- **Veröffentlichung:** Eine gemeinsame private Python-Codebasis erzeugt getrennte Pakete je Betriebssystem. Später kann ein separates öffentliches Repository ausschließlich Binärpakete, Prüfsummen und Changelog bereitstellen.
+
+### D-019 – Mining und PVE nach Version 1.0
+
+- **Status:** beschlossen am 30.08.2026
+- **Reihenfolge:** Version 1.1 ergänzt Mining und Reprocessing; Version 1.2 ergänzt PVE und Missionen. Advanced Industry, Corporation und Optimierung folgen danach.
+- **Gemeinsamer Kern:** Charaktere, progressive ESI-Berechtigungen, Assets, Marktpreise, Datenstatus und lokale Historie werden von allen Modulen wiederverwendet.
+- **Mining-Grenze:** Das persönliche ESI-Mining-Ledger liefert im aktuellen Schema 30 Tage. Eine längere Historie entsteht lokal erst ab dem ersten erfolgreichen Abruf.
+- **Missions-Grenze:** ESI bietet kein vollständiges Live-Journal aller klassischen Missionen. Das PVE-Modul kombiniert Standing, Wallet, Assets, Killmails und optionalen Standort mit einem lokalen Missionsjournal.
+- **Sicherheit:** Die neuen Scopes werden nicht vorsorglich in Version 1.0 angefordert, sondern erst bei Aktivierung des jeweiligen Moduls.
+- **Automatisierung:** EVE Dolphin beobachtet und bewertet Daten, führt jedoch keine Spielaktionen aus.

@@ -4,11 +4,11 @@ from datetime import UTC, datetime
 
 import pytest
 
-from eve_production_tool.characters.models import EveCharacter
-from eve_production_tool.characters.service import CharacterLinkService, SsoAuthorizationError
-from eve_production_tool.security import TokenStore
-from eve_production_tool.sso.config import SsoConfig
-from eve_production_tool.sso.models import (
+from eve_dolphin.characters.models import EveCharacter
+from eve_dolphin.characters.service import CharacterLinkService, SsoAuthorizationError
+from eve_dolphin.security import TokenStore
+from eve_dolphin.sso.config import SsoConfig
+from eve_dolphin.sso.models import (
     AuthorizationRequest,
     CallbackResult,
     SsoMetadata,
