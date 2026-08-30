@@ -819,18 +819,18 @@ Passwörter, Client Secrets und Refresh Tokens werden niemals im Chat oder Repos
 
 ---
 
-## 15. Offene Entscheidungen für Phase 0
+## 15. Abgeschlossene Entscheidungen aus Phase 0
 
-1. ~~endgültiger Produktname~~ – **EVE Production Tool**
-2. ~~zunächst privat gehostet oder ausschließlich lokal~~ – **privat online erreichbar**
-3. bevorzugte Handelsplätze und Marktseiten
-4. primärer Produktionsort und Strukturprofile
-5. Anzahl der zunächst eingebundenen Charaktere
-6. erstes Wurmlochsystem und POCO-Situation
-7. fünf reale Abnahmeszenarien aus dem eigenen Spielbetrieb
-8. gewünschte Priorität: minimale Pflege, maximale Marge oder maximale Produktion
-9. gewünschte Sprache der Oberfläche beim Start
-10. gewünschter späterer Zugriff für Corporation-Mitglieder
+1. **Produktname:** EVE Production Tool
+2. **Betrieb:** privat online erreichbare Web-App, technisch mehrbenutzerfähig
+3. **Markt:** Jita als erstes Profil; weitere Hubs und Marktseiten konfigurierbar
+4. **Produktionsorte:** kein hartcodierter Primärort; versionierte Standort- und Strukturprofile
+5. **Charaktere:** mehrere eigene Charaktere von Beginn an, ohne feste fachliche Obergrenze
+6. **Wurmlochreferenz:** J151141 mit manuell bestätigtem POCO- und Logistikstatus
+7. **Abnahmeszenarien:** Water, Robotics, Caracal, Nanite Repair Paste und J151141
+8. **Optimierungsziel:** pro Projekt auswählbar; konservative Wirtschaftsbewertung als Standard
+9. **Oberflächensprache:** Deutsch und Englisch in derselben Codebasis
+10. **Spätere Nutzer:** Mandantentrennung von Beginn an; Corporation-Funktionen nach Version 1.0
 
 ### Empfohlene Ausgangsentscheidungen
 
@@ -847,17 +847,17 @@ Passwörter, Client Secrets und Refresh Tokens werden niemals im Chat oder Repos
 
 ## 16. Startpaket
 
-Nach Freigabe dieses Masterplans beginnt Phase 0 mit folgenden Ergebnissen:
+Das Startpaket aus Phase 0 wurde am 30.08.2026 abgenommen:
 
-1. Produktname und Kurzbeschreibung
-2. fünf konkrete Nutzerabläufe
-3. erste Seitenstruktur und Wireframes
-4. Datenquellen- und Scope-Matrix
-5. verbindlicher Formel- und Rundungskatalog
-6. Architekturentscheidung
-7. initialer Issue- und Meilensteinplan für das Repository
+1. [x] Produktname und Kurzbeschreibung
+2. [x] fünf konkrete Nutzerabläufe
+3. [x] erste Seitenstruktur und Wireframes
+4. [x] Datenquellen- und Scope-Matrix
+5. [x] verbindlicher Formel- und Rundungskatalog
+6. [x] Architekturentscheidung
+7. [x] initialer Issue- und Meilensteinplan für das Repository
 
-Erst danach beginnt die Implementierung. So wird verhindert, dass zentrale Daten- und Berechnungsentscheidungen später teuer umgebaut werden müssen.
+Die technische Implementierung beginnt mit Phase 1 auf diesem versionierten Stand.
 
 ---
 
