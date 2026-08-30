@@ -10,8 +10,8 @@ import httpx
 from eve_dolphin import __version__
 from eve_dolphin.updates.models import AppVersion, ReleaseAsset, ReleaseInfo
 
-RELEASES_API_URL = "https://api.github.com/repos/Savox76/eve-dolphin-releases/releases"
-RELEASE_DOWNLOAD_PREFIX = "https://github.com/Savox76/eve-dolphin-releases/releases/download/"
+RELEASES_API_URL = "https://api.github.com/repos/Savox76/eve-dolphin-production/releases"
+RELEASE_DOWNLOAD_PREFIX = "https://github.com/Savox76/eve-dolphin-production/releases/download/"
 MAX_RELEASE_METADATA_BYTES = 2 * 1024 * 1024
 MAX_UPDATE_ARCHIVE_BYTES = 500 * 1024 * 1024
 EXPECTED_ASSET_PREFIX = "EVE-Dolphin-Windows-"
