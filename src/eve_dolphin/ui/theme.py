@@ -69,7 +69,8 @@ QFrame#card {
     border-radius: 10px;
 }
 
-QTableWidget#characterTable {
+QTableWidget#characterTable,
+QTableWidget#planetaryColonyTable {
     background-color: #0d1622;
     border: 1px solid #233246;
     border-radius: 6px;
@@ -78,7 +79,8 @@ QTableWidget#characterTable {
     selection-color: #ffffff;
 }
 
-QTableWidget#characterTable QHeaderView::section {
+QTableWidget#characterTable QHeaderView::section,
+QTableWidget#planetaryColonyTable QHeaderView::section {
     background-color: #152131;
     border: 0;
     border-bottom: 1px solid #2b3d53;

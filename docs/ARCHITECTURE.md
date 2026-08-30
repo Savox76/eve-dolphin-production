@@ -197,6 +197,21 @@ läuft kein verbindlicher ISK-Wert durch eine binäre Fließkommazahl. Auch hier
 wechseln Snapshot, aktive Referenz, Laufstatus und `last_sync_at` gemeinsam in einer
 SQLite-Transaktion; die vorige gültige Version bleibt bei jedem Fehler aktiv.
 
+## PI-Lesemodell und Kolonieübersicht
+
+Die sichtbare PI-Übersicht liest ausschließlich die atomar aktivierten
+`planetary_current`-Snapshots. Ein charakterübergreifender, Qt-unabhängiger Dienst verdichtet
+jede Kolonie zu Pin-, Link-, Routen-, Fabrik- und Lagerzahlen und klassifiziert
+Extraktorprogramme anhand ihrer Ablaufzeit als aktiv, abgelaufen oder unvollständig. Der
+nächste bekannte Ablaufzeitpunkt wird aus den aktiven Programmen bestimmt.
+
+Alle referenzierten Pin-, Rohstoff- und Produkt-IDs werden in einer gebündelten Abfrage gegen
+den aktiven, freigegebenen SDE-Build aufgelöst. Ein inaktiver Import kann dadurch keine Namen
+in die Oberfläche mischen. Deutsche Namen verwenden den englischen SDE-Namen als Fallback;
+fehlt auch dieser Datensatz, bleibt die Type-ID sichtbar. Die Qt-Seite aktualisiert sich nach
+einem vollständigen Datenabruf oder einer Charakteränderung, führt aber selbst keine ESI-
+oder SDE-Netzwerkanfrage aus.
+
 ## SDE-Import
 
 1. Aktuelle Build-Metadaten mit HTTP-Caching prüfen.

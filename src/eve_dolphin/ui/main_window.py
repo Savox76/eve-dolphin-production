@@ -31,6 +31,7 @@ from eve_dolphin.i18n import Translator
 from eve_dolphin.status import DataStatusRepository, ResourceDataStatus
 from eve_dolphin.sync.coordinator import CharacterSyncBatch
 from eve_dolphin.ui.character_page import CharacterPage
+from eve_dolphin.ui.planetary_page import PlanetaryPage
 from eve_dolphin.ui.update_dialog import (
     CheckForUpdate,
     StageUpdate,
@@ -91,6 +92,7 @@ class MainWindow(QMainWindow):
         self.navigation = QListWidget()
         self.pages = QStackedWidget()
         self.character_page: CharacterPage | None = None
+        self.planetary_page: PlanetaryPage | None = None
         self._close_pending = False
         self._update_check_worker: UpdateCheckWorker | None = None
         self._update_stage_worker: UpdateStageWorker | None = None
@@ -157,6 +159,9 @@ class MainWindow(QMainWindow):
         for index, section in enumerate(SECTIONS):
             if index == 0:
                 page = self._build_overview_page()
+            elif section.view_id == "pi-colonies":
+                self.planetary_page = PlanetaryPage(self.database, self.translator)
+                page = self.planetary_page
             elif section.view_id == "settings":
                 self.character_page = CharacterPage(
                     self.character_repository,
@@ -166,6 +171,9 @@ class MainWindow(QMainWindow):
                 self.character_page.characters_changed.connect(self._refresh_character_summary)
                 self.character_page.characters_changed.connect(self._refresh_data_status)
                 self.character_page.data_changed.connect(self._refresh_data_status)
+                if self.planetary_page is not None:
+                    self.character_page.characters_changed.connect(self.planetary_page.refresh)
+                    self.character_page.data_changed.connect(self.planetary_page.refresh)
                 page = self.character_page
             else:
                 page = self._build_placeholder_page(section)

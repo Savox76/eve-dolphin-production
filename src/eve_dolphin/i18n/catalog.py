@@ -12,6 +12,55 @@ CATALOG: dict[str, dict[str, str]] = {
         "app.subtitle": "Lokaler EVE-Begleiter",
         "overview": "Übersicht",
         "pi": "Planetare Industrie",
+        "pi_overview_detail": (
+            "Aktuelle Kolonien aller verbundenen Charaktere. Die Ansicht verwendet nur "
+            "vollständig synchronisierte lokale Datenstände."
+        ),
+        "pi_colonies": "Kolonieübersicht",
+        "pi_colony_details": "Ausgewählte Kolonie",
+        "pi_character": "Charakter",
+        "pi_planet": "Planet-ID",
+        "pi_planet_type": "Planetentyp",
+        "pi_system": "System-ID",
+        "pi_pins": "Pins",
+        "pi_extractors": "Extraktoren",
+        "pi_factories": "Fabriken",
+        "pi_last_update": "Kolonie aktualisiert",
+        "pi_no_colonies": (
+            "Noch keine PI-Kolonien vorhanden. Verbinde einen Charakter mit PI-Freigabe "
+            "und synchronisiere seine EVE-Daten."
+        ),
+        "pi_no_selection": "Wähle eine Kolonie aus, um ihre Details zu sehen.",
+        "pi_summary": (
+            "Kolonien: {colonies} · Charaktere: {characters} · Extraktoren: "
+            "{active} aktiv, {expired} abgelaufen, {incomplete} unvollständig"
+        ),
+        "pi_identity_detail": (
+            "{character} · Planet {planet} ({planet_type}) · System {system} · "
+            "Kommandozentrale Stufe {level}"
+        ),
+        "pi_layout_detail": (
+            "Anlage: {pins} Pins · {links} Links · {routes} Routen · {factories} Fabriken"
+        ),
+        "pi_extractor_detail": (
+            "Extraktoren: {active} aktiv · {expired} abgelaufen · {incomplete} "
+            "unvollständig · nächste Laufzeit endet {next_expiry}"
+        ),
+        "pi_extractor_compact": "{active} / {expired} / {incomplete}",
+        "pi_pin_types_detail": "Pin-Typen: {values}",
+        "pi_extractor_products_detail": "Extraktorprodukte: {values}",
+        "pi_storage_detail": "Gelagerte Inhalte: {values}",
+        "pi_snapshot_detail": "Lokaler vollständiger Snapshot: {snapshot}",
+        "pi_none": "keine",
+        "pi_unknown_type": "Typ {type_id}",
+        "planet_type_temperate": "gemäßigt",
+        "planet_type_barren": "karg",
+        "planet_type_oceanic": "ozeanisch",
+        "planet_type_ice": "Eis",
+        "planet_type_gas": "Gas",
+        "planet_type_lava": "Lava",
+        "planet_type_storm": "Sturm",
+        "planet_type_plasma": "Plasma",
         "pi_planner": "PI-Zielplaner",
         "projects": "Produktionsprojekte",
         "blueprints": "Blueprints",
@@ -140,6 +189,55 @@ CATALOG: dict[str, dict[str, str]] = {
         "app.subtitle": "Local EVE companion",
         "overview": "Overview",
         "pi": "Planetary Industry",
+        "pi_overview_detail": (
+            "Current colonies for all connected characters. This view only uses complete, "
+            "locally synchronized snapshots."
+        ),
+        "pi_colonies": "Colony overview",
+        "pi_colony_details": "Selected colony",
+        "pi_character": "Character",
+        "pi_planet": "Planet ID",
+        "pi_planet_type": "Planet type",
+        "pi_system": "System ID",
+        "pi_pins": "Pins",
+        "pi_extractors": "Extractors",
+        "pi_factories": "Factories",
+        "pi_last_update": "Colony updated",
+        "pi_no_colonies": (
+            "No PI colonies are available yet. Connect a character with PI permission and "
+            "synchronize their EVE data."
+        ),
+        "pi_no_selection": "Select a colony to see its details.",
+        "pi_summary": (
+            "Colonies: {colonies} · Characters: {characters} · Extractors: "
+            "{active} active, {expired} expired, {incomplete} incomplete"
+        ),
+        "pi_identity_detail": (
+            "{character} · Planet {planet} ({planet_type}) · System {system} · "
+            "Command center level {level}"
+        ),
+        "pi_layout_detail": (
+            "Layout: {pins} pins · {links} links · {routes} routes · {factories} factories"
+        ),
+        "pi_extractor_detail": (
+            "Extractors: {active} active · {expired} expired · {incomplete} incomplete · "
+            "next expiry {next_expiry}"
+        ),
+        "pi_extractor_compact": "{active} / {expired} / {incomplete}",
+        "pi_pin_types_detail": "Pin types: {values}",
+        "pi_extractor_products_detail": "Extractor products: {values}",
+        "pi_storage_detail": "Stored contents: {values}",
+        "pi_snapshot_detail": "Complete local snapshot: {snapshot}",
+        "pi_none": "none",
+        "pi_unknown_type": "Type {type_id}",
+        "planet_type_temperate": "temperate",
+        "planet_type_barren": "barren",
+        "planet_type_oceanic": "oceanic",
+        "planet_type_ice": "ice",
+        "planet_type_gas": "gas",
+        "planet_type_lava": "lava",
+        "planet_type_storm": "storm",
+        "planet_type_plasma": "plasma",
         "pi_planner": "PI Target Planner",
         "projects": "Production Projects",
         "blueprints": "Blueprints",

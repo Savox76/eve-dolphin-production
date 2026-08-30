@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterable
 from datetime import datetime
 
 from eve_dolphin.database import Database
@@ -66,6 +67,45 @@ class SdeRepository:
             str(etag) if etag is not None else None,
             str(last_modified) if last_modified is not None else None,
         )
+
+    def type_names(self, type_ids: Iterable[int], language: str) -> dict[int, str]:
+        """Resolve type IDs against the active SDE without exposing an inactive build."""
+
+        if language not in {"de", "en"}:
+            raise ValueError("unsupported SDE type-name language")
+        identifiers = tuple(sorted(set(type_ids)))
+        if any(type_id <= 0 for type_id in identifiers):
+            raise ValueError("SDE type IDs must be positive")
+        if not identifiers:
+            return {}
+        name_expression = (
+            "COALESCE(NULLIF(type.name_de, ''), type.name_en)"
+            if language == "de"
+            else "type.name_en"
+        )
+        resolved: dict[int, str] = {}
+        with self._database.connect() as connection:
+            active = connection.execute(
+                "SELECT build_number FROM sde_current WHERE singleton = 1"
+            ).fetchone()
+            if active is None:
+                return {}
+            build_number = int(active["build_number"])
+            for offset in range(0, len(identifiers), 500):
+                chunk = identifiers[offset : offset + 500]
+                placeholders = ", ".join("?" for _identifier in chunk)
+                rows = connection.execute(
+                    f"""
+                    SELECT type.type_id, {name_expression} AS display_name
+                    FROM sde_types AS type
+                    JOIN sde_builds AS build ON build.build_number = type.build_number
+                    WHERE type.build_number = ? AND build.status = 'ready'
+                      AND type.type_id IN ({placeholders})
+                    """,
+                    (build_number, *chunk),
+                ).fetchall()
+                resolved.update((int(row["type_id"]), str(row["display_name"])) for row in rows)
+        return resolved
 
 
 def _status_from_rows(

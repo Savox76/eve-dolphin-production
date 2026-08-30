@@ -29,7 +29,7 @@ Die gemeinsame Charakter-, Daten-, Markt- und Inventarbasis wird später von Min
 - lokale SQLite-Datenbank ohne Hoster oder separaten Datenbankdienst
 - eigenständige Installation für jeden Spieler
 
-Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md), die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md), der [Formel- und Bewertungskatalog](docs/FORMULA_CATALOG.md), die [Seitenstruktur und Wireframes](docs/UX_STRUCTURE.md), die Abnahmen von [Phase 0](docs/PHASE_0_ACCEPTANCE.md) und [Phase 1](docs/PHASE_1_ACCEPTANCE.md) sowie der [aktuelle Stand von Phase 2](docs/PHASE_2_STATUS.md).
+Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md), die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md), der [Formel- und Bewertungskatalog](docs/FORMULA_CATALOG.md), die [Seitenstruktur und Wireframes](docs/UX_STRUCTURE.md), die Abnahmen von [Phase 0](docs/PHASE_0_ACCEPTANCE.md) und [Phase 1](docs/PHASE_1_ACCEPTANCE.md) sowie der [aktuelle Stand von Phase 2](docs/PHASE_2_STATUS.md) und der [laufende Phase-3-Ausbau](docs/PHASE_3_STATUS.md).
 
 Die später benötigten Portalwerte, Scopes, PowerShell-Befehle und Sicherheitsregeln
 stehen gesammelt in der **[Anleitung zur EVE-Developer-Anwendung](docs/EVE_DEVELOPER_APPLICATION.md)**.
@@ -45,7 +45,9 @@ ESI liefert nicht jeden aktiven Missionsschritt als vollständigen Live-Status. 
 
 **Gesamtfortschritt: 15 %**
 
-Nächster Meilenstein: **Phase 2 – EVE-Datenbasis**
+Formaler nächster Meilenstein: **Phase 2 – Live-Datenabnahme**
+
+Technisch in Arbeit: **Phase 3 – PI-MVP**
 
 Phase 1 ist abgeschlossen. Phase 2 ist technisch vollständig; Callback und erster echter
 Charakterlogin wurden bestätigt. Ein neuer Charakter fordert die vier für Industrie und PI
@@ -53,7 +55,9 @@ benötigten Berechtigungen gemeinsam an, wird unmittelbar synchronisiert und wä
 Laufzeit alle fünf Minuten erneut geprüft. Die ressourcenspezifischen ESI-Cachegrenzen
 verhindern dabei unnötige Abrufe. Der formale Gesamtfortschritt bleibt bis zum vollständigen
 Live-Datenabruf und Zwei-Charakter-Durchlauf gemäß
-[Phase-2-Abnahme](docs/PHASE_2_ACCEPTANCE.md) bei `15 %`.
+[Phase-2-Abnahme](docs/PHASE_2_ACCEPTANCE.md) bei `15 %`. Parallel entsteht bereits die
+charakterübergreifende PI-Kolonieübersicht mit Extraktorstatus, Lagerinhalten und gegen die
+aktive SDE aufgelösten Pin- und Produktnamen.
 
 ## Entwicklung und lokaler Start
 
