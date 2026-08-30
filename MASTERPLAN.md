@@ -6,7 +6,7 @@
 
 **Stand:** 29. August 2026
 
-**Arbeitstitel:** EVE Production Tool (endgültiger Produktname noch offen)
+**Produktname:** EVE Production Tool
 
 ---
 
@@ -821,8 +821,8 @@ Passwörter, Client Secrets und Refresh Tokens werden niemals im Chat oder Repos
 
 ## 15. Offene Entscheidungen für Phase 0
 
-1. endgültiger Produktname
-2. zunächst privat gehostet oder ausschließlich lokal
+1. ~~endgültiger Produktname~~ – **EVE Production Tool**
+2. ~~zunächst privat gehostet oder ausschließlich lokal~~ – **privat online erreichbar**
 3. bevorzugte Handelsplätze und Marktseiten
 4. primärer Produktionsort und Strukturprofile
 5. Anzahl der zunächst eingebundenen Charaktere
@@ -834,7 +834,7 @@ Passwörter, Client Secrets und Refresh Tokens werden niemals im Chat oder Repos
 
 ### Empfohlene Ausgangsentscheidungen
 
-- private Web-App, technisch mehrbenutzerfähig vorbereitet
+- private, online erreichbare Web-App, technisch von Beginn an mehrbenutzerfähig
 - mehrere eigene Charaktere von Beginn an
 - Deutsch und Englisch in derselben Codebasis
 - PI P0–P4 vollständig in v1.0

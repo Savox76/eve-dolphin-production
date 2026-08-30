@@ -1,6 +1,6 @@
 # EVE Production Tool
 
-Privates Produktions-Cockpit für **EVE Online**, das Planetare Industrie (PI) und klassische Fertigung in einer gemeinsamen Planung verbindet.
+Privat betriebenes Produktions-Cockpit für **EVE Online**, das Planetare Industrie (PI) und klassische Fertigung in einer gemeinsamen Planung verbindet. Die erste Version ist nur für freigegebene Nutzer erreichbar, wird technisch aber von Beginn an mehrbenutzerfähig aufgebaut.
 
 ## Projektziel
 
@@ -25,7 +25,7 @@ Das Tool soll aus Blueprints, Kolonien, Assets, Marktpreisen und laufenden Jobs 
 - Markt-, Gebühren-, Gewinn- und Logistikkalkulation
 - responsive Oberfläche auf Deutsch und Englisch
 
-Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md).
+Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Die beschlossene Produkt- und Betriebsdefinition steht in [Produkt und Betriebsmodell](docs/PRODUCT.md).
 
 ## Projektstatus
 
@@ -57,4 +57,8 @@ Nächster Meilenstein: **Phase 0 – Produktspezifikation**
 
 ## Rechtlicher Hinweis
 
-Dieses Projekt ist ein unabhängiges Drittanbieter-Tool und nicht mit CCP Games verbunden. EVE Online und zugehörige Bezeichnungen sind Eigentum ihrer jeweiligen Rechteinhaber. Vor einer öffentlichen Veröffentlichung werden die aktuellen Developer-, Branding- und Third-Party-Richtlinien erneut geprüft.
+EVE Production Tool ist eine unabhängige Drittanbieter-Anwendung und wird weder von CCP hf. entwickelt noch unterstützt oder offiziell empfohlen.
+
+> © 2014 CCP hf. All rights reserved. "EVE", "EVE Online", "CCP", and all related logos and images are trademarks or registered trademarks of CCP hf.
+
+Vor einer öffentlichen Veröffentlichung werden die aktuellen Developer-, Branding- und Third-Party-Richtlinien erneut geprüft.
