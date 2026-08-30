@@ -75,3 +75,11 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Entscheidung:** Die erste Spezifikation wird nicht auf ein persönliches Lieblingsprodukt zugeschnitten, sondern verwendet fünf breit abdeckende Referenzabläufe.
 - **Referenzen:** Water/P1, Robotics/P3, Caracal/T1, Nanite Repair Paste/PI plus Manufacturing sowie J151141 ohne Customs Office.
 - **Begründung:** Die spätere Engine soll sämtliche unterstützten SDE-Rezepte verarbeiten; die Referenzen decken unterschiedliche Daten-, Rechen- und Fehlerpfade ab.
+
+### D-011 – Konservative, versionierte Wirtschaftskalkulation
+
+- **Status:** beschlossen am 30.08.2026
+- **Entscheidung:** Neue Projekte bewerten vorhandene Materialien standardmäßig zu mengenabhängigen Wiederbeschaffungskosten und den Erlös als sofortige Liquidation in vorhandene Buy Orders.
+- **Alternativen:** Planned Buy, Planned Sell, tatsächliche Einkaufskosten und interne Preise bleiben als ausdrücklich gewählte Szenarien verfügbar.
+- **Nachvollziehbarkeit:** Jede Kalkulation speichert Preisquelle, Marktseite, Datenalter, Gebührenprofil, SDE-Build und Formelversion.
+- **Begründung:** Verdeckte Mischpreise würden Gewinne überzeichnen. Ein konservativer Standard bleibt vergleichbar und kann vom Nutzer bewusst optimistischer eingestellt werden.
