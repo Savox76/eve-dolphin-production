@@ -47,11 +47,23 @@ Phase 2 verbindet den lokalen Client sicher mit EVE Online und baut die belastba
 - [x] getrennte Minimalpakete für Identität, Industrie und Planetare Industrie sind im Code festgelegt
 - [x] Portalwerte, Scope-Liste, PowerShell-Konfiguration und Sicherheitsgrenzen sind in `docs/EVE_DEVELOPER_APPLICATION.md` dokumentiert
 
+## Vierter Baustein: versionierte statische EVE-Daten
+
+- [x] offizielles buildbasiertes JSON-Lines-Format der neuen EVE-SDE
+- [x] gecachte Abfrage von `latest.jsonl` mit `ETag` und `Last-Modified`
+- [x] begrenzter Streaming-Download in eine temporäre Datei mit lokaler SHA-256-Prüfsumme
+- [x] Schutz vor fehlenden, doppelten, verschlüsselten oder übermäßig komprimierten Archivdateien
+- [x] normalisierte Typen, Kategorien, Marktgruppen, Blueprints, Aktivitäten, Materialien, Produkte und PI-Schematics
+- [x] versionierte Staging-Daten und atomare Aktivierung erst nach Mengen-, Referenz- und Integritätsprüfungen
+- [x] fehlgeschlagene neue Builds verändern die letzte gültige aktive Version nicht
+- [x] bekannte verwaiste Blueprint-Typreferenzen der offiziellen SDE werden gezählt und sichtbar als Importwarnung gespeichert
+- [x] Import gegen den offiziellen Tranquility-Build `3484357` vom 28.08.2026 erfolgreich geprüft
+
 ## Noch offen bis zur Phase-2-Abnahme
 
 - [ ] EVE-Developer-Anwendung mit öffentlicher Client ID und exaktem Callback registrieren
 - [ ] Modulaktivierung fordert fehlende Industrie-/PI-Scopes sichtbar über eine erneute Autorisierung an
-- [ ] SDE-Download, Prüfung, Versionierung und atomarer Import
+- [x] SDE-Download, Prüfung, Versionierung und atomarer Import
 - [ ] ESI-Client mit Kompatibilitätsdatum, Cache, ETag, Retry und Fehlerlimit-Schutz
 - [ ] erste Asset-, Blueprint-, Job- und Planetensynchronisation
 - [ ] parallele, voneinander isolierte Synchronisation von mindestens zwei Charakteren

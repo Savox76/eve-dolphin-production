@@ -19,6 +19,7 @@ class AppPaths:
     database_path: Path
     backup_dir: Path
     log_dir: Path
+    sde_dir: Path
 
     @classmethod
     def for_current_user(cls) -> AppPaths:
@@ -31,6 +32,7 @@ class AppPaths:
             database_path=data_dir / "eve-dolphin.sqlite3",
             backup_dir=data_dir / "backups",
             log_dir=Path(directories.user_log_path),
+            sde_dir=data_dir / "sde",
         )
 
     @classmethod
@@ -43,10 +45,11 @@ class AppPaths:
             database_path=base_dir / "eve-dolphin.sqlite3",
             backup_dir=base_dir / "backups",
             log_dir=base_dir / "logs",
+            sde_dir=base_dir / "sde",
         )
 
     def ensure_directories(self) -> None:
         """Create mutable application directories if they do not exist."""
 
-        for directory in (self.data_dir, self.backup_dir, self.log_dir):
+        for directory in (self.data_dir, self.backup_dir, self.log_dir, self.sde_dir):
             directory.mkdir(parents=True, exist_ok=True)

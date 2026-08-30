@@ -10,6 +10,21 @@
 - jede ESI-Anfrage verwendet ein geprüftes Kompatibilitätsdatum
 - konkrete Routen und Scopes werden bei Implementierungsbeginn nochmals gegen den offiziellen API Explorer für dieses Datum geprüft
 
+## Statische EVE-Daten
+
+EVE Dolphin verwendet die neue offizielle Tranquility-SDE im JSON-Lines-Format.
+Die jeweils aktuelle Buildnummer und das Veröffentlichungsdatum kommen aus
+`https://developers.eveonline.com/static-data/tranquility/latest.jsonl`; daraus wird
+die buildgebundene Archiv-URL gebildet. Für Version 1.0 werden nur Kategorien,
+Marktgruppen, Gruppen, Typen, Blueprints und Planet-Schematics importiert.
+
+Der Stand vom 28.08.2026 wurde mit Build `3484357` geprüft. Der vollständige reale
+Import umfasst 52.863 Typen, 5.082 Blueprints und 68 PI-Schematics. Da die offizielle
+Quelle einzelne verwaiste Blueprint-Material-/Produkttypen enthalten kann, werden
+diese Abweichungen als Datenqualitätswarnungen gespeichert und nicht verschwiegen.
+Eine lokal berechnete SHA-256-Summe schützt das bereits heruntergeladene Archiv vor
+Veränderung zwischen Download und Import.
+
 ## Private Charakterdaten für Version 1.0
 
 | Funktion | ESI-Route | Scope | Verwendung |

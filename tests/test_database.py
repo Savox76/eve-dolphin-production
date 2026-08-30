@@ -26,7 +26,17 @@ def test_initialize_is_repeatable_and_reaches_latest_schema(tmp_path: Path) -> N
             "SELECT COUNT(*) AS count FROM schema_migrations"
         ).fetchone()
 
-    assert {"schema_migrations", "app_settings", "eve_characters", "sync_runs"} <= tables
+    assert {
+        "schema_migrations",
+        "app_settings",
+        "eve_characters",
+        "sync_runs",
+        "sde_builds",
+        "sde_current",
+        "sde_types",
+        "sde_blueprints",
+        "sde_planet_schematics",
+    } <= tables
     assert migration_count is not None
     assert migration_count["count"] == LATEST_SCHEMA_VERSION
 
