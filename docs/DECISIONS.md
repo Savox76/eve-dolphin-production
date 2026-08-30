@@ -40,8 +40,13 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 
 ### D-006 – Technologiestack
 
-- **Status:** offen
-- **Tendenz:** möglichst kompakter TypeScript-Stack mit PostgreSQL und Docker Compose
+- **Status:** beschlossen am 30.08.2026
+- **Entscheidung:** TypeScript-Monorepo mit getrennten Web-, API- und Worker-Prozessen, PostgreSQL und Docker Compose.
+- **Web:** React-basierte Server-/Client-Web-App mit PWA-Unterstützung.
+- **API:** schlanker TypeScript-HTTP-Dienst mit typisierten Verträgen.
+- **Worker:** eigener Prozess für ESI-Synchronisation, SDE-Import, Preise und Benachrichtigungen.
+- **Warteschlange:** zunächst PostgreSQL-basiert; kein Redis in Version 1.0.
+- **Begründung:** Eine Sprache, gemeinsam nutzbare Domänenlogik und geringe Betriebskosten bei sauberer Trennung langlebiger Hintergrundaufgaben.
 
 ### D-007 – Mehrbenutzerfähigkeit
 
@@ -49,3 +54,17 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Entscheidung:** Benutzer-, Charakter-, Token- und Produktionsdaten werden von Anfang an mandantengetrennt modelliert.
 - **Begründung:** Das private Tool kann später für weitere Spieler geöffnet werden, ohne die Sicherheits- und Datenarchitektur neu aufzubauen.
 - **Einschränkung:** Mehrbenutzerfähigkeit bedeutet in Version 1.0 keine öffentliche Registrierung oder Bezahlfunktion.
+
+### D-008 – ESI-Kompatibilitätsdatum
+
+- **Status:** beschlossen am 30.08.2026
+- **Entscheidung:** Jede ESI-Anfrage sendet ein zentral konfiguriertes `X-Compatibility-Date`.
+- **Aktualisierung:** Das Datum wird nur nach Prüfung der offiziellen Änderungen, aktualisierten Contract-Tests und erfolgreichem Testlauf angehoben.
+- **Begründung:** Nicht geprüfte API-Änderungen dürfen die Anwendung nicht unbemerkt verändern.
+
+### D-009 – Progressive EVE-Berechtigungen
+
+- **Status:** beschlossen am 30.08.2026
+- **Entscheidung:** Das Tool fordert ESI-Scopes modulbezogen und so spät wie möglich an.
+- **Beispiel:** PI-Berechtigung wird erst beim Aktivieren der PI-Funktionen benötigt; Corporation-Scopes gehören nicht zu Version 1.0.
+- **Begründung:** Minimale Berechtigungen stärken Vertrauen und begrenzen die Folgen eines Sicherheitsvorfalls.
