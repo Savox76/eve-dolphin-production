@@ -47,7 +47,13 @@ ESI liefert nicht jeden aktiven Missionsschritt als vollständigen Live-Status. 
 
 Nächster Meilenstein: **Phase 2 – EVE-Datenbasis**
 
-Phase 1 ist abgeschlossen. Phase 2 ist technisch vollständig und wartet nur noch auf die betreiberabhängige Live-SSO-Abnahme. Der lokale Client fordert Industrie und PI sichtbar und getrennt über EVE SSO an. „EVE-Daten synchronisieren“ aktualisiert die offizielle JSON-Lines-SDE und lädt Assets, Blueprints, Industry Jobs sowie vollständige PI-Kolonien mit Pins, Links und Routen. Mehrere Charaktere werden parallel und voneinander isoliert verarbeitet. Die Übersicht zeigt die aktive SDE-Version und kennzeichnet jeden Datenstand korrekt als aktuell, veraltet, fehlgeschlagen oder fehlend. Atomare Snapshots, persistente Cachegrenzen und sichere Refresh-Token-Rotation verhindern halbfertige oder unnötige Abrufe. Bis der exakte Callback und der echte Zwei-Charakter-Durchlauf gemäß [Phase-2-Abnahme](docs/PHASE_2_ACCEPTANCE.md) bestätigt sind, bleibt der formale Gesamtfortschritt bei `15 %`.
+Phase 1 ist abgeschlossen. Phase 2 ist technisch vollständig; Callback und erster echter
+Charakterlogin wurden bestätigt. Ein neuer Charakter fordert die vier für Industrie und PI
+benötigten Berechtigungen gemeinsam an, wird unmittelbar synchronisiert und während der
+Laufzeit alle fünf Minuten erneut geprüft. Die ressourcenspezifischen ESI-Cachegrenzen
+verhindern dabei unnötige Abrufe. Der formale Gesamtfortschritt bleibt bis zum vollständigen
+Live-Datenabruf und Zwei-Charakter-Durchlauf gemäß
+[Phase-2-Abnahme](docs/PHASE_2_ACCEPTANCE.md) bei `15 %`.
 
 ## Entwicklung und lokaler Start
 
@@ -71,7 +77,10 @@ $env:EVE_SSO_CLIENT_ID = "<alternative-öffentliche-client-id>"
 uv run eve-dolphin
 ```
 
-Ein Client Secret wird weder benötigt noch in den Desktop-Client eingebettet. Der erste Verbindungsdialog dient nur der sicheren Charakteridentität und fordert noch keine zusätzlichen Industrie- oder PI-Scopes an.
+Ein Client Secret wird weder benötigt noch in den Desktop-Client eingebettet. Der erste
+Verbindungsdialog fordert gemeinsam die vier minimalen Industrie-/PI-Scopes an, die Version
+1.0 tatsächlich verwendet. Spätere Mining-, PVE- oder Corporation-Scopes werden weiterhin
+erst mit dem jeweiligen Modul ergänzt.
 
 Qualitätsprüfungen:
 
@@ -89,7 +98,11 @@ Der Client legt veränderliche Daten im Anwendungsdatenverzeichnis des jeweilige
 - eine gemeinsame, plattformunabhängig strukturierte Python-Codebasis
 - getrennte Installationspakete je Betriebssystem, zunächst Windows
 - privates Quellcode-Repository während der Entwicklung
-- später ein getrenntes öffentliches Release-Repository mit Installationsdateien, Prüfsummen und Änderungsprotokoll, aber ohne privaten Quellcode
+- privater Quellcode in `Savox76/eve-dolphin-production`
+- öffentliche Binärpakete, Prüfsummen und Änderungsprotokolle in
+  [`Savox76/eve-dolphin-releases`](https://github.com/Savox76/eve-dolphin-releases)
+- sichtbare Versions- und Updateprüfung; Installation beginnt nur nach dem Klick auf
+  „Update starten“ und besitzt Selbsttest sowie Rollback
 
 Systemunabhängige Entwicklung bedeutet damit nicht automatisch, dass der Quellcode öffentlich sein muss.
 

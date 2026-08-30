@@ -87,6 +87,14 @@ QTableWidget#characterTable QHeaderView::section {
     padding: 8px;
 }
 
+QTextBrowser#releaseNotes {
+    background-color: #0d1622;
+    border: 1px solid #233246;
+    border-radius: 6px;
+    color: #dce7f3;
+    padding: 10px;
+}
+
 QPushButton {
     background-color: #173a52;
     border: 1px solid #286487;

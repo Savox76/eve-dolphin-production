@@ -1,0 +1,104 @@
+name: Publish Windows Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Exact release tag, for example v0.2.0
+        required: true
+        type: string
+      release_notes:
+        description: User-facing release notes
+        required: true
+        type: string
+      prerelease:
+        description: Publish as a test version
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    name: Build verified Windows package
+    runs-on: windows-latest
+    steps:
+      - name: Checkout private production source
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install locked dependencies
+        run: uv sync --locked --all-groups
+
+      - name: Verify requested version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          $Version = (uv run python -c "from eve_dolphin import __version__; print(__version__)").Trim()
+          if ("v$Version" -ne $env:RELEASE_TAG) {
+            throw "Requested tag $env:RELEASE_TAG does not match application v$Version."
+          }
+
+      - name: Build and validate Windows client
+        shell: pwsh
+        run: ./scripts/build_windows.ps1
+
+      - name: Create release archive and checksum
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          $Archive = "EVE-Dolphin-Windows-$env:RELEASE_TAG.zip"
+          Compress-Archive -Path "dist/EVE-Dolphin" -DestinationPath $Archive -CompressionLevel Optimal
+          $Hash = (Get-FileHash -Path $Archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$Hash  $Archive" | Set-Content -Path "$Archive.sha256" -Encoding ascii
+
+      - name: Upload verified release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: eve-dolphin-release-${{ inputs.tag }}
+          path: |
+            EVE-Dolphin-Windows-${{ inputs.tag }}.zip
+            EVE-Dolphin-Windows-${{ inputs.tag }}.zip.sha256
+          if-no-files-found: error
+
+  publish:
+    name: Publish binaries without source
+    needs: build-windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download verified release bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: eve-dolphin-release-${{ inputs.tag }}
+
+      - name: Publish to the public distribution repository
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.EVE_DOLPHIN_RELEASES_TOKEN }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          options=(
+            "$RELEASE_TAG"
+            "EVE-Dolphin-Windows-$RELEASE_TAG.zip"
+            "EVE-Dolphin-Windows-$RELEASE_TAG.zip.sha256"
+            --repo "Savox76/eve-dolphin-releases"
+            --title "EVE Dolphin $RELEASE_TAG"
+            --notes "$RELEASE_NOTES"
+          )
+          if [[ "$PRERELEASE" == "true" ]]; then
+            options+=(--prerelease)
+          fi
+          gh release create "${options[@]}"

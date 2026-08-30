@@ -7,15 +7,18 @@ from dataclasses import dataclass
 from datetime import UTC
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
+    QApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
     QMainWindow,
+    QMessageBox,
+    QPushButton,
     QSizePolicy,
     QStackedWidget,
     QVBoxLayout,
@@ -28,6 +31,16 @@ from eve_dolphin.i18n import Translator
 from eve_dolphin.status import DataStatusRepository, ResourceDataStatus
 from eve_dolphin.sync.coordinator import CharacterSyncBatch
 from eve_dolphin.ui.character_page import CharacterPage
+from eve_dolphin.ui.update_dialog import (
+    CheckForUpdate,
+    StageUpdate,
+    UpdateCheckWorker,
+    UpdateDialog,
+    UpdateStageWorker,
+)
+from eve_dolphin.updates import ReleaseInfo, StagedUpdate
+
+LaunchUpdate = Callable[[StagedUpdate], None]
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,6 +70,10 @@ class MainWindow(QMainWindow):
         translator: Translator,
         character_repository: CharacterRepository,
         sync_characters: Callable[[], CharacterSyncBatch] | None = None,
+        current_version: str = "0.0.0",
+        check_for_update: CheckForUpdate | None = None,
+        stage_update: StageUpdate | None = None,
+        launch_update: LaunchUpdate | None = None,
     ) -> None:
         super().__init__()
         self.translator = translator
@@ -67,10 +84,20 @@ class MainWindow(QMainWindow):
         self.data_status_repository = DataStatusRepository(self.database)
         self.character_repository = character_repository
         self.sync_characters = sync_characters
+        self.current_version = current_version
+        self._check_for_update = check_for_update
+        self._stage_update = stage_update
+        self._launch_update = launch_update
         self.navigation = QListWidget()
         self.pages = QStackedWidget()
         self.character_page: CharacterPage | None = None
         self._close_pending = False
+        self._update_check_worker: UpdateCheckWorker | None = None
+        self._update_stage_worker: UpdateStageWorker | None = None
+        self._available_release: ReleaseInfo | None = None
+        self._update_dialog: UpdateDialog | None = None
+        self._update_notified = False
+        self._manual_update_check = False
 
         self.setWindowTitle(self.translator.text("app.title"))
         self.setMinimumSize(960, 640)
@@ -114,6 +141,16 @@ class MainWindow(QMainWindow):
         layout.addWidget(product_subtitle)
         layout.addSpacing(18)
         layout.addWidget(self.navigation, 1)
+        self.version_label = QLabel(
+            self.translator.text("app_version").format(version=self.current_version)
+        )
+        self.version_label.setObjectName("productSubtitle")
+        self.update_button = QPushButton(self.translator.text("check_for_updates"))
+        self.update_button.setObjectName("checkUpdateButton")
+        self.update_button.setEnabled(self._check_for_update is not None)
+        self.update_button.clicked.connect(self._show_or_check_update)
+        layout.addWidget(self.version_label)
+        layout.addWidget(self.update_button)
         return sidebar
 
     def _build_pages(self) -> QStackedWidget:
@@ -251,11 +288,154 @@ class MainWindow(QMainWindow):
         return card
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        if self.character_page is not None and self.character_page.background_work_pending:
+        if self.character_page is not None:
+            self.character_page.stop_automatic_sync()
+        pending_worker = self._pending_update_worker()
+        character_pending = (
+            self.character_page is not None and self.character_page.background_work_pending
+        )
+        if character_pending or pending_worker is not None:
             if not self._close_pending:
                 self._close_pending = True
-                self.character_page.authorization_stopped.connect(self.close)
-            self.character_page.cancel_pending_authorization()
+                if character_pending and self.character_page is not None:
+                    self.character_page.authorization_stopped.connect(self.close)
+                if pending_worker is not None:
+                    pending_worker.finished.connect(self.close)
+            if character_pending and self.character_page is not None:
+                self.character_page.cancel_pending_authorization()
+            if pending_worker is not None:
+                pending_worker.requestInterruption()
             event.ignore()
             return
         super().closeEvent(event)
+
+    def start_background_services(self) -> None:
+        if self.character_page is not None:
+            self.character_page.start_automatic_sync()
+        self._start_update_check(automatic=True)
+
+    def _pending_update_worker(self) -> QThread | None:
+        if self._update_stage_worker is not None:
+            return self._update_stage_worker
+        return self._update_check_worker
+
+    def _show_or_check_update(self) -> None:
+        if self._available_release is not None:
+            self._show_update_dialog(self._available_release)
+            return
+        self._start_update_check(automatic=False)
+
+    def _start_update_check(self, *, automatic: bool) -> None:
+        if self._check_for_update is None or self._update_check_worker is not None:
+            return
+        self._manual_update_check = not automatic
+        self.update_button.setEnabled(False)
+        self.update_button.setText(self.translator.text("checking_for_updates"))
+        worker = UpdateCheckWorker(self._check_for_update, self)
+        self._update_check_worker = worker
+        worker.completed.connect(self._update_check_completed)
+        worker.failed.connect(self._update_check_failed)
+        worker.finished.connect(self._update_check_finished)
+        worker.start()
+
+    def _update_check_completed(self, result: object) -> None:
+        if isinstance(result, ReleaseInfo):
+            self._available_release = result
+            self.update_button.setText(
+                self.translator.text("update_button_available").format(version=str(result.version))
+            )
+            self.update_button.setEnabled(True)
+            if not self._update_notified and not self._close_pending:
+                self._update_notified = True
+                self._show_update_dialog(result)
+            return
+        self.update_button.setText(self.translator.text("check_for_updates"))
+        self.update_button.setEnabled(True)
+        if self._manual_update_check:
+            QMessageBox.information(
+                self,
+                self.translator.text("updates_title"),
+                self.translator.text("update_current"),
+            )
+
+    def _update_check_failed(self) -> None:
+        self.update_button.setText(self.translator.text("check_for_updates"))
+        self.update_button.setEnabled(True)
+        if self._manual_update_check:
+            QMessageBox.warning(
+                self,
+                self.translator.text("updates_title"),
+                self.translator.text("update_check_failed"),
+            )
+
+    def _update_check_finished(self) -> None:
+        worker = self._update_check_worker
+        self._update_check_worker = None
+        if worker is not None:
+            worker.deleteLater()
+
+    def _show_update_dialog(self, release: ReleaseInfo) -> None:
+        if self._update_dialog is not None:
+            self._update_dialog.raise_()
+            self._update_dialog.activateWindow()
+            return
+        dialog = UpdateDialog(
+            release,
+            self.current_version,
+            self.translator,
+            installation_enabled=(
+                self._stage_update is not None and self._launch_update is not None
+            ),
+            parent=self,
+        )
+        self._update_dialog = dialog
+        dialog.start_requested.connect(self._start_update_install)
+        dialog.finished.connect(self._update_dialog_finished)
+        dialog.show()
+
+    def _update_dialog_finished(self) -> None:
+        self._update_dialog = None
+
+    def _start_update_install(self) -> None:
+        if (
+            self._available_release is None
+            or self._stage_update is None
+            or self._update_stage_worker is not None
+        ):
+            return
+        if self._update_dialog is not None:
+            self._update_dialog.set_installing()
+        worker = UpdateStageWorker(self._stage_update, self._available_release, self)
+        self._update_stage_worker = worker
+        worker.completed.connect(self._update_staged)
+        worker.failed.connect(self._update_stage_failed)
+        worker.finished.connect(self._update_stage_finished)
+        worker.start()
+
+    def _update_staged(self, result: object) -> None:
+        if (
+            not isinstance(result, StagedUpdate)
+            or self._launch_update is None
+            or self._close_pending
+        ):
+            return
+        try:
+            self._launch_update(result)
+        except Exception:
+            self._update_stage_failed()
+            return
+        if self.character_page is not None:
+            self.character_page.stop_automatic_sync()
+        application = QApplication.instance()
+        if application is not None:
+            application.quit()
+
+    def _update_stage_failed(self) -> None:
+        if self._update_dialog is not None:
+            self._update_dialog.set_failed()
+
+    def _update_stage_finished(self) -> None:
+        worker = self._update_stage_worker
+        self._update_stage_worker = None
+        if worker is not None:
+            worker.deleteLater()
