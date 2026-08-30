@@ -40,6 +40,9 @@ def test_initialize_is_repeatable_and_reaches_latest_schema(tmp_path: Path) -> N
         "industry_current",
         "character_assets",
         "character_blueprints",
+        "industry_job_snapshots",
+        "industry_jobs_current",
+        "character_industry_jobs",
     } <= tables
     assert migration_count is not None
     assert migration_count["count"] == LATEST_SCHEMA_VERSION

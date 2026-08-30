@@ -83,6 +83,17 @@ Phase 2 verbindet den lokalen Client sicher mit EVE Online und baut die belastba
 - [x] erfolgreiche und fehlgeschlagene Läufe sowie der letzte erfolgreiche Synchronisationszeitpunkt werden lokal protokolliert
 - [x] fehlende Asset-/Blueprint-Scopes stoppen vor der ersten ESI-Datenanfrage und nennen das benötigte Berechtigungspaket
 
+## Siebter Baustein: persönliche Industry Jobs
+
+- [x] offizielles Job-Schema und `esi-industry.read_character_jobs.v1` gegen die ESI-OpenAPI-Spezifikation vom 30.08.2026 geprüft
+- [x] aktive und von ESI gelieferte abgeschlossene Jobs der vergangenen 90 Tage werden gemeinsam abgerufen
+- [x] Jobstatus, Aktivitäten, Blueprint-/Produktreferenzen, Runs, Laufzeiten und optionale Abschlussdaten werden validiert
+- [x] Installationskosten und Erfolgswahrscheinlichkeiten werden ohne binäre Fließkomma-Zwischenstufe als `Decimal` verarbeitet
+- [x] Job-Snapshots werden pro Charakter atomar aktiviert und bei einem Fehler vollständig verworfen
+- [x] der letzte gültige Snapshot und alle anderen Charaktere bleiben bei einem fehlerhaften Abruf unverändert
+- [x] die persistierte fünfminütige ESI-Cachezeit bleibt auch über einen Programmneustart hinweg wirksam
+- [x] fehlender Job-Scope stoppt vor der ESI-Anfrage und wird als erwarteter Berechtigungszustand protokolliert
+
 ## Noch offen bis zur Phase-2-Abnahme
 
 - [ ] EVE-Developer-Anwendung mit öffentlicher Client ID und exaktem Callback registrieren

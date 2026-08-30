@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from email.utils import format_datetime
 
 import httpx
@@ -180,6 +181,19 @@ def test_auth_error_is_not_retried() -> None:
     assert caught.value.status_code == 403
     assert str(caught.value) == "Forbidden"
     assert calls == 1
+
+
+def test_json_decimal_values_are_not_parsed_through_binary_float() -> None:
+    client = _client(
+        lambda request: httpx.Response(200, content=b'{"cost":1234.56,"probability":0.42}')
+    )
+
+    response = client.get_json("/markets/prices/")
+
+    assert response.payload == {
+        "cost": Decimal("1234.56"),
+        "probability": Decimal("0.42"),
+    }
 
 
 def test_invalid_pages_and_private_request_boundaries_are_rejected() -> None:

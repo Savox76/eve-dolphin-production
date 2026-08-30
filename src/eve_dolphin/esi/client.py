@@ -8,6 +8,7 @@ import math
 import time
 from collections.abc import Callable, Mapping
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from email.utils import parsedate_to_datetime
 from typing import cast
 from urllib.parse import urlencode
@@ -105,7 +106,7 @@ class EveEsiClient:
         if len(response.content) > MAX_RESPONSE_BYTES:
             raise EsiProtocolError("ESI response exceeds the size limit")
         try:
-            payload = cast(object, response.json())
+            payload = cast(object, json.loads(response.content, parse_float=Decimal))
         except (json.JSONDecodeError, UnicodeDecodeError) as error:
             raise EsiProtocolError("ESI response is not valid JSON") from error
         entry = EsiCacheEntry(
