@@ -1,4 +1,4 @@
-# Phase 2 – EVE-Datenbasis (Live-Datenabnahme offen)
+# Phase 2 – EVE-Datenbasis (abgeschlossen)
 
 ## Ziel
 
@@ -142,14 +142,12 @@ Phase 2 verbindet den lokalen Client sicher mit EVE Online und baut die belastba
 - [x] sichtbare SDE-Version sowie korrekte Kennzeichnung veralteter und fehlgeschlagener Daten
 - [x] vollständiger automatisierter Windows-Pakettest
 - [x] Live-SSO-Identitätstest mit registrierter öffentlicher Client-ID und echtem Charakter
-- [ ] vollständigen Live-Datenabruf mit den gemeinsam erteilten Industrie-/PI-Scopes bestätigen
-- [ ] zweiten echten Charakter verbinden und den parallelen Live-Abruf bestätigen
+- [x] vollständigen Live-Datenabruf mit den gemeinsam erteilten Industrie-/PI-Scopes bestätigen
+- [x] zweiten echten Charakter verbinden und den parallelen Live-Abruf bestätigen
 
 ## Fortschritt
 
-Die Implementierung von Phase 2 ist technisch vollständig und automatisiert geprüft. Der
-gewichtete Gesamtfortschritt bleibt bis zum vollständigen Live-Datenabruf und echten
-Zwei-Charakter-Test bei `15 %`. Callback und erster Charakterlogin sind bereits bestätigt.
-Nach der verbleibenden manuellen Abnahme steigt er gemäß Masterplan auf `30 %`. Die genaue
-Abnahme steht in
+Die Implementierung von Phase 2 ist technisch vollständig, automatisiert geprüft und am
+30.08.2026 durch den Betreiber mit zwei echten Charakteren live bestätigt. Damit beträgt der
+gewichtete Gesamtfortschritt gemäß Masterplan `30 %`. Die Abnahme steht in
 [`PHASE_2_ACCEPTANCE.md`](PHASE_2_ACCEPTANCE.md).

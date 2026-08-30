@@ -494,6 +494,58 @@ MIGRATIONS = (
             ON planet_routes(snapshot_id, content_type_id);
         """,
     ),
+    Migration(
+        version=7,
+        description="PI planning catalog and local logistics profiles",
+        sql="""
+        ALTER TABLE sde_types ADD COLUMN capacity REAL CHECK (capacity >= 0);
+
+        CREATE TABLE sde_solar_systems (
+            build_number INTEGER NOT NULL,
+            solar_system_id INTEGER NOT NULL CHECK (solar_system_id > 0),
+            constellation_id INTEGER NOT NULL CHECK (constellation_id > 0),
+            region_id INTEGER NOT NULL CHECK (region_id > 0),
+            name_de TEXT NOT NULL,
+            name_en TEXT NOT NULL,
+            security_status REAL NOT NULL,
+            PRIMARY KEY (build_number, solar_system_id),
+            FOREIGN KEY (build_number) REFERENCES sde_builds(build_number) ON DELETE CASCADE
+        );
+
+        CREATE TABLE sde_planets (
+            build_number INTEGER NOT NULL,
+            planet_id INTEGER NOT NULL CHECK (planet_id > 0),
+            solar_system_id INTEGER NOT NULL,
+            celestial_index INTEGER NOT NULL CHECK (celestial_index > 0),
+            type_id INTEGER NOT NULL,
+            PRIMARY KEY (build_number, planet_id),
+            FOREIGN KEY (build_number) REFERENCES sde_builds(build_number) ON DELETE CASCADE,
+            FOREIGN KEY (build_number, solar_system_id)
+                REFERENCES sde_solar_systems(build_number, solar_system_id) ON DELETE CASCADE,
+            FOREIGN KEY (build_number, type_id)
+                REFERENCES sde_types(build_number, type_id)
+        );
+
+        CREATE INDEX sde_planets_system_idx
+            ON sde_planets(build_number, solar_system_id, celestial_index);
+
+        CREATE TABLE pi_profiles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            space_kind TEXT NOT NULL
+                CHECK (space_kind IN ('highsec', 'lowsec', 'nullsec', 'wormhole')),
+            has_customs_office INTEGER NOT NULL
+                CHECK (has_customs_office IN (0, 1)),
+            import_tax_percent_decimal TEXT NOT NULL,
+            export_tax_percent_decimal TEXT NOT NULL,
+            transport_isk_per_m3_decimal TEXT NOT NULL,
+            cargo_capacity_m3_decimal TEXT NOT NULL,
+            risk_markup_percent_decimal TEXT NOT NULL,
+            supply_tier INTEGER NOT NULL CHECK (supply_tier BETWEEN 0 AND 3),
+            updated_at TEXT NOT NULL
+        );
+        """,
+    ),
 )
 
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1].version

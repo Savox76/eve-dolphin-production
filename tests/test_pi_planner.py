@@ -1,0 +1,354 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
+from pathlib import Path
+
+from eve_dolphin.characters import CharacterRepository, EveCharacter
+from eve_dolphin.database import Database
+from eve_dolphin.pi import (
+    PiCatalog,
+    PiCatalogRepository,
+    PiCommodity,
+    PiPlanLine,
+    PiPlannerService,
+    PiPlanRequest,
+    PiPlanResult,
+    PiProfile,
+    PiProfileRepository,
+    PiRecipe,
+    PiRecipeItem,
+    PiTier,
+    SpaceKind,
+    forecast_colony,
+)
+from eve_dolphin.sync.planetary_models import (
+    ExtractorDetails,
+    PlanetColony,
+    PlanetPin,
+    PlanetPinContent,
+)
+from eve_dolphin.sync.planetary_repository import PlanetarySnapshotRepository
+
+NOW = datetime(2026, 8, 30, 12, 0, tzinfo=UTC)
+
+
+def test_catalog_derives_p0_to_p4_tiers_and_universe_names(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+
+    catalog = PiCatalogRepository(database).load("de")
+    locations = PiCatalogRepository(database).locations((4001,), "de")
+
+    assert catalog.commodities[1].tier is PiTier.RAW
+    assert catalog.commodities[11].tier is PiTier.BASIC
+    assert catalog.commodities[21].tier is PiTier.REFINED
+    assert catalog.commodities[31].tier is PiTier.SPECIALIZED
+    assert catalog.commodities[41].tier is PiTier.ADVANCED
+    assert catalog.recipes_by_output[21].output.quantity == 5
+    assert [
+        (item.commodity.type_id, item.quantity) for item in catalog.recipes_by_output[21].inputs
+    ] == [
+        (11, 40),
+        (12, 40),
+    ]
+    assert locations[4001].planet_name == "Testsystem IV"
+    assert locations[4001].solar_system_name == "Testsystem"
+    assert locations[4001].security_status == Decimal("-0.25")
+
+
+def test_planner_resolves_exact_p2_p3_and_p4_quantities(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profiles = PiProfileRepository(database)
+    profile = profiles.list_all()[0]
+    assert profile.profile_id is not None
+    planner = PiPlannerService(database, clock=lambda: NOW)
+
+    p2 = planner.plan(PiPlanRequest(21, 10, 2, profile.profile_id), "en")
+    p3 = planner.plan(PiPlanRequest(31, 3, 2, profile.profile_id), "en")
+    p4 = planner.plan(PiPlanRequest(41, 1, 2, profile.profile_id), "en")
+
+    assert _line(p2, 21).cycles == 2
+    assert _line(p2, 11).required == 80
+    assert _line(p2, 12).required == 80
+    assert _line(p2, 1).import_quantity == 12_000
+    assert _line(p2, 2).import_quantity == 12_000
+
+    assert _line(p3, 31).cycles == 1
+    assert _line(p3, 21).required == 10
+    assert _line(p3, 22).required == 10
+    assert _line(p3, 1).import_quantity == 24_000
+    assert _line(p3, 2).import_quantity == 24_000
+
+    assert _line(p4, 41).cycles == 1
+    assert _line(p4, 31).required == 6
+    assert _line(p4, 32).required == 6
+    assert _line(p4, 1).import_quantity == 96_000
+    assert _line(p4, 2).import_quantity == 96_000
+    assert p4.import_tax_isk == Decimal("48000")
+    assert p4.export_tax_isk == Decimal("120000")
+    assert p4.total_logistics_isk == Decimal("168000.000")
+    assert "factory_capacity_shortfall" in p4.blocked_reasons
+    assert _line(p4, 41).additional_factories == 1
+    assert not p4.is_feasible
+
+
+def test_existing_factory_capacity_makes_target_executable(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    _activate_factories(database, (101, 102, 201))
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+
+    result = PiPlannerService(database, clock=lambda: NOW).plan(
+        PiPlanRequest(21, 10, 2, profile.profile_id), "en"
+    )
+
+    assert _line(result, 21).cycles == 2
+    assert _line(result, 21).available_factory_cycles == 48
+    assert _line(result, 21).additional_factories == 0
+    assert _line(result, 11).available_factory_cycles == 96
+    assert result.is_feasible
+
+
+def test_wormhole_without_poco_blocks_required_imports(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profile = next(
+        value
+        for value in PiProfileRepository(database).list_all()
+        if value.name == "Wurmloch ohne POCO"
+    )
+    assert profile.profile_id is not None
+
+    result = PiPlannerService(database, clock=lambda: NOW).plan(
+        PiPlanRequest(21, 10, 1, profile.profile_id), "de"
+    )
+
+    assert "imports_require_customs_office" in result.blocked_reasons
+    assert result.import_volume_m3 > 0
+    assert not result.is_feasible
+
+
+def test_profiles_are_persistent_and_decimal_exact(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    repository = PiProfileRepository(database)
+
+    defaults = repository.list_all()
+    stored = repository.save(
+        PiProfile(
+            None,
+            "J151141",
+            SpaceKind.WORMHOLE,
+            True,
+            Decimal("2.5"),
+            Decimal("5.75"),
+            Decimal("125.50"),
+            Decimal("62000"),
+            Decimal("15"),
+            PiTier.REFINED,
+        )
+    )
+
+    assert len(defaults) == 3
+    assert stored.profile_id is not None
+    assert repository.get(stored.profile_id) == stored
+
+
+def test_forecast_uses_extractor_and_factory_cycles_and_storage_capacity() -> None:
+    raw = PiCommodity(1, "Raw", Decimal("0.01"), PiTier.RAW)
+    basic = PiCommodity(11, "Basic", Decimal("0.38"), PiTier.BASIC)
+    recipe = PiRecipe(
+        101,
+        "Basic",
+        1800,
+        (PiRecipeItem(raw, 3000),),
+        PiRecipeItem(basic, 20),
+    )
+    catalog = PiCatalog(
+        {1: raw, 11: basic},
+        {11: recipe},
+        {101: recipe},
+        {9001: Decimal("12000")},
+    )
+    extractor = ExtractorDetails((), 900, Decimal("0.1"), 1, 100)
+    colony = _forecast_colony(extractor, raw_amount=6_000)
+
+    result = forecast_colony(colony, catalog, NOW, timedelta(hours=1))
+
+    assert result.extractor_rates[0].units_per_hour == Decimal("400")
+    assert result.extracted[0].quantity == 400
+    assert result.factory_outputs[0].quantity == 40
+    assert result.stalled_factories == 0
+    assert result.constrained_factories == 0
+    assert result.storage_capacity_m3 == Decimal("12000")
+    assert result.storage_used_m3 == Decimal("60.00")
+
+
+def _database(tmp_path: Path) -> Database:
+    database = Database(tmp_path / "client.sqlite3", tmp_path / "backups")
+    database.initialize()
+    return database
+
+
+def _line(result: PiPlanResult, type_id: int) -> PiPlanLine:
+    return next(line for line in result.lines if line.commodity.type_id == type_id)
+
+
+def _seed_catalog(database: Database) -> None:
+    with database.connect() as connection, connection:
+        connection.execute(
+            """
+            INSERT INTO sde_builds(
+                build_number, release_date, source_url, archive_sha256, archive_size,
+                downloaded_at, import_started_at, imported_at, activated_at, status
+            ) VALUES (1, ?, 'https://example.invalid/sde.zip', ?, 1, ?, ?, ?, ?, 'ready')
+            """,
+            (NOW.isoformat(), "a" * 64, *(NOW.isoformat() for _ in range(4))),
+        )
+        connection.execute("INSERT INTO sde_current VALUES (1, 1)")
+        connection.execute("INSERT INTO sde_categories VALUES (1, 1, 'PI', 'PI', 1)")
+        connection.execute("INSERT INTO sde_groups VALUES (1, 1, 1, 'PI', 'PI', 1)")
+        types = (
+            (1, "Rohstoff A", "Raw A", "0.01", None),
+            (2, "Rohstoff B", "Raw B", "0.01", None),
+            (11, "P1 A", "P1 A", "0.38", None),
+            (12, "P1 B", "P1 B", "0.38", None),
+            (21, "P2 A", "P2 A", "1.5", None),
+            (22, "P2 B", "P2 B", "1.5", None),
+            (31, "P3 A", "P3 A", "6", None),
+            (32, "P3 B", "P3 B", "6", None),
+            (41, "P4", "P4", "100", None),
+            (9001, "Lager", "Storage", "1", "12000"),
+        )
+        connection.executemany(
+            """
+            INSERT INTO sde_types(
+                build_number, type_id, group_id, market_group_id, name_de, name_en,
+                volume, mass, portion_size, published, capacity
+            ) VALUES (1, ?, 1, NULL, ?, ?, ?, NULL, 1, 1, ?)
+            """,
+            types,
+        )
+        recipes = (
+            (101, 1800, "P1 A", 11, 20, ((1, 3000),)),
+            (102, 1800, "P1 B", 12, 20, ((2, 3000),)),
+            (201, 3600, "P2 A", 21, 5, ((11, 40), (12, 40))),
+            (202, 3600, "P2 B", 22, 5, ((11, 40), (12, 40))),
+            (301, 3600, "P3 A", 31, 3, ((21, 10), (22, 10))),
+            (302, 3600, "P3 B", 32, 3, ((21, 10), (22, 10))),
+            (401, 3600, "P4", 41, 1, ((31, 6), (32, 6))),
+        )
+        for schematic_id, seconds, name, output_id, output_qty, inputs in recipes:
+            connection.execute(
+                "INSERT INTO sde_planet_schematics VALUES (1, ?, ?, ?, ?)",
+                (schematic_id, seconds, name, name),
+            )
+            connection.executemany(
+                "INSERT INTO sde_planet_schematic_types VALUES (1, ?, ?, 1, ?)",
+                ((schematic_id, type_id, quantity) for type_id, quantity in inputs),
+            )
+            connection.execute(
+                "INSERT INTO sde_planet_schematic_types VALUES (1, ?, ?, 0, ?)",
+                (schematic_id, output_id, output_qty),
+            )
+        connection.execute(
+            """
+            INSERT INTO sde_solar_systems
+            VALUES (1, 3001, 2001, 1001, 'Testsystem', 'Test System', -0.25)
+            """
+        )
+        connection.execute("INSERT INTO sde_planets VALUES (1, 4001, 3001, 4, 9001)")
+
+
+def _forecast_colony(extractor: ExtractorDetails, raw_amount: int) -> PlanetColony:
+    extractor_pin = PlanetPin(
+        1,
+        9998,
+        Decimal("0"),
+        Decimal("0"),
+        (),
+        None,
+        NOW + timedelta(hours=2),
+        NOW - timedelta(hours=1),
+        NOW,
+        extractor,
+        None,
+    )
+    storage_pin = PlanetPin(
+        2,
+        9001,
+        Decimal("0"),
+        Decimal("0"),
+        (PlanetPinContent(1, raw_amount),),
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
+    factory_pin = PlanetPin(
+        3,
+        9999,
+        Decimal("0"),
+        Decimal("0"),
+        (),
+        None,
+        None,
+        None,
+        None,
+        None,
+        101,
+    )
+    return PlanetColony(
+        4001,
+        1001,
+        3001,
+        "temperate",
+        NOW,
+        5,
+        3,
+        None,
+        (extractor_pin, storage_pin, factory_pin),
+        (),
+        (),
+    )
+
+
+def _activate_factories(database: Database, schematic_ids: tuple[int, ...]) -> None:
+    character = EveCharacter(1001, "PI Pilot", None, (), NOW)
+    CharacterRepository(database).upsert(character)
+    pins = tuple(
+        PlanetPin(
+            pin_id=index,
+            type_id=9999,
+            latitude=Decimal("0"),
+            longitude=Decimal("0"),
+            contents=(),
+            schematic_id=None,
+            expiry_time=None,
+            install_time=None,
+            last_cycle_start=None,
+            extractor_details=None,
+            factory_schematic_id=schematic_id,
+        )
+        for index, schematic_id in enumerate(schematic_ids, start=1)
+    )
+    colony = PlanetColony(
+        planet_id=4001,
+        owner_id=character.character_id,
+        solar_system_id=3001,
+        planet_type="temperate",
+        last_update=NOW,
+        upgrade_level=5,
+        num_pins=len(pins),
+        layout_last_modified=None,
+        pins=pins,
+        links=(),
+        routes=(),
+    )
+    repository = PlanetarySnapshotRepository(database)
+    run_id = repository.start_run(character.character_id, NOW)
+    repository.activate(run_id, character.character_id, NOW, (colony,), None)

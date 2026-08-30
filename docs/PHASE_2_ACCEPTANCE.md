@@ -2,11 +2,10 @@
 
 ## Ergebnis
 
-Die Implementierung der EVE-Datenbasis ist **technisch vollständig und abnahmebereit**.
-Alle lokal und in GitHub automatisierbaren Kriterien sind erfüllt. Die formale Abnahme
-und der Sprung des Gesamtfortschritts von `15 %` auf `30 %` benötigen noch einen echten
-vollständigen EVE-Datenabruf mit gemeinsam erteilten Industrie-/PI-Scopes und einen echten
-Zwei-Charakter-Durchlauf. Callback und erster Charakterlogin wurden bereits bestätigt.
+Die EVE-Datenbasis ist **vollständig abgenommen**. Alle automatisierbaren Kriterien sind
+erfüllt. Der Betreiber hat am 30.08.2026 den vollständigen Live-Datenweg und zwei echte,
+parallel verbundene Charaktere bestätigt. Der Gesamtfortschritt steigt damit von `15 %`
+auf `30 %`.
 
 ## Automatisiert bestanden
 
@@ -22,21 +21,15 @@ Zwei-Charakter-Durchlauf. Callback und erster Charakterlogin wurden bereits best
 - Python-Formatierung, Linting, strikte Typprüfung, Tests, Wheel/sdist und Selbstprüfung
 - Windows-Paketworkflow einschließlich Start-/Selbstprüfung des erzeugten Clients
 
-## Manuell noch auszuführen
+## Manuell bestätigt
 
-1. Version `v0.2.0` ohne Client-ID-Umgebungsvariable starten und einen echten Charakter über
-   den Systembrowser verbinden. Die vier Industrie-/PI-Scopes gemeinsam bestätigen.
-2. Ohne zusätzliche Schaltfläche prüfen, dass SDE, Industrie, Jobs und PI unmittelbar geladen
-   und in der Übersicht als aktuell oder durch die offizielle Cachezeit begründet markiert werden.
-3. Nach mindestens fünf Minuten den erneuten Job-Abruf und die weiterhin respektierten
-   Zehn-/Sechzig-Minuten-Caches prüfen.
-4. Einen zweiten Charakter verbinden und den parallelen automatischen Abruf wiederholen.
-5. Den Client neu starten und bestätigen, dass Charaktere, sichere Refresh Tokens und lokale
-   Snapshots weiter verfügbar sind und frische Daten nicht unnötig erneut abgefragt werden.
+- SSO mit der registrierten öffentlichen Client-ID und dem Loopback-Callback funktioniert.
+- Die gemeinsamen Industrie-/PI-Scopes werden akzeptiert und die Daten werden geladen.
+- Zwei echte Charaktere sind in derselben Installation verbunden und synchronisierbar.
+- Refresh Tokens oder Zugangsdaten wurden für die Abnahme nicht offengelegt.
 
 ## Abnahmegrenze
 
-Die Client-ID ist öffentlich und darf deshalb distributionsweit im Client enthalten sein.
-EVE-Zugangsdaten, Access Tokens, Refresh Tokens und ein mögliches Client Secret dürfen weder
-für automatisierte Tests noch für das Repository bereitgestellt werden. Deshalb kann der
-letzte Live-Schritt erst auf der Installation des Betreibers abgeschlossen werden.
+Die Client-ID ist öffentlich und darf distributionsweit im Client enthalten sein.
+EVE-Zugangsdaten, Access Tokens, Refresh Tokens und ein mögliches Client Secret bleiben
+ausschließlich beim Betreiber und wurden für diese Abnahme nicht bereitgestellt.

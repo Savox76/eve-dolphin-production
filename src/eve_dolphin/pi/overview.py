@@ -5,10 +5,14 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 from eve_dolphin.characters import CharacterRepository, EveCharacter
 from eve_dolphin.database import Database
+from eve_dolphin.pi.catalog import PiCatalogRepository
+from eve_dolphin.pi.forecast import forecast_colony
+from eve_dolphin.pi.models import ColonyForecast, PiCatalog, UniverseLocation
 from eve_dolphin.sde import SdeRepository
 from eve_dolphin.sync.planetary_models import PlanetColony
 from eve_dolphin.sync.planetary_repository import PlanetarySnapshotRepository
@@ -34,6 +38,9 @@ class ColonyOverview:
     character_name: str
     planet_id: int
     solar_system_id: int
+    solar_system_name: str | None
+    planet_name: str | None
+    security_status: Decimal | None
     planet_type: str
     snapshot_at: datetime
     last_update: datetime
@@ -45,7 +52,12 @@ class ColonyOverview:
     active_extractors: int
     expired_extractors: int
     incomplete_extractors: int
+    ending_soon_extractors: int
     next_expiry: datetime | None
+    next_attention: datetime | None
+    data_age: timedelta
+    warning_codes: tuple[str, ...]
+    forecast: ColonyForecast
     pin_types: tuple[NamedCount, ...]
     extractor_products: tuple[NamedCount, ...]
     stored_contents: tuple[NamedQuantity, ...]
@@ -67,6 +79,7 @@ class PlanetaryOverviewService:
         self._characters = CharacterRepository(database)
         self._snapshots = PlanetarySnapshotRepository(database)
         self._sde = SdeRepository(database)
+        self._catalogs = PiCatalogRepository(database)
         self._clock = clock or (lambda: datetime.now(UTC))
 
     def list_colonies(self, language: str) -> tuple[ColonyOverview, ...]:
@@ -83,8 +96,20 @@ class PlanetaryOverviewService:
                 source.append((character, snapshot.fetched_at, colony))
                 type_ids.update(_referenced_type_ids(colony))
         names = self._sde.type_names(type_ids, language)
+        catalog = self._catalogs.load(language)
+        locations = self._catalogs.locations(
+            (colony.planet_id for _character, _snapshot, colony in source), language
+        )
         overview = tuple(
-            _colony_overview(character, snapshot_at, colony, names, now)
+            _colony_overview(
+                character,
+                snapshot_at,
+                colony,
+                names,
+                catalog,
+                locations.get(colony.planet_id),
+                now,
+            )
             for character, snapshot_at, colony in source
         )
         return tuple(
@@ -117,12 +142,15 @@ def _colony_overview(
     snapshot_at: datetime,
     colony: PlanetColony,
     names: Mapping[int, str],
+    catalog: PiCatalog,
+    location: UniverseLocation | None,
     now: datetime,
 ) -> ColonyOverview:
     active_extractors = 0
     expired_extractors = 0
     incomplete_extractors = 0
     future_expiries: list[datetime] = []
+    ending_soon_extractors = 0
     pin_types: Counter[int] = Counter()
     extractor_products: Counter[int] = Counter()
     stored_contents: Counter[int] = Counter()
@@ -144,11 +172,35 @@ def _colony_overview(
         else:
             active_extractors += 1
             future_expiries.append(pin.expiry_time)
+            ending_soon_extractors += int(pin.expiry_time <= now + timedelta(hours=24))
+    forecast = forecast_colony(colony, catalog, now, timedelta(hours=24))
+    data_age = max(timedelta(0), now - snapshot_at)
+    warning_codes: list[str] = []
+    if data_age > timedelta(minutes=20):
+        warning_codes.append("data_stale")
+    if expired_extractors:
+        warning_codes.append("extractors_expired")
+    if ending_soon_extractors:
+        warning_codes.append("extractors_ending_soon")
+    if incomplete_extractors or forecast.incomplete_factories:
+        warning_codes.append("pi_data_incomplete")
+    if forecast.stalled_factories:
+        warning_codes.append("factories_stalled")
+    elif forecast.constrained_factories:
+        warning_codes.append("factories_constrained")
+    if forecast.storage_fill_percent is not None and forecast.storage_fill_percent >= Decimal(90):
+        warning_codes.append("storage_near_full")
+    attention_candidates = [*future_expiries]
+    if forecast.estimated_full_at is not None:
+        attention_candidates.append(forecast.estimated_full_at)
     return ColonyOverview(
         character_id=character.character_id,
         character_name=character.character_name,
         planet_id=colony.planet_id,
         solar_system_id=colony.solar_system_id,
+        solar_system_name=location.solar_system_name if location is not None else None,
+        planet_name=location.planet_name if location is not None else None,
+        security_status=location.security_status if location is not None else None,
         planet_type=colony.planet_type,
         snapshot_at=snapshot_at,
         last_update=colony.last_update,
@@ -160,7 +212,12 @@ def _colony_overview(
         active_extractors=active_extractors,
         expired_extractors=expired_extractors,
         incomplete_extractors=incomplete_extractors,
+        ending_soon_extractors=ending_soon_extractors,
         next_expiry=min(future_expiries, default=None),
+        next_attention=min(attention_candidates, default=None),
+        data_age=data_age,
+        warning_codes=tuple(warning_codes),
+        forecast=forecast,
         pin_types=_named_counts(pin_types, names),
         extractor_products=_named_counts(extractor_products, names),
         stored_contents=_named_quantities(stored_contents, names),

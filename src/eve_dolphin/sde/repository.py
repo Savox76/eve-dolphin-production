@@ -68,6 +68,29 @@ class SdeRepository:
             str(last_modified) if last_modified is not None else None,
         )
 
+    def has_pi_planning_data(self) -> bool:
+        """Return whether the active build contains the Phase-3 universe catalog."""
+
+        with self._database.connect() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    EXISTS(
+                        SELECT 1 FROM sde_current AS current
+                        JOIN sde_solar_systems AS system
+                          ON system.build_number = current.build_number
+                        WHERE current.singleton = 1
+                    ) AS has_systems,
+                    EXISTS(
+                        SELECT 1 FROM sde_current AS current
+                        JOIN sde_planets AS planet
+                          ON planet.build_number = current.build_number
+                        WHERE current.singleton = 1
+                    ) AS has_planets
+                """
+            ).fetchone()
+        return row is not None and bool(row["has_systems"]) and bool(row["has_planets"])
+
     def type_names(self, type_ids: Iterable[int], language: str) -> dict[int, str]:
         """Resolve type IDs against the active SDE without exposing an inactive build."""
 

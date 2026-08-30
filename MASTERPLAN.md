@@ -8,9 +8,9 @@
 
 **Produktname:** EVE Dolphin
 
-**Gesamtfortschritt:** 15 %
+**Gesamtfortschritt:** 30 %
 
-**Nächster Meilenstein:** Phase 2 – Live-Datenabnahme; Phase 3 – PI-MVP technisch in Arbeit
+**Nächster Meilenstein:** Phase 3 – PI-MVP-Live-Abnahme; Phase 4 – Manufacturing-MVP
 
 ---
 

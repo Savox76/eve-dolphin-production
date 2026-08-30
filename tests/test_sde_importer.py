@@ -26,9 +26,11 @@ def test_import_normalizes_and_atomically_activates_production_data(tmp_path: Pa
     assert first.activated is True
     assert second.activated is False
     assert first.status.build_number == 101
-    assert first.status.dataset_counts["types"] == 5
+    assert first.status.dataset_counts["types"] == 6
     assert first.status.dataset_counts["blueprint_materials"] == 1
     assert first.status.dataset_counts["planet_schematic_types"] == 2
+    assert first.status.dataset_counts["solar_systems"] == 1
+    assert first.status.dataset_counts["planets"] == 1
     assert first.status.warnings == {}
     with database.connect() as connection:
         material = connection.execute(
@@ -91,6 +93,27 @@ def test_official_orphan_blueprint_reference_is_recorded_as_warning(tmp_path: Pa
     assert result.status.warnings == {"blueprint_material_type_missing": 1}
 
 
+def test_active_legacy_build_is_atomically_enriched_for_pi_planning(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    archive = _archive(tmp_path, 101)
+    importer = SdeImporter(database, clock=lambda: NOW)
+    importer.import_archive(archive)
+    with database.connect() as connection, connection:
+        connection.execute("DELETE FROM sde_planets WHERE build_number = 101")
+        connection.execute(
+            "DELETE FROM sde_dataset_counts WHERE build_number = 101 "
+            "AND dataset IN ('type_capacities', 'solar_systems', 'planets')"
+        )
+
+    result = importer.import_archive(archive)
+
+    assert result.activated is False
+    assert result.status.dataset_counts["type_capacities"] == 6
+    assert result.status.dataset_counts["solar_systems"] == 1
+    assert result.status.dataset_counts["planets"] == 1
+    assert SdeRepository(database).has_pi_planning_data()
+
+
 def _database(tmp_path: Path) -> Database:
     database = Database(tmp_path / "eve-dolphin.sqlite3")
     database.initialize()
@@ -145,6 +168,7 @@ def _datasets(build_number: int, material_type_id: int) -> dict[str, list[object
                 "portionSize": 1,
             }
             for type_id, label in (
+                (11, "Temperate Planet"),
                 (100, "Blueprint"),
                 (101, "Material"),
                 (102, "Product"),
@@ -175,6 +199,23 @@ def _datasets(build_number: int, material_type_id: int) -> dict[str, list[object
                     {"_key": 103, "isInput": True, "quantity": 40},
                     {"_key": 104, "isInput": False, "quantity": 5},
                 ],
+            }
+        ],
+        "mapSolarSystems.jsonl": [
+            {
+                "_key": 30000142,
+                "constellationID": 20000020,
+                "regionID": 10000002,
+                "name": _name("Jita"),
+                "securityStatus": 0.9459,
+            }
+        ],
+        "mapPlanets.jsonl": [
+            {
+                "_key": 40009077,
+                "solarSystemID": 30000142,
+                "celestialIndex": 4,
+                "typeID": 11,
             }
         ],
     }

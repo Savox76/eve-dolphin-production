@@ -16,8 +16,9 @@
 EVE Dolphin verwendet die neue offizielle Tranquility-SDE im JSON-Lines-Format.
 Die jeweils aktuelle Buildnummer und das Veröffentlichungsdatum kommen aus
 `https://developers.eveonline.com/static-data/tranquility/latest.jsonl`; daraus wird
-die buildgebundene Archiv-URL gebildet. Für Version 1.0 werden nur Kategorien,
-Marktgruppen, Gruppen, Typen, Blueprints und Planet-Schematics importiert.
+die buildgebundene Archiv-URL gebildet. Für Version 1.0 werden Kategorien,
+Marktgruppen, Gruppen, Typen einschließlich Volumen und Kapazität, Blueprints,
+Planet-Schematics, Solarsysteme und Planeten importiert.
 
 Der Stand vom 28.08.2026 wurde mit Build `3484357` geprüft. Der vollständige reale
 Import umfasst 52.863 Typen, 5.082 Blueprints und 68 PI-Schematics. Da die offizielle
@@ -87,7 +88,7 @@ Das aktuelle ESI-Schema besitzt keinen allgemeinen privaten Endpunkt für ein vo
 | Typdetails | `GET /universe/types/{type_id}` | Name, Gruppe, Volumen und Eigenschaften |
 | Systeme | `GET /universe/systems/{system_id}` | Produktions- und Koloniestandorte |
 | Planeten | `GET /universe/planets/{planet_id}` | Planet und Systemzuordnung |
-| PI-Schematics | `GET /universe/schematics/{schematic_id}` | Ein-/Ausgänge und Zykluszeiten |
+| PI-Schematics | `GET /universe/schematics/{schematic_id}` | öffentlicher Name/Zyklus als Fallback; vollständige Rezepte primär aus der SDE |
 | Marktpreise | `GET /markets/prices` | Average und Adjusted Price |
 | Regionale Orders | `GET /markets/{region_id}/orders` | echte Buy-/Sell-Tiefe |
 | Markthistorie | `GET /markets/{region_id}/history` | Volumen und historische Preise |
@@ -121,7 +122,7 @@ Die offizielle SDE-JSON-Lines-Variante ist die primäre statische Quelle.
 | PI-Schematics | P0–P4-Eingänge, Ausgänge und Zykluszeiten |
 | Kategorien und Gruppen | Filterung und Navigation |
 | Market Groups | Marktstruktur und Produktauswahl |
-| Systeme, Planeten und Stationen | Standort- und Wurmlochprofile |
+| Systeme und Planeten | lokalisierte Kolonieorte, Sicherheitsstatus und Wurmlochprofile |
 | Dogma/Attribute | ausgewählte produktionstechnische Werte, sofern erforderlich |
 
 Der Import speichert Buildnummer, Abrufzeit, Schemaänderungsstand und Aktivierungszeit. SDE-Updates werden über offizielle Build- und Änderungsmetadaten erkannt.

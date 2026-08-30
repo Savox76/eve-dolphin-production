@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import secrets
+import sqlite3
 import zipfile
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from datetime import UTC, datetime
@@ -22,6 +23,8 @@ REQUIRED_FILES: Mapping[str, int] = {
     "types.jsonl": 256 * 1024 * 1024,
     "blueprints.jsonl": 32 * 1024 * 1024,
     "planetSchematics.jsonl": 2 * 1024 * 1024,
+    "mapSolarSystems.jsonl": 16 * 1024 * 1024,
+    "mapPlanets.jsonl": 128 * 1024 * 1024,
 }
 MAX_JSON_LINE_BYTES = 2 * 1024 * 1024
 BATCH_SIZE = 1000
@@ -52,7 +55,13 @@ class SdeImporter:
         if existing is not None and existing.build_number == archive.release.build_number:
             if not secrets.compare_digest(existing.archive_sha256, archive.sha256):
                 raise SdeArchiveValidationError("active SDE build has a different archive digest")
-            return SdeImportResult(status=existing, activated=False)
+            if self._repository.has_pi_planning_data():
+                return SdeImportResult(status=existing, activated=False)
+            self._enrich_active_build(archive)
+            status = self._repository.active_build()
+            if status is None:
+                raise SdeImportError("enriched active SDE build is unavailable")
+            return SdeImportResult(status=status, activated=False)
 
         _validate_archive_file(archive)
         started_at = self._now()
@@ -67,6 +76,8 @@ class SdeImporter:
                 self._import_types(bundle, archive.release.build_number)
                 self._import_blueprints(bundle, archive.release.build_number)
                 self._import_planet_schematics(bundle, archive.release.build_number)
+                self._import_solar_systems(bundle, archive.release.build_number)
+                self._import_planets(bundle, archive.release.build_number)
             self._validate_staged_build(archive.release.build_number)
             self._activate_build(archive.release.build_number)
         except Exception as error:
@@ -77,6 +88,68 @@ class SdeImporter:
         if status is None or status.build_number != archive.release.build_number:
             raise SdeImportError("SDE activation did not select the imported build")
         return SdeImportResult(status=status, activated=True)
+
+    def _enrich_active_build(self, archive: SdeArchive) -> None:
+        """Atomically add Phase-3 datasets to a build imported by an older client."""
+
+        _validate_archive_file(archive)
+        build_number = archive.release.build_number
+        with zipfile.ZipFile(archive.path) as bundle:
+            _validate_bundle_structure(bundle)
+            _validate_embedded_release(bundle, build_number)
+            with self._database.connect() as connection, connection:
+                connection.execute(
+                    "DELETE FROM sde_planets WHERE build_number = ?", (build_number,)
+                )
+                connection.execute(
+                    "DELETE FROM sde_solar_systems WHERE build_number = ?", (build_number,)
+                )
+                connection.execute(
+                    "UPDATE sde_types SET capacity = NULL WHERE build_number = ?",
+                    (build_number,),
+                )
+                capacity_count = _execute_batched(
+                    connection,
+                    """
+                    UPDATE sde_types SET capacity = ?
+                    WHERE build_number = ? AND type_id = ?
+                    """,
+                    _type_capacity_rows(bundle, build_number),
+                )
+                system_count = _execute_batched(
+                    connection,
+                    """
+                    INSERT INTO sde_solar_systems(
+                        build_number, solar_system_id, constellation_id, region_id,
+                        name_de, name_en, security_status
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    _solar_system_rows(bundle, build_number),
+                )
+                planet_count = _execute_batched(
+                    connection,
+                    """
+                    INSERT INTO sde_planets(
+                        build_number, planet_id, solar_system_id, celestial_index, type_id
+                    ) VALUES (?, ?, ?, ?, ?)
+                    """,
+                    _planet_rows(bundle, build_number),
+                )
+                if capacity_count <= 0 or system_count <= 0 or planet_count <= 0:
+                    raise SdeImportError("SDE planning catalog is empty")
+                connection.executemany(
+                    """
+                    INSERT INTO sde_dataset_counts(build_number, dataset, record_count)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(build_number, dataset)
+                    DO UPDATE SET record_count = excluded.record_count
+                    """,
+                    (
+                        (build_number, "type_capacities", capacity_count),
+                        (build_number, "solar_systems", system_count),
+                        (build_number, "planets", planet_count),
+                    ),
+                )
 
     def _start_import(self, archive: SdeArchive, started_at: datetime) -> None:
         build_number = archive.release.build_number
@@ -186,6 +259,7 @@ class SdeImporter:
                 _optional_number(record.get("mass"), "type mass"),
                 _optional_positive_int(record.get("portionSize"), "type portionSize"),
                 _boolean_int(record.get("published"), "type published"),
+                _optional_nonnegative_number(record.get("capacity"), "type capacity"),
             )
             for record in _records(bundle, "types.jsonl")
         )
@@ -193,8 +267,8 @@ class SdeImporter:
             """
             INSERT INTO sde_types(
                 build_number, type_id, group_id, market_group_id, name_de,
-                name_en, volume, mass, portion_size, published
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                name_en, volume, mass, portion_size, published, capacity
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
@@ -298,6 +372,29 @@ class SdeImporter:
         self._record_count(build_number, "planet_schematics", schematic_count)
         self._record_count(build_number, "planet_schematic_types", type_count)
 
+    def _import_solar_systems(self, bundle: zipfile.ZipFile, build_number: int) -> None:
+        count = self._insert_rows(
+            """
+            INSERT INTO sde_solar_systems(
+                build_number, solar_system_id, constellation_id, region_id,
+                name_de, name_en, security_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            _solar_system_rows(bundle, build_number),
+        )
+        self._record_count(build_number, "solar_systems", count)
+
+    def _import_planets(self, bundle: zipfile.ZipFile, build_number: int) -> None:
+        count = self._insert_rows(
+            """
+            INSERT INTO sde_planets(
+                build_number, planet_id, solar_system_id, celestial_index, type_id
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            _planet_rows(bundle, build_number),
+        )
+        self._record_count(build_number, "planets", count)
+
     def _insert_rows(self, sql: str, rows: Iterable[Sequence[object]]) -> int:
         count = 0
         batch: list[Sequence[object]] = []
@@ -337,6 +434,8 @@ class SdeImporter:
             "blueprint_products",
             "planet_schematics",
             "planet_schematic_types",
+            "solar_systems",
+            "planets",
         }
         with self._database.connect() as connection:
             rows = connection.execute(
@@ -618,6 +717,57 @@ def _schematic_type_rows(
     ]
 
 
+def _type_capacity_rows(bundle: zipfile.ZipFile, build_number: int) -> Iterator[tuple[object, ...]]:
+    for record in _records(bundle, "types.jsonl"):
+        yield (
+            _optional_nonnegative_number(record.get("capacity"), "type capacity"),
+            build_number,
+            _nonnegative_int(record.get("_key"), "type _key"),
+        )
+
+
+def _solar_system_rows(bundle: zipfile.ZipFile, build_number: int) -> Iterator[tuple[object, ...]]:
+    for record in _records(bundle, "mapSolarSystems.jsonl"):
+        yield (
+            build_number,
+            _positive_int(record.get("_key"), "solar system _key"),
+            _positive_int(record.get("constellationID"), "solar system constellationID"),
+            _positive_int(record.get("regionID"), "solar system regionID"),
+            *_localized_name(record),
+            _required_number(record.get("securityStatus"), "solar system securityStatus"),
+        )
+
+
+def _planet_rows(bundle: zipfile.ZipFile, build_number: int) -> Iterator[tuple[object, ...]]:
+    for record in _records(bundle, "mapPlanets.jsonl"):
+        yield (
+            build_number,
+            _positive_int(record.get("_key"), "planet _key"),
+            _positive_int(record.get("solarSystemID"), "planet solarSystemID"),
+            _positive_int(record.get("celestialIndex"), "planet celestialIndex"),
+            _positive_int(record.get("typeID"), "planet typeID"),
+        )
+
+
+def _execute_batched(
+    connection: sqlite3.Connection,
+    sql: str,
+    rows: Iterable[Sequence[object]],
+) -> int:
+    count = 0
+    batch: list[Sequence[object]] = []
+    for row in rows:
+        batch.append(row)
+        if len(batch) == BATCH_SIZE:
+            connection.executemany(sql, batch)
+            count += len(batch)
+            batch.clear()
+    if batch:
+        connection.executemany(sql, batch)
+        count += len(batch)
+    return count
+
+
 def _object_list(
     value: object,
     name: str,
@@ -663,6 +813,20 @@ def _optional_number(value: object, name: str) -> float | None:
     if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise SdeArchiveValidationError(f"{name} must be numeric")
     return float(value)
+
+
+def _required_number(value: object, name: str) -> float:
+    parsed = _optional_number(value, name)
+    if parsed is None:
+        raise SdeArchiveValidationError(f"{name} must be numeric")
+    return parsed
+
+
+def _optional_nonnegative_number(value: object, name: str) -> float | None:
+    parsed = _optional_number(value, name)
+    if parsed is not None and parsed < 0:
+        raise SdeArchiveValidationError(f"{name} must not be negative")
+    return parsed
 
 
 def _boolean_int(value: object, name: str) -> int:
