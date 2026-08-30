@@ -95,8 +95,13 @@ Die im Portal registrierte URL und `EVE_SSO_REDIRECT_URI` müssen immer identisc
 2. „Einstellungen & Charaktere“ öffnen und „EVE-Charakter verbinden“ wählen.
 3. Im Browser anmelden, einen Charakter auswählen und zustimmen.
 4. Prüfen, dass der Charakter lokal erscheint und kein Passwort im Client abgefragt wurde.
-5. EVE Dolphin neu starten und prüfen, dass der Charakter weiterhin gelistet ist.
+5. Den Charakter auswählen und nacheinander „Industrie freigeben“ sowie „PI freigeben“ wählen.
+6. Bei beiden Browserfreigaben exakt denselben Charakter auswählen.
+7. „EVE-Daten synchronisieren“ starten und auf der Übersicht SDE, Industrie, Jobs und PI prüfen.
+8. Einen zweiten Charakter verbinden, erneut synchronisieren und die getrennten Datenstände prüfen.
+9. EVE Dolphin neu starten und prüfen, dass Charaktere und Snapshots weiterhin gelistet sind.
 
 Der Client liest die Konfiguration in
 [`src/eve_dolphin/sso/config.py`](../src/eve_dolphin/sso/config.py). Der Implementierungs-
-und Abnahmestand steht in [`docs/PHASE_2_STATUS.md`](PHASE_2_STATUS.md).
+und Abnahmestand steht in [`docs/PHASE_2_STATUS.md`](PHASE_2_STATUS.md). Das ausführbare
+Live-Protokoll steht in [`docs/PHASE_2_ACCEPTANCE.md`](PHASE_2_ACCEPTANCE.md).

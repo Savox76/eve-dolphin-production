@@ -24,6 +24,10 @@ class SsoAuthorizationError(ValueError):
     """The browser authorization was rejected or was not correlated safely."""
 
 
+class UnexpectedCharacterError(SsoAuthorizationError):
+    """A permission upgrade selected a character other than the requested one."""
+
+
 class AuthorizationCodeExchanger(Protocol):
     def exchange_authorization_code(
         self,
@@ -44,12 +48,16 @@ class CharacterLinkService:
         sso_client: AuthorizationCodeExchanger,
         token_validator: AccessTokenValidator,
         clock: Callable[[], datetime] | None = None,
+        expected_character_id: int | None = None,
     ) -> None:
+        if expected_character_id is not None and expected_character_id <= 0:
+            raise ValueError("expected_character_id must be positive")
         self._repository = repository
         self._token_store = token_store
         self._sso_client = sso_client
         self._token_validator = token_validator
         self._clock = clock or (lambda: datetime.now(UTC))
+        self._expected_character_id = expected_character_id
 
     def complete_link(
         self,
@@ -76,6 +84,13 @@ class CharacterLinkService:
             metadata,
             config.client_id,
         )
+        if (
+            self._expected_character_id is not None
+            and identity.character_id != self._expected_character_id
+        ):
+            raise UnexpectedCharacterError(
+                "EVE SSO returned a different character than the one being reauthorized"
+            )
         character = EveCharacter(
             character_id=identity.character_id,
             character_name=identity.character_name,

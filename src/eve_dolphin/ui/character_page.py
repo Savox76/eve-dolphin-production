@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import UTC
 
 import httpx
@@ -30,6 +30,7 @@ from eve_dolphin.characters import (
     CharacterRepository,
     CharacterSsoFlow,
     EveCharacter,
+    UnexpectedCharacterError,
 )
 from eve_dolphin.characters.service import SsoAuthorizationError
 from eve_dolphin.i18n import Translator
@@ -41,13 +42,16 @@ from eve_dolphin.sso.callback import (
 )
 from eve_dolphin.sso.client import EveSsoClient
 from eve_dolphin.sso.config import SsoConfig, SsoConfigurationError
+from eve_dolphin.sso.scopes import ScopePackage, scopes_for_packages
 from eve_dolphin.sso.transport import OAuthTokenRequestError
 from eve_dolphin.sso.validation import AccessTokenValidationError, EveAccessTokenValidator
+from eve_dolphin.sync.coordinator import CharacterSyncBatch
 
 LOGGER = logging.getLogger(__name__)
 
 ConfirmUnlink = Callable[[EveCharacter], bool]
 UnlinkCharacter = Callable[[int], bool]
+SyncCharacters = Callable[[], CharacterSyncBatch]
 
 
 class CharacterSsoWorker(QThread):
@@ -57,9 +61,17 @@ class CharacterSsoWorker(QThread):
     character_linked = Signal(object)
     failed = Signal(str)
 
-    def __init__(self, repository: CharacterRepository, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        repository: CharacterRepository,
+        scopes: Sequence[str] = (),
+        expected_character_id: int | None = None,
+        parent: QWidget | None = None,
+    ) -> None:
         super().__init__(parent)
         self._repository = repository
+        self._scopes = tuple(scopes)
+        self._expected_character_id = expected_character_id
 
     def run(self) -> None:
         try:
@@ -70,10 +82,12 @@ class CharacterSsoWorker(QThread):
                 KeyringTokenStore(),
                 sso_client,
                 EveAccessTokenValidator(),
+                expected_character_id=self._expected_character_id,
             )
             flow = CharacterSsoFlow(sso_client, link_service)
             character = flow.link_character(
                 config,
+                scopes=self._scopes,
                 authorization_ready=self.authorization_ready.emit,
                 cancelled=self.isInterruptionRequested,
             )
@@ -85,6 +99,8 @@ class CharacterSsoWorker(QThread):
             self.failed.emit("sso_timeout")
         except CallbackCancelledError:
             return
+        except UnexpectedCharacterError:
+            self.failed.emit("sso_wrong_character")
         except SsoAuthorizationError:
             self.failed.emit("sso_cancelled")
         except (CallbackStateMismatchError, AccessTokenValidationError):
@@ -102,10 +118,37 @@ class CharacterSsoWorker(QThread):
             self.character_linked.emit(character)
 
 
+class DataSyncWorker(QThread):
+    """Run the complete multi-character synchronization away from the UI thread."""
+
+    completed = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, synchronize: SyncCharacters, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._synchronize = synchronize
+
+    def run(self) -> None:
+        try:
+            result = self._synchronize()
+        except SsoConfigurationError:
+            self.failed.emit("sso_client_id_missing")
+        except KeyringError:
+            self.failed.emit("sso_keyring_failed")
+        except (httpx.HTTPError, OSError):
+            self.failed.emit("sync_network_failed")
+        except Exception:
+            LOGGER.exception("EVE character data synchronization failed")
+            self.failed.emit("sync_failed")
+        else:
+            self.completed.emit(result)
+
+
 class CharacterPage(QWidget):
     """List, connect and safely unlink the characters stored by this installation."""
 
     characters_changed = Signal()
+    data_changed = Signal()
     authorization_stopped = Signal()
 
     def __init__(
@@ -114,13 +157,16 @@ class CharacterPage(QWidget):
         translator: Translator,
         confirm_unlink: ConfirmUnlink | None = None,
         unlink_character: UnlinkCharacter | None = None,
+        sync_characters: SyncCharacters | None = None,
     ) -> None:
         super().__init__()
         self._repository = repository
         self._translator = translator
         self._confirm_unlink = confirm_unlink or self._show_unlink_confirmation
         self._unlink_character = unlink_character or self._unlink_local_character
+        self._sync_characters = sync_characters
         self._worker: CharacterSsoWorker | None = None
+        self._sync_worker: DataSyncWorker | None = None
 
         self.table = QTableWidget(0, 4)
         self.table.setObjectName("characterTable")
@@ -128,14 +174,23 @@ class CharacterPage(QWidget):
         self.connect_button.setObjectName("connectCharacterButton")
         self.unlink_button = QPushButton(self._translator.text("unlink_character"))
         self.unlink_button.setObjectName("unlinkCharacterButton")
+        self.industry_button = QPushButton(self._translator.text("authorize_industry"))
+        self.industry_button.setObjectName("authorizeIndustryButton")
+        self.planetary_button = QPushButton(self._translator.text("authorize_planetary"))
+        self.planetary_button.setObjectName("authorizePlanetaryButton")
+        self.sync_button = QPushButton(self._translator.text("sync_data"))
+        self.sync_button.setObjectName("syncDataButton")
         self.status_label = QLabel()
         self.status_label.setObjectName("muted")
         self.status_label.setWordWrap(True)
 
         self._build_layout()
         self.table.itemSelectionChanged.connect(self._update_selection)
-        self.connect_button.clicked.connect(self._start_authorization)
+        self.connect_button.clicked.connect(self._start_new_character_authorization)
         self.unlink_button.clicked.connect(self._unlink_selected)
+        self.industry_button.clicked.connect(self._authorize_industry)
+        self.planetary_button.clicked.connect(self._authorize_planetary)
+        self.sync_button.clicked.connect(self._start_sync)
         self.refresh()
 
     def _build_layout(self) -> None:
@@ -177,6 +232,9 @@ class CharacterPage(QWidget):
 
         actions = QHBoxLayout()
         actions.addWidget(self.connect_button)
+        actions.addWidget(self.industry_button)
+        actions.addWidget(self.planetary_button)
+        actions.addWidget(self.sync_button)
         actions.addWidget(self.unlink_button)
         actions.addStretch(1)
 
@@ -211,25 +269,53 @@ class CharacterPage(QWidget):
             self.table.setItem(row, 2, authorization_status)
             self.table.setItem(row, 3, linked_at)
         self.table.clearSelection()
-        self.unlink_button.setEnabled(False)
+        self._update_selection()
         self.status_label.setText(
             self._translator.text("character_count").format(count=len(characters))
         )
 
     @Slot()
-    def _start_authorization(self) -> None:
-        if self._worker is not None:
+    def _start_new_character_authorization(self) -> None:
+        self._start_authorization((), None)
+
+    def _start_authorization(
+        self, scopes: Sequence[str], expected_character_id: int | None
+    ) -> None:
+        if self._worker is not None or self._sync_worker is not None:
             return
-        self.connect_button.setEnabled(False)
-        self.unlink_button.setEnabled(False)
+        self._set_actions_enabled(False)
         self.status_label.setText(self._translator.text("sso_preparing"))
-        worker = CharacterSsoWorker(self._repository, self)
+        worker = CharacterSsoWorker(
+            self._repository,
+            scopes,
+            expected_character_id,
+            self,
+        )
         self._worker = worker
         worker.authorization_ready.connect(self._authorization_ready)
         worker.character_linked.connect(self._character_linked)
         worker.failed.connect(self._authorization_failed)
         worker.finished.connect(self._authorization_finished)
         worker.start()
+
+    @Slot()
+    def _authorize_industry(self) -> None:
+        self._authorize_selected(ScopePackage.INDUSTRY)
+
+    @Slot()
+    def _authorize_planetary(self) -> None:
+        self._authorize_selected(ScopePackage.PLANETARY_INDUSTRY)
+
+    def _authorize_selected(self, package: ScopePackage) -> None:
+        character_id = self._selected_character_id()
+        if character_id is None:
+            return
+        character = self._repository.get(character_id)
+        if character is None:
+            self.refresh()
+            return
+        scopes = tuple(dict.fromkeys((*character.granted_scopes, *scopes_for_packages(package))))
+        self._start_authorization(scopes, character_id)
 
     @Slot(str)
     def _authorization_ready(self, _url: str) -> None:
@@ -254,7 +340,6 @@ class CharacterPage(QWidget):
     def _authorization_finished(self) -> None:
         worker = self._worker
         self._worker = None
-        self.connect_button.setEnabled(True)
         self._update_selection()
         if worker is not None:
             worker.deleteLater()
@@ -262,9 +347,86 @@ class CharacterPage(QWidget):
 
     @Slot()
     def _update_selection(self) -> None:
-        self.unlink_button.setEnabled(
-            self._worker is None and self._selected_character_id() is not None
+        busy = self._worker is not None or self._sync_worker is not None
+        character_id = self._selected_character_id()
+        character = self._repository.get(character_id) if character_id is not None else None
+        granted = set(character.granted_scopes) if character is not None else set()
+        industry_missing = set(scopes_for_packages(ScopePackage.INDUSTRY)) - granted
+        planetary_missing = set(scopes_for_packages(ScopePackage.PLANETARY_INDUSTRY)) - granted
+        self.connect_button.setEnabled(not busy)
+        self.unlink_button.setEnabled(not busy and character is not None)
+        self.industry_button.setEnabled(
+            not busy and character is not None and bool(industry_missing)
         )
+        self.planetary_button.setEnabled(
+            not busy and character is not None and bool(planetary_missing)
+        )
+        self.sync_button.setEnabled(
+            not busy and self._sync_characters is not None and self.table.rowCount() > 0
+        )
+
+    def _set_actions_enabled(self, enabled: bool) -> None:
+        for button in (
+            self.connect_button,
+            self.unlink_button,
+            self.industry_button,
+            self.planetary_button,
+            self.sync_button,
+        ):
+            button.setEnabled(enabled)
+
+    @Slot()
+    def _start_sync(self) -> None:
+        if (
+            self._sync_characters is None
+            or self._worker is not None
+            or self._sync_worker is not None
+        ):
+            return
+        self._set_actions_enabled(False)
+        self.status_label.setText(self._translator.text("sync_running"))
+        worker = DataSyncWorker(self._sync_characters, self)
+        self._sync_worker = worker
+        worker.completed.connect(self._sync_completed)
+        worker.failed.connect(self._sync_failed)
+        worker.finished.connect(self._sync_finished)
+        worker.start()
+
+    @Slot(str)
+    def _sync_failed(self, translation_key: str) -> None:
+        self.status_label.setText(self._translator.text(translation_key))
+        self.data_changed.emit()
+
+    @Slot(object)
+    def _sync_completed(self, result: object) -> None:
+        if not isinstance(result, CharacterSyncBatch):
+            self.status_label.setText(self._translator.text("sync_failed"))
+            return
+        if result.global_failures:
+            message = self._translator.text("sync_sde_failed")
+        elif not result.outcomes:
+            message = self._translator.text("no_characters")
+        elif result.missing_scopes:
+            message = self._translator.text("sync_permissions_missing")
+        elif result.failed_count:
+            message = self._translator.text("sync_partial").format(
+                succeeded=result.succeeded_count,
+                count=len(result.outcomes),
+            )
+        else:
+            message = self._translator.text("sync_complete").format(count=result.succeeded_count)
+        self.refresh()
+        self.status_label.setText(message)
+        self.data_changed.emit()
+
+    @Slot()
+    def _sync_finished(self) -> None:
+        worker = self._sync_worker
+        self._sync_worker = None
+        self._update_selection()
+        if worker is not None:
+            worker.deleteLater()
+        self.authorization_stopped.emit()
 
     @Slot()
     def _unlink_selected(self) -> None:
@@ -320,7 +482,13 @@ class CharacterPage(QWidget):
         if self._worker is not None:
             self._worker.requestInterruption()
             self.status_label.setText(self._translator.text("sso_closing"))
+        elif self._sync_worker is not None:
+            self.status_label.setText(self._translator.text("sync_closing"))
 
     @property
     def authorization_pending(self) -> bool:
         return self._worker is not None
+
+    @property
+    def background_work_pending(self) -> bool:
+        return self._worker is not None or self._sync_worker is not None

@@ -17,6 +17,7 @@ from eve_dolphin.characters import CharacterRepository
 from eve_dolphin.database import Database
 from eve_dolphin.i18n import Translator
 from eve_dolphin.sso.pkce import generate_pkce_pair
+from eve_dolphin.sync.runtime import PhaseTwoSyncRunner
 
 LOGGER = logging.getLogger(__name__)
 
@@ -102,9 +103,12 @@ def main(arguments: list[str] | None = None) -> int:
     apply_theme(application)
 
     window = MainWindow(
-        context.paths.database_path,
+        context.database,
         context.translator,
         context.characters,
+        sync_characters=PhaseTwoSyncRunner(
+            context.database, context.characters, context.paths.sde_dir
+        ).sync_all,
     )
     window.show()
     return application.exec()
