@@ -10,7 +10,7 @@
 
 **Gesamtfortschritt:** 15 %
 
-**Nächster Meilenstein:** Phase 2 – EVE-Datenbasis
+**Nächster Meilenstein:** Phase 2 – Live-Datenabnahme; Phase 3 – PI-MVP technisch in Arbeit
 
 ---
 
