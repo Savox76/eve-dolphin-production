@@ -9,8 +9,10 @@ description = "Local production planning desktop client for EVE Online"
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
 dependencies = [
+  "httpx==0.28.1",
   "keyring==25.7.0",
   "platformdirs==4.11.5",
+  "pyjwt[crypto]==2.13.0",
   "PySide6==6.11.2",
 ]
 

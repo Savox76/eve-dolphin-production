@@ -136,3 +136,14 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Windows-Paket:** Die gebaute EXE bestand ihren SQLite-Selbsttest; das zugehörige private CI-Artefakt wurde erfolgreich hochgeladen.
 - **Fortschritt:** Phase 1 erhöht den gewichteten Gesamtfortschritt von `5 %` auf `15 %`.
 - **Nächster Schritt:** Phase 2 implementiert EVE SSO mit PKCE, mehrere eigene Charaktere, SDE-Import und den ESI-Synchronisationskern.
+
+### D-017 – Sicherheitsgrenze für EVE SSO
+
+- **Status:** beschlossen am 30.08.2026
+- **Flow:** Der lokale Client verwendet ausschließlich Authorization Code mit PKCE und enthält kein Client Secret.
+- **Callback:** Standard ist `http://127.0.0.1:38636/callback`; erlaubt sind nur IPv4-Loopback, HTTP, ein fester Port und der exakte Pfad `/callback`.
+- **Korrelation:** Jeder Versuch besitzt kryptografisch zufällige PKCE- und `state`-Werte. Abweichende, doppelte oder unvollständige Callback-Parameter werden verworfen und nicht protokolliert.
+- **Tokenprüfung:** Vor lokaler Speicherung werden RSA-Signatur, Schlüssel-ID, fester Algorithmus `RS256`, Issuer, Ablauf, EVE- und Client-Audience, Charakter-Subject, Name und Scope-Struktur geprüft.
+- **Persistenz:** Nur das Refresh Token wird charakterbezogen im OS-Anmeldedatenspeicher abgelegt. Charakter-ID, Name, Owner-Hash, Scopes und Zeitstempel liegen in SQLite; bei einem Speicherfehler wird ein ersetztes Token wiederhergestellt.
+- **Abhängigkeiten:** HTTPX `0.28.1` übernimmt begrenzte HTTPS-Anfragen; PyJWT `2.13.0` mit `cryptography` validiert EVE-JWTs. Alle Versionen sind im Lockfile festgeschrieben.
+- **Begründung:** Die lokale Anwendung ist ein öffentlicher OAuth-Client. PKCE, ein strikt begrenzter Loopback-Callback und vollständige Tokenvalidierung bilden gemeinsam die notwendige Vertrauensgrenze.
