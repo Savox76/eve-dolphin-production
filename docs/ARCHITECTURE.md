@@ -236,7 +236,10 @@ Geldbeträge und Mengen verwenden Python `Decimal` beziehungsweise explizite gan
 
 Die Python-Codebasis bleibt gemeinsam und wird nicht pro Betriebssystem aufgeteilt. Installation, Signierung, OS-Anmeldedatenspeicher und Paketprüfung erzeugen dennoch getrennte Release-Pakete. Windows wird zuerst abgenommen; weitere Desktop-Systeme erhalten eigene Builds und Tests.
 
-Während der Entwicklung bleibt das Quellcode-Repository privat. Für eine spätere Weitergabe ist ein getrenntes öffentliches Release-Repository vorgesehen, das Installationspakete, Prüfsummen und Änderungsprotokolle enthält, ohne dadurch den privaten Quellcode offenzulegen.
+Quellcode, CI und Releases liegen gemeinsam im öffentlichen Repository
+`Savox76/eve-dolphin-production`. Der manuell gestartete Releaseworkflow baut aus dem
+geprüften `main`-Stand und veröffentlicht Windows-Paket, Prüfsumme und Änderungsprotokoll mit
+dem kurzlebigen, auf dieses Repository begrenzten `GITHUB_TOKEN`.
 
 ## Backup und Wiederherstellung
 
