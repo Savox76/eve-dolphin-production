@@ -68,3 +68,10 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Entscheidung:** Das Tool fordert ESI-Scopes modulbezogen und so spät wie möglich an.
 - **Beispiel:** PI-Berechtigung wird erst beim Aktivieren der PI-Funktionen benötigt; Corporation-Scopes gehören nicht zu Version 1.0.
 - **Begründung:** Minimale Berechtigungen stärken Vertrauen und begrenzen die Folgen eines Sicherheitsvorfalls.
+
+### D-010 – Produktneutrale Referenzfälle
+
+- **Status:** beschlossen am 30.08.2026
+- **Entscheidung:** Die erste Spezifikation wird nicht auf ein persönliches Lieblingsprodukt zugeschnitten, sondern verwendet fünf breit abdeckende Referenzabläufe.
+- **Referenzen:** Water/P1, Robotics/P3, Caracal/T1, Nanite Repair Paste/PI plus Manufacturing sowie J151141 ohne Customs Office.
+- **Begründung:** Die spätere Engine soll sämtliche unterstützten SDE-Rezepte verarbeiten; die Referenzen decken unterschiedliche Daten-, Rechen- und Fehlerpfade ab.
