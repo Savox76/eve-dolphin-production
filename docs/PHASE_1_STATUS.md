@@ -1,4 +1,4 @@
-# Phase 1 – Technisches Fundament
+# Phase 1 – Technisches Fundament (abgeschlossen)
 
 ## Ziel
 
@@ -21,12 +21,12 @@ Phase 1 macht aus der abgenommenen Produktspezifikation einen reproduzierbar ent
 
 ## Abnahmevoraussetzungen
 
-- [ ] Pull-Request-Prüfungen sind vollständig grün.
-- [ ] Das Windows-Artefakt wird erfolgreich gebaut und sein Selbsttest besteht.
-- [ ] Die Änderung ist nach grünen Checks in `main` übernommen.
-- [ ] Der `main`-Stand ist grün.
+- [x] Pull-Request-Prüfungen sind vollständig grün.
+- [x] Das Windows-Artefakt wurde erfolgreich gebaut und sein Selbsttest bestand.
+- [x] Die Änderung wurde mit PR #16 nach grünen Checks in `main` übernommen.
+- [x] Der geprüfte Fundamentstand ist in `main` enthalten.
 
-Der Gesamtfortschritt bleibt bis zur vollständigen Phasenabnahme bei `5 %`. Nach Abnahme von Phase 1 beträgt er gemäß Masterplan `15 %`.
+Phase 1 wurde formal abgenommen. Der Gesamtfortschritt beträgt gemäß Masterplan `15 %`.
 
 ## Bewusst noch nicht enthalten
 

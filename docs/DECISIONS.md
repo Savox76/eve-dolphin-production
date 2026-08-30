@@ -127,3 +127,12 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Paketierung:** PyInstaller `6.22.2`; Windows-Pakete werden auf einem Windows-Runner gebaut und durch einen paketierten Selbsttest geprüft.
 - **Reproduzierbarkeit:** Direkte und transitive Python-Abhängigkeiten werden in `uv.lock` festgeschrieben.
 - **Begründung:** Der Client erhält eine kleine, lokal wartbare Laufzeit ohne externen Datenbank- oder Serverdienst und kann trotzdem als eigenständiges Windows-Paket ausgeliefert werden.
+
+### D-016 – Phase 1 ist abgenommen
+
+- **Status:** beschlossen am 30.08.2026
+- **Entscheidung:** Das technische Fundament des lokalen Python-Clients erfüllt die Abnahmekriterien der Phase 1.
+- **Nachweis:** PR #16 wurde erst nach erfolgreichen Repository-, Python-, UI- und Windows-Paketprüfungen in `main` übernommen.
+- **Windows-Paket:** Die gebaute EXE bestand ihren SQLite-Selbsttest; das zugehörige private CI-Artefakt wurde erfolgreich hochgeladen.
+- **Fortschritt:** Phase 1 erhöht den gewichteten Gesamtfortschritt von `5 %` auf `15 %`.
+- **Nächster Schritt:** Phase 2 implementiert EVE SSO mit PKCE, mehrere eigene Charaktere, SDE-Import und den ESI-Synchronisationskern.
