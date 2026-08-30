@@ -183,6 +183,20 @@ Zeitpunkt des aktiven Snapshots liegt in SQLite, sodass ein Neustart diese Grenz
 nicht umgeht. Dieser erste Snapshot enthält bewusst noch keine Asset-Namen,
 Industry Jobs oder Planeten; diese Ressourcen folgen in getrennten Bausteinen.
 
+## Industry-Job-Snapshots
+
+Persönliche Industry Jobs besitzen wegen ihrer offiziellen fünfminütigen Cachezeit
+einen eigenen Snapshotzyklus. Ein Abruf schließt `include_completed=true` ein; ESI
+liefert dabei neben aktiven Jobs abgeschlossene Jobs der vergangenen 90 Tage. Der
+Job-Scope wird erst unmittelbar vor diesem Abruf verlangt.
+
+IDs, Status, Aktivität, Runs, Laufzeit, Zeitpunkte und optionale Ergebnisfelder
+werden vor dem Schreiben geprüft. Kosten und Wahrscheinlichkeiten werden bereits
+beim JSON-Parsing als `Decimal` gelesen und als Dezimaltext gespeichert. Dadurch
+läuft kein verbindlicher ISK-Wert durch eine binäre Fließkommazahl. Auch hier
+wechseln Snapshot, aktive Referenz, Laufstatus und `last_sync_at` gemeinsam in einer
+SQLite-Transaktion; die vorige gültige Version bleibt bei jedem Fehler aktiv.
+
 ## SDE-Import
 
 1. Aktuelle Build-Metadaten mit HTTP-Caching prüfen.

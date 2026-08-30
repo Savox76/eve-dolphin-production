@@ -293,6 +293,67 @@ MIGRATIONS = (
             ON character_blueprints(snapshot_id, type_id);
         """,
     ),
+    Migration(
+        version=5,
+        description="atomic character industry job snapshots",
+        sql="""
+        CREATE TABLE industry_job_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            character_id INTEGER NOT NULL,
+            fetched_at TEXT NOT NULL,
+            last_modified TEXT,
+            job_count INTEGER NOT NULL CHECK (job_count >= 0),
+            UNIQUE (id, character_id),
+            FOREIGN KEY (character_id) REFERENCES eve_characters(character_id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE industry_jobs_current (
+            character_id INTEGER PRIMARY KEY,
+            snapshot_id INTEGER NOT NULL UNIQUE,
+            FOREIGN KEY (character_id) REFERENCES eve_characters(character_id) ON DELETE CASCADE,
+            FOREIGN KEY (snapshot_id, character_id)
+                REFERENCES industry_job_snapshots(id, character_id)
+        );
+
+        CREATE TABLE character_industry_jobs (
+            snapshot_id INTEGER NOT NULL,
+            job_id INTEGER NOT NULL,
+            installer_id INTEGER NOT NULL,
+            facility_id INTEGER NOT NULL,
+            station_id INTEGER NOT NULL,
+            activity_id INTEGER NOT NULL CHECK (activity_id > 0),
+            blueprint_id INTEGER NOT NULL,
+            blueprint_type_id INTEGER NOT NULL CHECK (blueprint_type_id > 0),
+            blueprint_location_id INTEGER NOT NULL,
+            output_location_id INTEGER NOT NULL,
+            runs INTEGER NOT NULL CHECK (runs > 0),
+            status TEXT NOT NULL
+                CHECK (status IN (
+                    'active', 'cancelled', 'delivered', 'paused', 'ready', 'reverted'
+                )),
+            duration_seconds INTEGER NOT NULL CHECK (duration_seconds >= 0),
+            start_date TEXT NOT NULL,
+            end_date TEXT NOT NULL,
+            completed_character_id INTEGER,
+            completed_date TEXT,
+            pause_date TEXT,
+            cost_decimal TEXT,
+            licensed_runs INTEGER,
+            probability_decimal TEXT,
+            product_type_id INTEGER,
+            successful_runs INTEGER,
+            PRIMARY KEY (snapshot_id, job_id),
+            FOREIGN KEY (snapshot_id) REFERENCES industry_job_snapshots(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX character_industry_jobs_status_idx
+            ON character_industry_jobs(snapshot_id, status);
+        CREATE INDEX character_industry_jobs_blueprint_type_idx
+            ON character_industry_jobs(snapshot_id, blueprint_type_id);
+        CREATE INDEX character_industry_jobs_product_type_idx
+            ON character_industry_jobs(snapshot_id, product_type_id);
+        """,
+    ),
 )
 
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1].version

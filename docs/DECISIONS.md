@@ -217,3 +217,12 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Isolation:** Jeder Snapshot gehört genau einem Charakter. Fehler, fehlende Scopes oder widerrufene Tokens eines Charakters verändern weder dessen bisher gültige Daten noch Daten anderer Charaktere.
 - **Persistenter Cache:** Der aktive Snapshot verhindert für die offizielle einstündige Cachezeit auch über einen Programmneustart hinweg unnötige ESI- und Tokenanfragen.
 - **Scopes:** Dieser Abruf benötigt ausschließlich `esi-assets.read_assets.v1` und `esi-characters.read_blueprints.v1`. Der Industry-Job-Scope wird erst mit dem Job-Synchronisierer verwendet.
+
+### D-025 – Eigener Snapshotzyklus für Industry Jobs
+
+- **Status:** beschlossen am 30.08.2026
+- **Trennung:** Persönliche Industry Jobs erhalten einen eigenen Snapshot neben Assets und Blueprints, weil ihre offizielle Client-Cachezeit fünf statt sechzig Minuten beträgt.
+- **Umfang:** Der Abruf verwendet `include_completed=true`. Abgeschlossene ESI-Jobs sind auf die vergangenen 90 Tage begrenzt und werden nicht als unbegrenzte Historie dargestellt.
+- **Genauigkeit:** Kosten und Erfolgswahrscheinlichkeiten werden beim JSON-Einlesen direkt als `Decimal` übernommen und als Dezimaltext gespeichert.
+- **Aktivierung:** Validierte Jobs, aktive Referenz, erfolgreicher Lauf und `last_sync_at` werden atomar geschrieben. Bei jedem Fehler bleiben der bisherige Snapshot und die Daten anderer Charaktere unverändert.
+- **Berechtigung:** Ausschließlich dieser Baustein benötigt `esi-industry.read_character_jobs.v1`; fehlt der Scope, erfolgt keine Job-Datenanfrage.

@@ -51,6 +51,13 @@ Die Blueprint-Menge unterscheidet BPO (`-1`), BPC (`-2`) und noch unveränderte
 Blueprint-Stapel; `runs`, Materialeffizienz und Zeiteffizienz bleiben unverändert
 als charakterbezogene Ist-Werte erhalten.
 
+Die persönliche Jobroute ist mit `include_completed=true` angebunden. Laut aktuellem
+Schema umfasst der abgeschlossene Anteil die vergangenen 90 Tage; EVE Dolphin
+behandelt ihn deshalb nicht als unbegrenzte Historie. Die Route besitzt eine
+Client-Cachezeit von 300 Sekunden. Installationskosten und Wahrscheinlichkeiten
+werden als Dezimalwerte gespeichert, Jobstatus und Zeitangaben bleiben unveränderte
+ESI-Ist-Daten.
+
 ## Private Charakterdaten für spätere Module
 
 Diese Routen und Scopes gehören ausdrücklich nicht zum Mindestumfang von Version 1.0. Sie werden erst mit dem jeweiligen Modul angeboten und progressiv freigegeben.
