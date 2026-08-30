@@ -162,7 +162,7 @@ def _release_payload(
         "tag_name": tag,
         "name": f"EVE Dolphin {tag}",
         "body": "Changes",
-        "html_url": f"https://github.com/Savox76/eve-dolphin-releases/releases/tag/{tag}",
+        "html_url": f"https://github.com/Savox76/eve-dolphin-production/releases/tag/{tag}",
         "published_at": "2026-08-30T20:00:00Z",
         "prerelease": prerelease,
         "draft": draft,
@@ -170,7 +170,7 @@ def _release_payload(
             {
                 "name": asset_name,
                 "browser_download_url": (
-                    "https://github.com/Savox76/eve-dolphin-releases/releases/download/"
+                    "https://github.com/Savox76/eve-dolphin-production/releases/download/"
                     f"{tag}/{asset_name}"
                 ),
                 "size": 123,
@@ -184,7 +184,7 @@ def _archive_bytes(version: str) -> bytes:
     buffer = io.BytesIO()
     build_info = {
         "version": version,
-        "distribution_repository": "Savox76/eve-dolphin-releases",
+        "distribution_repository": "Savox76/eve-dolphin-production",
     }
     with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
         archive.writestr("EVE-Dolphin/EVE-Dolphin.exe", b"new-executable")
@@ -198,13 +198,13 @@ def _release_info(payload: bytes, *, sha256: str | None = None) -> ReleaseInfo:
         "v0.2.0",
         "EVE Dolphin v0.2.0",
         "Changes",
-        "https://github.com/Savox76/eve-dolphin-releases/releases/tag/v0.2.0",
+        "https://github.com/Savox76/eve-dolphin-production/releases/tag/v0.2.0",
         datetime(2026, 8, 30, 20, 0, tzinfo=UTC),
         True,
         ReleaseAsset(
             "EVE-Dolphin-Windows-v0.2.0.zip",
             (
-                "https://github.com/Savox76/eve-dolphin-releases/releases/download/"
+                "https://github.com/Savox76/eve-dolphin-production/releases/download/"
                 "v0.2.0/EVE-Dolphin-Windows-v0.2.0.zip"
             ),
             len(payload),
