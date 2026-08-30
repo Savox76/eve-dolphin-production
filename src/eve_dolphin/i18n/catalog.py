@@ -56,8 +56,8 @@ CATALOG: dict[str, dict[str, str]] = {
         ),
         "sso_linked": "{name} wurde erfolgreich verbunden.",
         "sso_client_id_missing": (
-            "Die öffentliche EVE-Client-ID ist noch nicht konfiguriert. "
-            "Für die Entwicklung wird EVE_SSO_CLIENT_ID benötigt."
+            "Die öffentliche EVE-Client-ID ist leer. Entferne eine leere "
+            "EVE_SSO_CLIENT_ID-Überschreibung oder trage eine gültige Client-ID ein."
         ),
         "sso_browser_failed": "Der Systembrowser konnte nicht geöffnet werden.",
         "sso_timeout": "Die EVE-Anmeldung wurde nicht innerhalb von drei Minuten abgeschlossen.",
@@ -150,8 +150,8 @@ CATALOG: dict[str, dict[str, str]] = {
         ),
         "sso_linked": "{name} was connected successfully.",
         "sso_client_id_missing": (
-            "The public EVE client ID has not been configured yet. "
-            "Development builds require EVE_SSO_CLIENT_ID."
+            "The public EVE client ID is blank. Remove an empty EVE_SSO_CLIENT_ID "
+            "override or provide a valid client ID."
         ),
         "sso_browser_failed": "The system browser could not be opened.",
         "sso_timeout": "The EVE sign-in was not completed within three minutes.",

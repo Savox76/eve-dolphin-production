@@ -266,7 +266,7 @@ def test_character_login_reports_missing_public_client_id_without_blocking_ui(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("EVE_SSO_CLIENT_ID", raising=False)
+    monkeypatch.setenv("EVE_SSO_CLIENT_ID", "")
     page = CharacterPage(_repository(tmp_path), Translator("en"))
 
     page.connect_button.click()

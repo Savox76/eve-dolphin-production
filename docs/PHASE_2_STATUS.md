@@ -120,7 +120,8 @@ Phase 2 verbindet den lokalen Client sicher mit EVE Online und baut die belastba
 
 ## Noch offen bis zur Phase-2-Abnahme
 
-- [ ] EVE-Developer-Anwendung mit öffentlicher Client ID und exaktem Callback registrieren
+- [x] öffentliche EVE-Client-ID im distributionsfähigen Desktop-Client konfigurieren
+- [ ] exakte Callback-Registrierung der Developer-Anwendung im Live-SSO bestätigen
 - [x] Modulaktivierung fordert fehlende Industrie-/PI-Scopes sichtbar über eine erneute Autorisierung an
 - [x] SDE-Download, Prüfung, Versionierung und atomarer Import
 - [x] ESI-Client mit Kompatibilitätsdatum, Cache, ETag, Retry und Fehlerlimit-Schutz
@@ -134,6 +135,6 @@ Phase 2 verbindet den lokalen Client sicher mit EVE Online und baut die belastba
 
 Die Implementierung von Phase 2 ist technisch vollständig und automatisiert geprüft. Der
 gewichtete Gesamtfortschritt bleibt bis zu den beiden betreiberabhängigen Schritten –
-Portalregistrierung und Live-SSO-Abnahme – bei `15 %`. Nach dieser manuellen Abnahme steigt
+Callback-Bestätigung und Live-SSO-Abnahme – bei `15 %`. Nach dieser manuellen Abnahme steigt
 er gemäß Masterplan auf `30 %`. Die genaue Abnahme steht in
 [`PHASE_2_ACCEPTANCE.md`](PHASE_2_ACCEPTANCE.md).

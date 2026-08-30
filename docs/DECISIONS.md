@@ -175,7 +175,7 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Thread-Grenze:** Metadatenabruf, lokaler Callback, Token-Austausch, JWT-Prüfung und Keyring-Zugriff laufen außerhalb des UI-Threads.
 - **Browser:** Der Callback-Port wird gebunden, bevor der Systembrowser geöffnet wird. EVE Dolphin zeigt oder verarbeitet keine EVE-Passwörter.
 - **Berechtigungen:** Die erste Anmeldung bestätigt nur die Charakteridentität. Fachliche Scopes werden später progressiv mit dem jeweiligen Modul angefordert.
-- **Konfiguration:** Entwicklungsstände lesen die öffentliche Client-ID aus `EVE_SSO_CLIENT_ID`; der exakte registrierte Callback ist `http://127.0.0.1:38636/callback`. Ein Client Secret wird nicht verwendet.
+- **Konfiguration:** Der distributionsfähige Desktop-Client enthält die öffentliche Client-ID `6eb6e51acc67412ba266189b7ceb8e16`; `EVE_SSO_CLIENT_ID` dient nur als optionale Entwicklungsüberschreibung. Der exakte registrierte Callback ist `http://127.0.0.1:38636/callback`. Ein Client Secret wird nicht verwendet.
 - **Begründung:** Mehrere Charaktere müssen sicher verbunden werden können, ohne dass Netzwerk- oder Browserwartezeiten das Desktop-Fenster blockieren.
 
 ### D-021 – Rotierende Refresh Tokens und Berechtigungszustand
