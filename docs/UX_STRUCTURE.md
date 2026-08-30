@@ -89,6 +89,13 @@ Jede Aktion führt direkt zum betroffenen Detail und nicht erst zu einer allgeme
 
 ### 6.2 Planetare Industrie
 
+Der erste umgesetzte Phase-3-Stand zeigt eine charakterübergreifende Tabelle der atomar
+gespeicherten Kolonien und einen Detailbereich. Sichtbar sind Charakter, Planet- und
+System-ID, Planetentyp, Pins, Extraktoren, Fabriken, letzte Kolonieaktualisierung sowie im
+Detail Links, Routen, Extraktorstatus, Pin-Typen, Produkte, Lagerinhalte und Snapshot-Zeit.
+Planet- und Systemnamen sowie Prognosewarnungen werden in den folgenden PI-Bausteinen
+ergänzt.
+
 Desktop:
 
 - links Kolonie-/Planetenliste nach Charakter
