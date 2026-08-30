@@ -1,0 +1,45 @@
+name: Entwicklungsaufgabe
+description: Eine Aufgabe aus dem Masterplan planen
+title: "[Phase X]: "
+labels:
+  - enhancement
+body:
+  - type: input
+    id: phase
+    attributes:
+      label: Masterplan-Phase
+      placeholder: "Phase 0 – Produktspezifikation"
+    validations:
+      required: true
+  - type: textarea
+    id: objective
+    attributes:
+      label: Ziel
+      description: Welches konkrete Ergebnis soll erreicht werden?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Abnahmekriterien
+      description: Messbare Bedingungen für die Fertigstellung
+      placeholder: |
+        - [ ] …
+        - [ ] …
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Abhängigkeiten und Risiken
+  - type: checkboxes
+    id: completion
+    attributes:
+      label: Definition of Done
+      options:
+        - label: Tests sind vorgesehen oder nicht erforderlich begründet
+          required: true
+        - label: Dokumentation und DE/EN-Auswirkungen sind berücksichtigt
+          required: true
+        - label: Es werden keine Secrets oder privaten EVE-Daten erfasst
+          required: true

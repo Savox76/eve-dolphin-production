@@ -1,0 +1,38 @@
+name: Fehler melden
+description: Einen reproduzierbaren Fehler dokumentieren
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Keine Tokens, Client Secrets, Kennwörter oder privaten EVE-Daten einfügen.
+  - type: textarea
+    id: description
+    attributes:
+      label: Fehlerbeschreibung
+      description: Was ist passiert und was wurde erwartet?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zur Reproduktion
+      placeholder: |
+        1. Öffne …
+        2. Wähle …
+        3. Beobachte …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version oder Commit
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Bereinigte Diagnoseinformationen
+      description: Nur Informationen ohne Tokens, Secrets oder persönliche EVE-Daten.

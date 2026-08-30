@@ -1,0 +1,43 @@
+name: Repository Health
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  repository-health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify required project files
+        shell: bash
+        run: |
+          required_files=(
+            README.md
+            MASTERPLAN.md
+            CONTRIBUTING.md
+            SECURITY.md
+            .gitignore
+          )
+
+          for required_file in "${required_files[@]}"; do
+            test -s "$required_file"
+          done
+
+      - name: Reject tracked secret files
+        shell: bash
+        run: |
+          if git ls-files | grep -E '(^|/)\.env($|\.)|\.(pem|key)$' | grep -vE '(^|/)\.env\.example$'; then
+            echo "A secret-bearing file appears to be tracked."
+            exit 1
+          fi
+
+      - name: Check whitespace errors
+        run: git show --check --format= HEAD
