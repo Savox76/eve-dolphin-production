@@ -35,7 +35,7 @@ Version 1.0 benötigt weder PostgreSQL noch Redis, Docker, Reverse Proxy oder ei
 - **Sprache:** Python
 - **Desktop-UI:** PySide6/Qt
 - **Datenbank:** SQLite mit versionierten Migrationen
-- **HTTP:** asynchroner Python-Client mit zentralen Timeout-, Cache- und Retry-Regeln
+- **HTTP:** HTTPX mit zentralen Timeout-, Cache- und Retry-Regeln; Aufrufe laufen in lokalen Hintergrundaufgaben
 - **SSO:** Authorization Code mit PKCE über den Systembrowser und einen kurzlebigen lokalen Callback
 - **Tokenablage:** sicherer Anmeldedatenspeicher des Betriebssystems
 - **Tests:** pytest, Golden Tests und UI-nahe Integrationstests
@@ -148,6 +148,20 @@ Jede Anfrage verwendet:
 - kein Retry bei fehlender Berechtigung oder fachlich ungültigen Anfragen
 
 Seitennummerierte Ressourcen werden als konsistenter Abruf behandelt. Widersprechen sich relevante Cache- oder Änderungshinweise zwischen Seiten, wird der Snapshot verworfen und später neu geladen.
+
+Der gemeinsame Transport verwendet das geprüfte Kompatibilitätsdatum `2026-08-30`.
+Sein Prozesscache respektiert `Expires` und revalidiert erst danach bedingt. Private
+Einträge tragen die Charakter-ID als Cachepartition; Access Tokens erscheinen weder
+in URLs noch in Cache-Schlüsseln. Wiederholungen sind auf zwei Versuche nach der
+ersten Anfrage begrenzt und gelten nur für Transportfehler sowie temporäre
+Server-/Limitantworten. `401` und `403` gehen direkt an die Berechtigungslogik.
+
+Der Transport unterstützt sowohl das ältere globale Fehlerbudget über
+`X-ESI-Error-Limit-*` als auch die neuen gruppenbezogenen
+`X-Ratelimit-*`-Header. Bei niedrigem Restbudget pausiert der zentrale Client weitere
+Anfragen, statt den Server bis zur Sperre weiter zu belasten. Die folgende
+Seitensynchronisation baut auf dem bereits zurückgegebenen `X-Pages`-Wert auf und
+prüft die von CCP geforderte gemeinsame `Last-Modified`-Version aller Seiten.
 
 ## SDE-Import
 
