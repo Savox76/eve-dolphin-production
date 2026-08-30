@@ -7,7 +7,7 @@ from typing import Protocol
 import keyring
 from keyring.errors import PasswordDeleteError
 
-SERVICE_NAME = "EVE Production Tool"
+SERVICE_NAME = "EVE Dolphin"
 
 
 class CredentialBackend(Protocol):

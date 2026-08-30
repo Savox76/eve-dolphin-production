@@ -217,7 +217,7 @@ wheels = [
 ]
 
 [[package]]
-name = "eve-production-tool"
+name = "eve-dolphin"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

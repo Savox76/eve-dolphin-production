@@ -8,8 +8,8 @@ from typing import Protocol, cast
 import jwt
 from jwt import InvalidTokenError, PyJWK
 
-from eve_production_tool.sso.models import SsoMetadata, ValidatedCharacter
-from eve_production_tool.sso.transport import HttpTransport, HttpxTransport
+from eve_dolphin.sso.models import SsoMetadata, ValidatedCharacter
+from eve_dolphin.sso.transport import HttpTransport, HttpxTransport
 
 ALLOWED_ALGORITHM = "RS256"
 EXPECTED_EVE_AUDIENCE = "EVE Online"

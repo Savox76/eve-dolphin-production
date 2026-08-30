@@ -8,8 +8,8 @@ SUPPORTED_LANGUAGES = ("de", "en")
 
 CATALOG: dict[str, dict[str, str]] = {
     "de": {
-        "app.title": "EVE Production Tool",
-        "app.subtitle": "Lokaler Produktions-Client",
+        "app.title": "EVE Dolphin",
+        "app.subtitle": "Lokaler EVE-Begleiter",
         "overview": "Übersicht",
         "pi": "Planetare Industrie",
         "pi_planner": "PI-Zielplaner",
@@ -24,8 +24,8 @@ CATALOG: dict[str, dict[str, str]] = {
         "foundation_ready": "Python- und SQLite-Fundament aktiv",
     },
     "en": {
-        "app.title": "EVE Production Tool",
-        "app.subtitle": "Local production client",
+        "app.title": "EVE Dolphin",
+        "app.subtitle": "Local EVE companion",
         "overview": "Overview",
         "pi": "Planetary Industry",
         "pi_planner": "PI Target Planner",

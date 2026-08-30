@@ -9,8 +9,8 @@ pytest.importorskip("PySide6.QtWidgets", exc_type=ImportError)
 
 from PySide6.QtWidgets import QApplication
 
-from eve_production_tool.i18n import Translator
-from eve_production_tool.ui.main_window import SECTIONS, MainWindow
+from eve_dolphin.i18n import Translator
+from eve_dolphin.ui.main_window import SECTIONS, MainWindow
 
 
 @pytest.fixture(scope="session")
@@ -32,7 +32,7 @@ def test_main_window_contains_all_planned_sections(
 
     assert window.navigation.count() == len(SECTIONS) == 8
     assert window.pages.count() == len(SECTIONS)
-    assert window.windowTitle() == "EVE Production Tool"
+    assert window.windowTitle() == "EVE Dolphin"
 
     window.close()
 

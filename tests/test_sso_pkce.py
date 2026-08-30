@@ -6,7 +6,7 @@ import re
 
 import pytest
 
-from eve_production_tool.sso.pkce import generate_pkce_pair, generate_state
+from eve_dolphin.sso.pkce import generate_pkce_pair, generate_state
 
 
 def test_pkce_pair_matches_unpadded_s256_definition() -> None:

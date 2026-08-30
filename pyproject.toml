@@ -3,9 +3,9 @@ requires = ["hatchling==1.32.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "eve-production-tool"
+name = "eve-dolphin"
 version = "0.1.0"
-description = "Local production planning desktop client for EVE Online"
+description = "Local multi-character companion desktop client for EVE Online"
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
 dependencies = [
@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-eve-production-tool = "eve_production_tool.app.bootstrap:main"
+eve-dolphin = "eve_dolphin.app.bootstrap:main"
 
 [dependency-groups]
 dev = [
@@ -28,7 +28,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/eve_production_tool"]
+packages = ["src/eve_dolphin"]
 
 [tool.uv]
 default-groups = ["dev"]

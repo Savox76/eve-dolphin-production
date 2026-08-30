@@ -2,7 +2,7 @@
 
 ## 1. Zweck und Gültigkeit
 
-Dieses Dokument definiert die Rechenregeln für Version 1.0 des EVE Production Tool. Es ist die fachliche Grundlage für Domänenmodelle, API-Verträge, Oberflächenhinweise und Golden Tests.
+Dieses Dokument definiert die Rechenregeln für Version 1.0 des EVE Dolphin. Es ist die fachliche Grundlage für Domänenmodelle, API-Verträge, Oberflächenhinweise und Golden Tests.
 
 - Katalogversion: `formula-catalog-v1.0.0`
 - geprüft am: `2026-08-30`

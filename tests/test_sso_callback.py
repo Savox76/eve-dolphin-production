@@ -6,11 +6,11 @@ from dataclasses import dataclass
 
 import httpx
 
-from eve_production_tool.sso.callback import (
+from eve_dolphin.sso.callback import (
     CallbackStateMismatchError,
     LoopbackCallbackServer,
 )
-from eve_production_tool.sso.models import CallbackResult
+from eve_dolphin.sso.models import CallbackResult
 
 
 @dataclass

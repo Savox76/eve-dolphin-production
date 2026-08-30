@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from eve_production_tool.sso.config import (
+from eve_dolphin.sso.config import (
     DEFAULT_REDIRECT_URI,
     SsoConfig,
     SsoConfigurationError,

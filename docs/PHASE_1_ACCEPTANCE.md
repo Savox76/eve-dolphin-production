@@ -14,7 +14,7 @@ Phase 1 wurde am `30.08.2026` technisch abgeschlossen. Der lokale Python-Client 
 | Ergebnis | Nachweis |
 |---|---|
 | Python-3.12-Projekt und gesperrte Abhängigkeiten | `pyproject.toml`, `.python-version`, `uv.lock` |
-| lokaler PySide6-Client | `src/eve_production_tool/ui`, ausführbarer Einstiegspunkt |
+| lokaler PySide6-Client | `src/eve_dolphin/ui`, ausführbarer Einstiegspunkt |
 | acht Hauptansichten und DE/EN-Basis | `MainWindow`, Übersetzungskatalog und UI-Tests |
 | lokale SQLite-Datenbank | Verbindungspolitik, Schema 1 und transaktionale Migrationen |
 | migrationssicheres Backup | automatischer Snapshot einer bestehenden Datenbank vor Änderungen |

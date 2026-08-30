@@ -5,14 +5,14 @@ from __future__ import annotations
 from collections.abc import Sequence
 from urllib.parse import urlencode
 
-from eve_production_tool.sso.config import SsoConfig
-from eve_production_tool.sso.models import (
+from eve_dolphin.sso.config import SsoConfig
+from eve_dolphin.sso.models import (
     AuthorizationRequest,
     SsoMetadata,
     TokenResponse,
 )
-from eve_production_tool.sso.pkce import generate_pkce_pair, generate_state
-from eve_production_tool.sso.transport import HttpTransport, HttpxTransport
+from eve_dolphin.sso.pkce import generate_pkce_pair, generate_state
+from eve_dolphin.sso.transport import HttpTransport, HttpxTransport
 
 METADATA_URL = "https://login.eveonline.com/.well-known/oauth-authorization-server"
 

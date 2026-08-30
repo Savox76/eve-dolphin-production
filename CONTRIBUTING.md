@@ -14,7 +14,7 @@ Direkte Entwicklungscommits auf `main` werden nach der Ersteinrichtung vermieden
 
 ```bash
 uv sync --locked --all-groups
-uv run eve-production-tool --self-check
+uv run eve-dolphin --self-check
 ```
 
 Vor einem Pull Request müssen lokal mindestens Formatierung, Lint, Typprüfung und Tests ausgeführt werden:

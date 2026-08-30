@@ -50,7 +50,7 @@ jobs:
         run: uv run pytest
 
       - name: Check packaged entry point
-        run: uv run eve-production-tool --self-check
+        run: uv run eve-dolphin --self-check
 
   windows-package:
     name: Windows Package
@@ -78,6 +78,6 @@ jobs:
       - name: Upload Windows client
         uses: actions/upload-artifact@v4
         with:
-          name: EVE-Production-Tool-Windows
-          path: dist/EVE-Production-Tool/
+          name: EVE-Dolphin-Windows
+          path: dist/EVE-Dolphin/
           if-no-files-found: error

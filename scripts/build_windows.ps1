@@ -4,12 +4,12 @@ uv run pyinstaller `
     --noconfirm `
     --clean `
     --windowed `
-    --name "EVE-Production-Tool" `
+    --name "EVE-Dolphin" `
     --paths "src" `
     --collect-all "keyring" `
-    "src/eve_production_tool/__main__.py"
+    "src/eve_dolphin/__main__.py"
 
-$Executable = "dist/EVE-Production-Tool/EVE-Production-Tool.exe"
+$Executable = "dist/EVE-Dolphin/EVE-Dolphin.exe"
 & $Executable --self-check
 
 if ($LASTEXITCODE -ne 0) {

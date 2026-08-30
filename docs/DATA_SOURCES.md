@@ -28,6 +28,20 @@
 
 Wallet, Skills und eigene Marktorders werden erst angefordert, wenn die zugehörige Funktion aktiviert wird. PI-Nutzer müssen nicht automatisch Walletzugriff gewähren.
 
+## Private Charakterdaten für spätere Module
+
+Diese Routen und Scopes gehören ausdrücklich nicht zum Mindestumfang von Version 1.0. Sie werden erst mit dem jeweiligen Modul angeboten und progressiv freigegeben.
+
+| Modul | Funktion | ESI-Route | Scope | Verwendung und Grenze |
+|---|---|---|---|---|
+| Mining | persönliches Mining-Ledger | `GET /characters/{character_id}/mining` | `esi-industry.read_character_mining.v1` | abgebaute Typen, Mengen, Systeme und Zeitpunkte der vergangenen 30 Tage |
+| PVE | NPC-Standing | `GET /characters/{character_id}/standings` | `esi-characters.read_standings.v1` | Standing zu Agenten, NPC-Corporations und Fraktionen |
+| PVE | Wallet-Journal | `GET /characters/{character_id}/wallet/journal` | `esi-wallet.read_character_wallet.v1` | ausgewählte Belohnungen, Bounties, Steuern und Kosten im verfügbaren Zeitraum |
+| PVE | jüngste Killmails | `GET /characters/{character_id}/killmails/recent` | `esi-killmails.read_killmails.v1` | Verluste und Kampfereignisse, nicht vollständige Missionsziele |
+| PVE | aktueller Standort | `GET /characters/{character_id}/location` | `esi-location.read_location.v1` | optionaler Charakterstandort bei ausdrücklicher Freigabe |
+
+Das aktuelle ESI-Schema besitzt keinen allgemeinen privaten Endpunkt für ein vollständiges Journal aller aktiven klassischen Missionen, ihrer Ziele und ihres Fortschritts. `GET /characters/{character_id}/agents_research` betrifft ausschließlich Forschungsagenten und wird nicht als Missionsjournal fehlinterpretiert. Das spätere PVE-Modul kombiniert deshalb ESI-Signale mit einem lokalen Missionsjournal; Quelle und Vollständigkeit bleiben sichtbar.
+
 ## Öffentliche ESI-Daten
 
 | Daten | ESI-Route | Verwendung |
@@ -96,6 +110,7 @@ Jeder manuelle Wert erhält lokale Herkunft, Quelle, Gültigkeitsbeginn und Änd
 | betrieblicher Zustand | Assets, Jobs, Kolonien | nach `Expires`, manuell anstoßbar ohne Cacheumgehung |
 | Markt | Orders und Preise | nach ESI-Cache, pro Region/Typ gebündelt |
 | Prognose | PI-Lager und Produktion | aus letztem Snapshot berechnet und als Schätzung markiert |
+| spätere Aktivitätsmodule | Mining, Wallet, Standing, Killmails | modulbezogen, nach ESI-Cache und lokal historisiert |
 
 ## Fehler- und Datenqualitätsregeln
 

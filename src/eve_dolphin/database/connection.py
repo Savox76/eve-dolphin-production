@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
-from eve_production_tool.database.migrations import LATEST_SCHEMA_VERSION, MIGRATIONS
+from eve_dolphin.database.migrations import LATEST_SCHEMA_VERSION, MIGRATIONS
 
 
 class Database:
@@ -90,7 +90,7 @@ class Database:
         self.backup_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         backup_path = self.backup_dir / (
-            f"eve-production-tool-schema-{current_version}-{timestamp}.sqlite3"
+            f"eve-dolphin-schema-{current_version}-{timestamp}.sqlite3"
         )
         with sqlite3.connect(backup_path) as backup_connection:
             connection.backup(backup_connection)

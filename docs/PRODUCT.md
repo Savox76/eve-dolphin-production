@@ -2,11 +2,21 @@
 
 ## Produktidentität
 
-- **Name:** EVE Production Tool
-- **Deutsche Beschreibung:** Produktionsplanung für EVE Online
-- **Kurzbeschreibung:** Ein Produktions-Cockpit, das Planetare Industrie, Blueprints, Assets, Industry Jobs, Marktpreise und Logistik in einer nachvollziehbaren Planung verbindet.
+- **Name:** EVE Dolphin
+- **Deutsche Beschreibung:** Lokaler EVE-Begleiter für Industrie, Mining und PVE
+- **Kurzbeschreibung:** Eine modulare Desktop-Anwendung, die Daten mehrerer eigener Charaktere sicher lokal zusammenführt. Version 1.0 verbindet Planetare Industrie, Blueprints, Assets, Industry Jobs, Marktpreise und Logistik in einer nachvollziehbaren Planung.
 
-Der Name ist bewusst funktional. Nutzer sollen ohne zusätzliche Erklärung erkennen, wofür das Tool gedacht ist.
+Der Name dient bewusst als Dach für mehrere Fachmodule. Dadurch bleibt die Produktidentität bestehen, wenn nach Industrie und PI weitere Bereiche wie Mining und PVE/Missionen hinzukommen.
+
+## Modulare Produktlinie
+
+| Stufe | Fachlicher Schwerpunkt | Abgrenzung |
+|---|---|---|
+| Version 1.0 | Planetare Industrie und Manufacturing | aktueller verbindlicher Projektumfang |
+| Version 1.1 | Mining und Reprocessing | beginnt erst nach stabiler Version 1.0 |
+| Version 1.2 | PVE und Missionen | kombiniert verfügbare ESI-Daten mit einem lokalen Missionsjournal |
+
+Charakterverwaltung, ESI-Synchronisation, statische Daten, Marktpreise, Assets, Datenstatus und lokale Historie bilden den gemeinsamen Kern. Neue Module erhalten eigene Berechtigungen und werden nur bei ausdrücklicher Aktivierung freigeschaltet.
 
 ## Erster Betriebsmodus
 
@@ -35,11 +45,19 @@ Jeder Spieler installiert das Tool selbst und besitzt eine vollständig unabhän
 
 ## Produktgrenzen
 
-EVE Production Tool ist ein Analyse-, Planungs- und Überwachungssystem. Es führt keine automatisierten Aktionen im EVE-Client aus und verändert keine Kolonien, Industry Jobs oder Marktorders selbstständig.
+EVE Dolphin ist ein Analyse-, Planungs- und Überwachungssystem. Es führt keine automatisierten Aktionen im EVE-Client aus und verändert keine Kolonien, Industry Jobs, Marktorders, Schiffe oder Missionen selbstständig. „Überwachung“ bedeutet die Auswertung verfügbarer ESI-Daten und lokaler Einträge mit sichtbarem Datenalter; sie verspricht keine lückenlose Echtzeitansicht des Spielclients.
+
+## Veröffentlichungsmodell
+
+- eine gemeinsame Python-Codebasis für alle unterstützten Desktop-Systeme
+- betriebssystemspezifische Pakete, weil Installation, Signierung und sichere Tokenablage je System unterschiedlich sind
+- Windows als erste Release-Plattform; weitere Systeme erst nach eigener Abnahme
+- privates Entwicklungs-Repository
+- später ein separates öffentliches Release-Repository mit Binärpaketen, Prüfsummen und Changelog, ohne Verpflichtung zur Veröffentlichung des Quellcodes
 
 ## Branding und Unabhängigkeit
 
-EVE Production Tool ist eine unabhängige Drittanbieter-Anwendung. Gestaltung und Texte dürfen nicht den Eindruck erwecken, die Anwendung sei ein Produkt von CCP hf. oder offiziell von CCP unterstützt.
+EVE Dolphin ist eine unabhängige Drittanbieter-Anwendung. Gestaltung und Texte dürfen nicht den Eindruck erwecken, die Anwendung sei ein Produkt von CCP hf. oder offiziell von CCP unterstützt.
 
 Der folgende Schutzvermerk wird in Repository, Anwendung und späterer öffentlicher Dokumentation geführt:
 
@@ -51,11 +69,12 @@ Maßgeblich bleibt die jeweils aktuelle [CCP Developer License Agreement](https:
 
 | Entscheidung | Festlegung |
 |---|---|
-| Produktname | EVE Production Tool |
-| Beschreibung | Produktionsplanung für EVE Online |
+| Produktname | EVE Dolphin |
+| Beschreibung | Lokaler EVE-Begleiter für Industrie, Mining und PVE |
 | Erstbetrieb | lokaler Python-Desktop-Client |
 | Zielgeräte | Windows-Desktop zuerst; weitere Desktop-Systeme später möglich |
 | Nutzer | ein lokales Profil mit mehreren eigenen Charakteren |
 | Datenspeicher | SQLite lokal; Tokens im Anmeldedatenspeicher des Betriebssystems |
 | Hoster und Registrierung | nicht erforderlich |
 | Monetarisierung | nicht Bestandteil von Version 1.0 |
+| Quellcode | private Entwicklung; öffentliche Binär-Releases später getrennt möglich |

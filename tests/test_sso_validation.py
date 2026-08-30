@@ -9,8 +9,8 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from jwt.algorithms import RSAAlgorithm
 
-from eve_production_tool.sso.models import SsoMetadata
-from eve_production_tool.sso.validation import (
+from eve_dolphin.sso.models import SsoMetadata
+from eve_dolphin.sso.validation import (
     AccessTokenValidationError,
     EveAccessTokenValidator,
 )

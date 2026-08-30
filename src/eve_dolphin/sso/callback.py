@@ -9,8 +9,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from types import TracebackType
 from urllib.parse import parse_qs, urlsplit
 
-from eve_production_tool.sso.config import validate_loopback_redirect_uri
-from eve_production_tool.sso.models import CallbackResult
+from eve_dolphin.sso.config import validate_loopback_redirect_uri
+from eve_dolphin.sso.models import CallbackResult
 
 
 class CallbackTimeoutError(TimeoutError):
@@ -134,7 +134,7 @@ class _CallbackRequestHandler(BaseHTTPRequestHandler):
     def _send_page(self, status: HTTPStatus, message: str) -> None:
         body = (
             "<!doctype html><html lang='de'><meta charset='utf-8'>"
-            f"<title>EVE Production Tool</title><body><p>{message}</p></body></html>"
+            f"<title>EVE Dolphin</title><body><p>{message}</p></body></html>"
         ).encode()
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")

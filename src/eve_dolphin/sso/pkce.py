@@ -6,7 +6,7 @@ import base64
 import hashlib
 import secrets
 
-from eve_production_tool.sso.models import PkcePair
+from eve_dolphin.sso.models import PkcePair
 
 
 def generate_pkce_pair(random_bytes: bytes | None = None) -> PkcePair:

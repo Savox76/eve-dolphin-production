@@ -1,12 +1,12 @@
-# EVE Production Tool — Masterplan
+# EVE Dolphin — Masterplan
 
 **Dokumentstatus:** Verbindlicher Projektentwurf
 
-**Version:** 1.0
+**Version:** 1.1
 
-**Stand:** 29. August 2026
+**Stand:** 30. August 2026
 
-**Produktname:** EVE Production Tool
+**Produktname:** EVE Dolphin
 
 **Gesamtfortschritt:** 15 %
 
@@ -16,7 +16,7 @@
 
 ## 1. Zielbild
 
-Das Projekt wird ein lokaler Python-Desktop-Client für **EVE Online**. Es verbindet klassische Industrie und Planetare Industrie (PI) in einer gemeinsamen Planung. Jeder Spieler betreibt eine eigene Installation mit seinen eigenen Charakteren und Daten.
+**EVE Dolphin** wird ein lokaler, modularer Python-Desktop-Client für **EVE Online**. Jeder Spieler betreibt eine eigene Installation mit seinen eigenen Charakteren und Daten. Version 1.0 verbindet klassische Industrie und Planetare Industrie (PI) in einer gemeinsamen Planung; Mining und PVE/Missionen folgen als eigenständige Module auf derselben Datenbasis.
 
 Der Nutzer soll nicht nur erfahren, welche Materialien theoretisch benötigt werden. Das Tool soll beantworten:
 
@@ -31,6 +31,8 @@ Der Nutzer soll nicht nur erfahren, welche Materialien theoretisch benötigt wer
 
 > Von der Rohstoffgewinnung auf dem Planeten bis zum verkauften Endprodukt in einem einzigen nachvollziehbaren Produktionsplan.
 
+Dieses Versprechen gilt für Version 1.0. Langfristig wird EVE Dolphin zum persönlichen, charakterübergreifenden Informationscockpit für Industrie, Mining und PVE ausgebaut. Der aktuelle Versionsumfang bleibt dabei geschützt: Ein späteres Modul erhöht nicht rückwirkend die Abnahmekriterien der Industrie-/PI-Version.
+
 ### Leitprinzipien
 
 1. **Reale statt geschönte Gewinne:** Gebühren, Steuern, Transport, Marktseite und gebundenes Kapital werden berücksichtigt.
@@ -39,6 +41,7 @@ Der Nutzer soll nicht nur erfahren, welche Materialien theoretisch benötigt wer
 4. **ESI-konform und sicher:** Das Tool liest erlaubte Daten, führt aber keine Spielaktionen automatisiert aus.
 5. **Lokal und unabhängig:** Jede Installation gehört ihrem Nutzer; ein Hoster, zentrale Konten oder verkaufte Zugänge sind nicht erforderlich.
 6. **Desktop zuerst:** Version 1.0 wird als eigenständiger Windows-Client ausgeliefert und bleibt technisch für weitere Desktop-Systeme portierbar.
+7. **Modular erweiterbar:** Charaktere, Berechtigungen, Assets, Markt- und Statusdaten bilden einen gemeinsamen Kern; Mining und PVE bleiben fachlich getrennte Module.
 
 ---
 
@@ -138,7 +141,7 @@ Fremde POCO-Daten oder individuelle Steuersätze, die ESI nicht zuverlässig ber
 - persönliche Blueprints und Assets
 - manuell konfigurierbare Struktur-, Rig- und Steuerprofile
 
-#### Für Version 1.1 vorgesehen
+#### Für Version 1.3 vorgesehen
 
 - Invention und T2-Ketten
 - Reactions
@@ -778,17 +781,40 @@ Passwörter, Client Secrets und Refresh Tokens werden niemals im Chat oder Repos
 | Änderungen an ESI oder SDE | Import oder Synchronisation bricht | Adapter, Versionierung, Contract-Tests, sichtbarer Datenstatus |
 | Falsche Rundungs- oder Gebührenformel | falsche Gewinne/Materialmengen | zentrale Engine, Golden Tests, Vergleich mit dem EVE-Client |
 | ESI-Daten sind verzögert | PI-Prognose wirkt aktueller als sie ist | Zeitstempel, Unsicherheitsstatus, Snapshot-Modell |
-| Zu großer Funktionsumfang | v1.0 wird nie stabil | klare Phasen, v1.1-Liste, keine Scope-Erweiterung ohne Tausch |
+| Zu großer Funktionsumfang | v1.0 wird nie stabil | klare Phasen, Nach-v1.0-Liste, keine Scope-Erweiterung ohne Tausch |
 | Token- oder Datenleck | Kontodaten gefährdet | minimale Scopes, Verschlüsselung, Secret-Trennung, Log-Filter |
 | Marktpreis verzerrt | unrealistische Kalkulation | Mengentiefe, Marktseite, Datenalter, manuelle Preisprofile |
 | Wurmloch-/POCO-Daten fehlen | Kosten nicht automatisch bestimmbar | manuelle Profile mit Quelle und Änderungsdatum |
 | Öffentliche Nutzung wird zu früh begonnen | Sicherheits- und Betriebsaufwand steigt | zuerst private v1.0, danach eigener Public-Readiness-Check |
+| ESI zeigt klassische Missionen nicht vollständig | scheinbare Live-Ansicht wäre unzuverlässig | ESI-Signale mit lokalem Missionsjournal kombinieren und Datenquelle sichtbar machen |
 
 ---
 
 ## 14. Erweiterungen nach Version 1.0
 
-### Version 1.1 – Advanced Industry
+### Version 1.1 – Mining und Reprocessing
+
+- persönliches Mining-Ledger aller freigegebenen Charaktere
+- Auswertung nach Erz, Eis, Gas, System, Charakter und Zeitraum
+- Ertrags-, Marktwert- und Zielauswertung
+- Aufbereitungsprofile und Vergleich von Rohverkauf, Reprocessing und Weiterverarbeitung
+- manuell erfasste Flotten- und Mining-Sessions, wenn ESI den Kontext nicht liefert
+- lokale Snapshots für eine eigene Historie über das jeweils von ESI gelieferte Zeitfenster hinaus
+
+Das aktuelle ESI-Mining-Ledger liefert persönliche Mining-Einträge der vergangenen 30 Tage. EVE Dolphin kann ältere Daten erst ab dem ersten eigenen Abruf lokal fortschreiben und stellt fehlende Historie nicht nachträglich her.
+
+### Version 1.2 – PVE und Missionen
+
+- charakterübergreifende Übersicht über NPC-Standing und ausgewählte Wallet-Ereignisse
+- Missionsbelohnungen, Bounties und PVE-Einnahmen soweit aus ESI-Daten zuverlässig ableitbar
+- Loot-/Asset-Auswertung, Verluste und jüngste Killmails
+- optionaler Charakterstandort nur mit ausdrücklich freigegebenem Scope
+- lokales Missionsjournal mit Agent, Mission, Ziel, Status, Ablaufzeit und Notizen
+- lokale PVE-Sessions mit Einnahmen, Kosten, Beute, Verlusten und Zeitaufwand
+
+ESI besitzt keinen allgemeinen Endpunkt, der alle aktiven klassischen Missionen und ihre Ziele vollständig als Live-Journal liefert. Deshalb kombiniert das Modul vorhandene ESI-Daten mit lokalen Eingaben und kennzeichnet Quelle, Abrufzeit und Vollständigkeit.
+
+### Version 1.3 – Advanced Industry
 
 - Invention
 - T2 Manufacturing
@@ -797,7 +823,7 @@ Passwörter, Client Secrets und Refresh Tokens werden niemals im Chat oder Repos
 - Decryptors und Erfolgswahrscheinlichkeiten
 - komplexe Capital-Ketten
 
-### Version 1.2 – Corporation
+### Version 1.4 – Corporation
 
 - Corporation Assets, Blueprints und Industry Jobs
 - rollenbasierte Sichtbarkeit
@@ -806,7 +832,7 @@ Passwörter, Client Secrets und Refresh Tokens werden niemals im Chat oder Repos
 - interne Preise und Abrechnungen
 - eigene Customs Offices
 
-### Version 1.3 – Optimierung
+### Version 1.5 – Optimierung
 
 - automatische PI-Koloniekonzepte
 - Szenarien nach Pflegeaufwand oder Profit
@@ -819,6 +845,7 @@ Passwörter, Client Secrets und Refresh Tokens werden niemals im Chat oder Repos
 
 - weitere Desktop-Betriebssysteme
 - signierte Installer und komfortabler Updatekanal
+- getrenntes öffentliches Release-Repository für Binärpakete, Prüfsummen und Changelog
 - portable Datenexporte ohne Tokens
 - zusätzliche Backupziele
 - erneute CCP-Lizenz-, Branding- und Sicherheitsprüfung vor einer öffentlichen Release-Verteilung
@@ -827,7 +854,7 @@ Passwörter, Client Secrets und Refresh Tokens werden niemals im Chat oder Repos
 
 ## 15. Abgeschlossene Entscheidungen aus Phase 0
 
-1. **Produktname:** EVE Production Tool
+1. **Produktname:** EVE Dolphin
 2. **Betrieb:** lokaler Python-Desktop-Client ohne Hoster oder zentrale Konten
 3. **Markt:** Jita als erstes Profil; weitere Hubs und Marktseiten konfigurierbar
 4. **Produktionsorte:** kein hartcodierter Primärort; versionierte Standort- und Strukturprofile
@@ -837,6 +864,8 @@ Passwörter, Client Secrets und Refresh Tokens werden niemals im Chat oder Repos
 8. **Optimierungsziel:** pro Projekt auswählbar; konservative Wirtschaftsbewertung als Standard
 9. **Oberflächensprache:** Deutsch und Englisch in derselben Codebasis
 10. **Weitere Nutzer:** Jeder installiert einen eigenen Client und verbindet nur seine eigenen Charaktere; Corporation-Funktionen folgen nach Version 1.0
+11. **Produktdach:** EVE Dolphin bleibt der Name für Industrie, Mining und PVE; Version 1.0 bleibt auf PI und Manufacturing begrenzt
+12. **Veröffentlichung:** eine gemeinsame private Codebasis, aber getrennte Pakete je Betriebssystem und später ein öffentliches Binär-Release-Repository
 
 ### Empfohlene Ausgangsentscheidungen
 
@@ -844,7 +873,7 @@ Passwörter, Client Secrets und Refresh Tokens werden niemals im Chat oder Repos
 - mehrere eigene Charaktere von Beginn an
 - Deutsch und Englisch in derselben Codebasis
 - PI P0–P4 vollständig in v1.0
-- T1 und Komponenten in v1.0; T2/Reactions in v1.1
+- T1 und Komponenten in v1.0; T2/Reactions in v1.3
 - Jita als erster Markt, weitere Hubs konfigurierbar
 - Wurmlochprofil mit manuellen POCO- und Logistikwerten
 - Gewinnberechnung nach Wiederbeschaffungskosten als Standard, weitere Bewertungen auswählbar
