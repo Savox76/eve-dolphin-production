@@ -22,7 +22,7 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Entscheidung:** Feature-Arbeit erfolgt in Branches; in `main` wird nur nach erfolgreichen erforderlichen Checks übernommen.
 - **Begründung:** `main` soll jederzeit einen nachvollziehbaren und lauffähigen Stand enthalten.
 
-## Offen
+## Phase-0-Beschlüsse
 
 ### D-004 – Produktname
 
@@ -91,3 +91,11 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Mobil:** Bottom Navigation priorisiert Übersicht, PI und Projekte; weitere Bereiche liegen unter „Mehr“.
 - **Datenqualität:** Aktuelle, veraltete, geschätzte, manuelle, unvollständige und blockierte Daten werden durch Text, Symbol und Farbe unterschieden.
 - **Begründung:** Die wichtigsten Kontrollen müssen unterwegs schnell erreichbar sein, ohne dass Desktop-Nutzer Übersicht oder Kontext verlieren.
+
+### D-013 – Phase 0 ist abgenommen
+
+- **Status:** beschlossen am 30.08.2026
+- **Entscheidung:** Die Produktspezifikation ist vollständig genug, um mit dem technischen Fundament zu beginnen.
+- **Nachweis:** Produkt, Referenzabläufe, Datenmatrix, Architektur, Formelkatalog und UX-Spezifikation sind dokumentiert; die Repository-Checks waren erfolgreich.
+- **Fortschritt:** Phase 0 entspricht `5 %` des Gesamtprojekts.
+- **Nächster Schritt:** Phase 1 baut das TypeScript-Monorepo, die lokale Infrastruktur und die automatisierte Qualitätsprüfung auf.
