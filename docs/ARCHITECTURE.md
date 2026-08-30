@@ -91,6 +91,8 @@ Desktop-Anwendungen können kein dauerhaftes Client Secret geheim halten. Deshal
 6. Das Access Token wird vollständig validiert.
 7. Das Refresh Token wird unter einer charakterbezogenen Kennung im OS-Anmeldedatenspeicher abgelegt.
 
+Die sichtbare Charakterverknüpfung läuft in einem eigenen kurzlebigen Qt-Arbeitsthread. Der lokale Callback wird gebunden, bevor der Systembrowser geöffnet wird. Netzwerkzugriffe, Warten auf den Callback, Code-Austausch, JWT-Prüfung und Keyring-Zugriff blockieren dadurch nicht die Oberfläche. Beim Schließen der Anwendung wird ein noch wartender Callback kontrolliert abgebrochen.
+
 Weitere Regeln:
 
 - Scopes werden modulbezogen und so spät wie möglich angefordert.

@@ -101,6 +101,10 @@ def main(arguments: list[str] | None = None) -> int:
     application.setApplicationVersion(__version__)
     apply_theme(application)
 
-    window = MainWindow(context.paths.database_path, context.translator)
+    window = MainWindow(
+        context.paths.database_path,
+        context.translator,
+        context.characters,
+    )
     window.show()
     return application.exec()

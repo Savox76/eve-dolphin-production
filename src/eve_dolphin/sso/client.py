@@ -66,6 +66,7 @@ class EveSsoClient:
                 "code": authorization_code,
                 "client_id": config.client_id,
                 "code_verifier": code_verifier,
+                "redirect_uri": config.redirect_uri,
             },
         )
         return TokenResponse.from_mapping(payload)

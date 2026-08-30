@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import socket
 import threading
+import time
 from dataclasses import dataclass
 
 import httpx
+import pytest
 
 from eve_dolphin.sso.callback import (
+    CallbackCancelledError,
     CallbackStateMismatchError,
     LoopbackCallbackServer,
 )
@@ -86,6 +89,23 @@ def test_loopback_callback_returns_eve_authorization_error_without_echoing_it() 
         error="access_denied",
         error_description="private browser message",
     )
+
+
+def test_callback_wait_can_be_cancelled_without_browser_response() -> None:
+    port = _available_loopback_port()
+    redirect_uri = f"http://127.0.0.1:{port}/callback"
+    cancelled = False
+
+    def cancel_soon() -> None:
+        nonlocal cancelled
+        time.sleep(0.05)
+        cancelled = True
+
+    thread = threading.Thread(target=cancel_soon)
+    thread.start()
+    with LoopbackCallbackServer(redirect_uri) as server, pytest.raises(CallbackCancelledError):
+        server.wait_for_result("expected-state", cancelled=lambda: cancelled)
+    thread.join()
 
 
 def _available_loopback_port() -> int:

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -19,7 +20,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from eve_dolphin.characters import CharacterRepository
 from eve_dolphin.i18n import Translator
+from eve_dolphin.ui.character_page import CharacterPage
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,12 +46,20 @@ SECTIONS = (
 class MainWindow(QMainWindow):
     """Desktop window with stable navigation and placeholder feature pages."""
 
-    def __init__(self, database_path: Path, translator: Translator | None = None) -> None:
+    def __init__(
+        self,
+        database_path: Path,
+        translator: Translator,
+        character_repository: CharacterRepository,
+    ) -> None:
         super().__init__()
-        self.translator = translator or Translator("de")
+        self.translator = translator
         self.database_path = database_path
+        self.character_repository = character_repository
         self.navigation = QListWidget()
         self.pages = QStackedWidget()
+        self.character_page: CharacterPage | None = None
+        self._close_pending = False
 
         self.setWindowTitle(self.translator.text("app.title"))
         self.setMinimumSize(960, 640)
@@ -98,6 +109,13 @@ class MainWindow(QMainWindow):
         for index, section in enumerate(SECTIONS):
             if index == 0:
                 page = self._build_overview_page()
+            elif section.view_id == "settings":
+                self.character_page = CharacterPage(
+                    self.character_repository,
+                    self.translator,
+                )
+                self.character_page.characters_changed.connect(self._refresh_character_summary)
+                page = self.character_page
             else:
                 page = self._build_placeholder_page(section)
             page.setProperty("viewId", section.view_id)
@@ -122,14 +140,28 @@ class MainWindow(QMainWindow):
         layout.addWidget(title)
         layout.addWidget(badge)
         layout.addSpacing(8)
-        layout.addWidget(
-            self._build_card(
-                self.translator.text("no_characters"),
-                self.translator.text("phase2_note"),
-            )
-        )
+        summary_card = self._build_card("", "")
+        summary_title = summary_card.findChild(QLabel, "cardTitle")
+        summary_detail = summary_card.findChild(QLabel, "muted")
+        assert summary_title is not None
+        assert summary_detail is not None
+        self.character_summary_title = summary_title
+        self.character_summary_detail = summary_detail
+        layout.addWidget(summary_card)
         layout.addStretch(1)
+        self._refresh_character_summary()
         return page
+
+    def _refresh_character_summary(self) -> None:
+        characters = self.character_repository.list_all()
+        if characters:
+            title = self.translator.text("character_count").format(count=len(characters))
+            detail = self.translator.text("characters_ready")
+        else:
+            title = self.translator.text("no_characters")
+            detail = self.translator.text("phase2_note")
+        self.character_summary_title.setText(title)
+        self.character_summary_detail.setText(detail)
 
     def _build_placeholder_page(self, section: Section) -> QWidget:
         page = QWidget()
@@ -166,3 +198,13 @@ class MainWindow(QMainWindow):
         layout.addWidget(title)
         layout.addWidget(detail)
         return card
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        if self.character_page is not None and self.character_page.authorization_pending:
+            if not self._close_pending:
+                self._close_pending = True
+                self.character_page.authorization_stopped.connect(self.close)
+            self.character_page.cancel_pending_authorization()
+            event.ignore()
+            return
+        super().closeEvent(event)
