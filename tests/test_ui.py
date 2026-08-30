@@ -14,6 +14,7 @@ from PySide6.QtWidgets import QApplication
 from eve_dolphin.characters import AuthorizationStatus, CharacterRepository, EveCharacter
 from eve_dolphin.database import Database
 from eve_dolphin.i18n import Translator
+from eve_dolphin.pi import ColonyOverview, NamedCount, NamedQuantity
 from eve_dolphin.sso.scopes import ScopePackage, scopes_for_packages
 from eve_dolphin.sync.coordinator import CharacterSyncBatch, CharacterSyncOutcome
 from eve_dolphin.ui.character_page import (
@@ -22,6 +23,7 @@ from eve_dolphin.ui.character_page import (
     CharacterSsoWorker,
 )
 from eve_dolphin.ui.main_window import SECTIONS, MainWindow
+from eve_dolphin.ui.planetary_page import PlanetaryPage
 
 
 @pytest.fixture(scope="session")
@@ -45,8 +47,57 @@ def test_main_window_contains_all_planned_sections(
     assert window.navigation.count() == len(SECTIONS) == 8
     assert window.pages.count() == len(SECTIONS)
     assert window.windowTitle() == "EVE Dolphin"
+    assert isinstance(window.planetary_page, PlanetaryPage)
+    assert window.planetary_page.property("viewId") == "pi-colonies"
 
     window.close()
+
+
+def test_planetary_page_shows_colony_status_and_sde_names(
+    qt_application: QApplication, tmp_path: Path
+) -> None:
+    database = Database(tmp_path / "client.sqlite3", tmp_path / "backups")
+    database.initialize()
+    colony = _colony_overview()
+    page = PlanetaryPage(
+        database,
+        Translator("de"),
+        list_colonies=lambda language: (colony,) if language == "de" else (),
+    )
+    qt_application.processEvents()
+
+    assert page.table.rowCount() == 1
+    character_item = page.table.item(0, 0)
+    planet_type_item = page.table.item(0, 2)
+    extractor_item = page.table.item(0, 5)
+    assert character_item is not None
+    assert planet_type_item is not None
+    assert extractor_item is not None
+    assert character_item.text() == "Industrial Pilot"
+    assert planet_type_item.text() == "gemäßigt"
+    assert extractor_item.text() == "1 / 1 / 0"
+    assert "Kolonien: 1 · Charaktere: 1" in page.summary_label.text()
+    assert "Wässrige Flüssigkeiten x 2" in page.detail_label.text()
+    assert "Water x 1,250" in page.detail_label.text()
+
+    page.close()
+
+
+def test_planetary_page_has_actionable_empty_state(
+    qt_application: QApplication, tmp_path: Path
+) -> None:
+    database = Database(tmp_path / "client.sqlite3", tmp_path / "backups")
+    database.initialize()
+    page = PlanetaryPage(
+        database,
+        Translator("en"),
+        list_colonies=lambda language: (),
+    )
+
+    assert page.table.rowCount() == 0
+    assert "Connect a character with PI permission" in page.summary_label.text()
+    assert page.detail_label.text() == page.summary_label.text()
+    page.close()
 
 
 def test_navigation_switches_stacked_page(qt_application: QApplication, tmp_path: Path) -> None:
@@ -350,3 +401,27 @@ def _repository(tmp_path: Path) -> CharacterRepository:
     database = Database(tmp_path / "client.sqlite3", tmp_path / "backups")
     database.initialize()
     return CharacterRepository(database)
+
+
+def _colony_overview() -> ColonyOverview:
+    return ColonyOverview(
+        character_id=1001,
+        character_name="Industrial Pilot",
+        planet_id=4001,
+        solar_system_id=30000142,
+        planet_type="temperate",
+        snapshot_at=datetime(2026, 8, 30, 12, 5, tzinfo=UTC),
+        last_update=datetime(2026, 8, 30, 12, 0, tzinfo=UTC),
+        upgrade_level=4,
+        pin_count=5,
+        link_count=2,
+        route_count=1,
+        factory_count=1,
+        active_extractors=1,
+        expired_extractors=1,
+        incomplete_extractors=0,
+        next_expiry=datetime(2026, 8, 30, 14, 0, tzinfo=UTC),
+        pin_types=(NamedCount(2848, "Extraktorkontrolleinheit", 2),),
+        extractor_products=(NamedCount(2268, "Wässrige Flüssigkeiten", 2),),
+        stored_contents=(NamedQuantity(3645, "Water", 1_250),),
+    )
