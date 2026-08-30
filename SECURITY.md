@@ -16,6 +16,8 @@ Ein Desktop-Release darf kein EVE Client Secret enthalten. Die öffentliche Clie
 
 - Es werden nur die tatsächlich benötigten Scopes angefordert.
 - Der Desktop-Client verwendet Authorization Code mit PKCE und öffnet EVE SSO im Systembrowser.
+- Der lokale Callback bindet ausschließlich an `127.0.0.1`, prüft Pfad und kryptografisches `state` exakt und protokolliert keine Callback-Parameter.
+- Access Tokens werden vor jeder Charakterverknüpfung anhand der offiziellen JWKS-Signatur, eines fest erlaubten RSA-Algorithmus, Issuer, Ablauf, Charakter-Subject und beider Audience-Werte validiert.
 - Refresh Tokens werden charakterbezogen im sicheren Anmeldedatenspeicher des Betriebssystems abgelegt.
 - Access Tokens verbleiben nur so lange wie erforderlich im Arbeitsspeicher.
 - Tokens werden niemals in SQLite, Logs, Backups oder Exporte geschrieben.

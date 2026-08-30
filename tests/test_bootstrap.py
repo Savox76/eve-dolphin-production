@@ -14,6 +14,7 @@ def test_context_initializes_local_database(tmp_path: Path) -> None:
     context = build_context(paths, "en")
 
     assert context.database.is_current()
+    assert context.characters.list_all() == ()
     assert context.translator.language == "en"
     assert paths.database_path.is_file()
 

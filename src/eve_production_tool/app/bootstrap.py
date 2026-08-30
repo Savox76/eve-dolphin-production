@@ -13,8 +13,10 @@ from tempfile import TemporaryDirectory
 from eve_production_tool import __version__
 from eve_production_tool.app.logging import configure_logging
 from eve_production_tool.app.paths import AppPaths
+from eve_production_tool.characters import CharacterRepository
 from eve_production_tool.database import Database
 from eve_production_tool.i18n import Translator
+from eve_production_tool.sso.pkce import generate_pkce_pair
 
 LOGGER = logging.getLogger(__name__)
 
@@ -23,6 +25,7 @@ LOGGER = logging.getLogger(__name__)
 class AppContext:
     paths: AppPaths
     database: Database
+    characters: CharacterRepository
     translator: Translator
 
 
@@ -32,7 +35,12 @@ def build_context(paths: AppPaths, language: str = "de") -> AppContext:
     paths.ensure_directories()
     database = Database(paths.database_path, paths.backup_dir)
     database.initialize()
-    return AppContext(paths=paths, database=database, translator=Translator(language))
+    return AppContext(
+        paths=paths,
+        database=database,
+        characters=CharacterRepository(database),
+        translator=Translator(language),
+    )
 
 
 def run_self_check(paths: AppPaths) -> int:
@@ -44,6 +52,9 @@ def run_self_check(paths: AppPaths) -> int:
     with context.database.connect() as connection:
         result = connection.execute("PRAGMA integrity_check").fetchone()
     if result is None or result[0] != "ok":
+        return 1
+    pkce = generate_pkce_pair(bytes(range(32)))
+    if len(pkce.verifier) != 43 or len(pkce.challenge) != 43:
         return 1
     print(f"EVE Production Tool {__version__}: OK (schema {context.database.schema_version()})")
     return 0

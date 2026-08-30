@@ -97,6 +97,8 @@ Weitere Regeln:
 - Widerrufene oder abgelaufene Berechtigungen verlangen eine neue ausdrückliche Anmeldung.
 - OAuth-Endpunkte und Signaturschlüssel werden aus den offiziellen Metadaten ermittelt und angemessen gecacht.
 
+Der Standard-Callback lautet `http://127.0.0.1:38636/callback` und muss exakt so in der EVE-Developer-Anwendung registriert werden. Für Entwicklungs- und Testinstallationen kann er vollständig überschrieben werden, bleibt aber auf IPv4-Loopback, HTTP, einen festen Port und den Pfad `/callback` beschränkt. Der Callback ist pro Anmeldeversuch kurzlebig, akzeptiert nur eine korrelierte Antwort und schreibt keine Query-Daten in Logs.
+
 ## SQLite und lokale Daten
 
 SQLite speichert:
@@ -190,16 +192,13 @@ Geldbeträge und Mengen verwenden Python `Decimal` beziehungsweise explizite gan
 9. Datenpfade werden über die Betriebssystem-APIs ermittelt und nicht relativ zum Installationsordner angenommen.
 10. Jede Datenmigration ist getestet und besitzt einen klaren Fehler- und Wiederherstellungsweg.
 
-## Offene Detailentscheidungen für Phase 1
+## Offene Releaseentscheidungen
 
-- unterstützte Python-Version und genaue Paketversionen
-- konkretes Windows-Paketierungs- und Installerverfahren
-- konkreter Datenbank-Migrationsadapter
-- konkrete OS-Anmeldedatenspeicher-Integration
-- finaler lokaler Callback-Port beziehungsweise registrierte Callback-Strategie
 - signierter Release- und Updatekanal
+- finaler Installer und Code-Signing-Prozess
+- unterstützte zusätzliche Desktop-Betriebssysteme nach Version 1.0
 
-Diese Punkte verändern die beschlossene lokale Client-Architektur nicht und werden bei der technischen Initialisierung festgelegt.
+Diese Punkte verändern die beschlossene lokale Client-Architektur nicht.
 
 ## Offizielle Referenzen
 

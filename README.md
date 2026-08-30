@@ -27,7 +27,7 @@ Das Tool soll aus Blueprints, Kolonien, Assets, Marktpreisen und laufenden Jobs 
 - lokale SQLite-Datenbank ohne Hoster oder separaten Datenbankdienst
 - eigenständige Installation für jeden Spieler
 
-Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md), die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md), der [Formel- und Bewertungskatalog](docs/FORMULA_CATALOG.md), die [Seitenstruktur und Wireframes](docs/UX_STRUCTURE.md) sowie die Abnahmen von [Phase 0](docs/PHASE_0_ACCEPTANCE.md) und [Phase 1](docs/PHASE_1_ACCEPTANCE.md).
+Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md), die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md), der [Formel- und Bewertungskatalog](docs/FORMULA_CATALOG.md), die [Seitenstruktur und Wireframes](docs/UX_STRUCTURE.md), die Abnahmen von [Phase 0](docs/PHASE_0_ACCEPTANCE.md) und [Phase 1](docs/PHASE_1_ACCEPTANCE.md) sowie der [aktuelle Stand von Phase 2](docs/PHASE_2_STATUS.md).
 
 ## Projektstatus
 
@@ -35,7 +35,7 @@ Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Ergänzend
 
 Nächster Meilenstein: **Phase 2 – EVE-Datenbasis**
 
-Phase 1 ist abgeschlossen. Das technische Fundament enthält den lokalen Python-Client, die SQLite-Migrationsbasis, sichere Token-Speichergrenzen, automatisierte Qualitätsprüfungen und einen validierten Windows-Paketbuild. Phase 2 bindet als Nächstes EVE SSO, mehrere eigene Charaktere, SDE und ESI an.
+Phase 1 ist abgeschlossen. Phase 2 läuft: Der erste Baustein implementiert bereits den abgesicherten EVE-SSO-/PKCE-Kern, den lokalen Einmal-Callback, die JWT-Prüfung sowie die transaktionale lokale Verwaltung mehrerer Charaktere. Die noch fehlende UI-Anbindung, Token-Erneuerung, SDE- und ESI-Synchronisation bleiben Teil dieses Meilensteins; deshalb bleibt der abgenommene Gesamtfortschritt bei `15 %`.
 
 ## Entwicklung und lokaler Start
 
