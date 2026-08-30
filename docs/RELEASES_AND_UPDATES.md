@@ -29,7 +29,8 @@ angegebene Tag muss exakt der Anwendungsversion entsprechen. Der Workflow:
 
 Die erste updaterfähige Version ist `v0.2.0`. Sie muss noch über den bisherigen manuellen
 Download installiert werden. Ab `v0.2.0` erkennt EVE Dolphin neuere veröffentlichte Versionen
-selbst.
+selbst. `v0.3.0` ist die erste vollständige PI-MVP-Testversion und kann deshalb bereits über
+den in `v0.2.0` enthaltenen manuellen Updatebutton installiert werden.
 
 ## Clientablauf
 

@@ -212,6 +212,18 @@ fehlt auch dieser Datensatz, bleibt die Type-ID sichtbar. Die Qt-Seite aktualisi
 einem vollständigen Datenabruf oder einer Charakteränderung, führt aber selbst keine ESI-
 oder SDE-Netzwerkanfrage aus.
 
+Der Phase-3-Prognosedienst kombiniert den letzten vollständigen Kolonie-Snapshot mit den
+Schematics, Volumen und Pin-Kapazitäten desselben aktiven SDE-Builds. Extraktoren werden bis
+zum kleineren Wert aus Prognosehorizont und Ablaufzeit simuliert. Fabriken verbrauchen den
+erkennbaren gemeinsamen Bestand in aufsteigender Produktstufe. Da ESI keine sekundengenaue
+Route- und Pufferhistorie liefert, bleibt dieses Ergebnis ausdrücklich eine Schätzung.
+
+Der PI-Zielplaner löst ein Ziel in absteigender Produktstufe rückwärts auf. Zunächst werden
+pro Stufe die zum Zielzeitpunkt prognostizierten Bestände angerechnet; erst danach entstehen
+Fabrikzyklen, Eingangsbedarf oder profilabhängige Importmengen. POCO-Steuern, Transport,
+Frachtraum und Wurmlochrisiko stammen aus lokalen `pi_profiles`. Ein Profil ohne POCO
+blockiert normale Importe, statt eine nicht ausführbare Kette als vollständig darzustellen.
+
 ## SDE-Import
 
 1. Aktuelle Build-Metadaten mit HTTP-Caching prüfen.
@@ -231,7 +243,8 @@ Download-Prüfsumme wird lokal während des Streamings berechnet; CCP veröffent
 im aktuellen Metadatensatz keine separate SHA-256-Summe. Metadaten- und Archiv-
 Cachevalidatoren werden getrennt gespeichert. Offizielle verwaiste Referenzen in
 Blueprint-Materialien oder -Produkten werden als gezählte Warnungen übernommen,
-während gebrochene Kernreferenzen von Gruppen, Typen, Blueprints und PI-Schematics
+während gebrochene Kernreferenzen von Gruppen, Typen, Blueprints, PI-Schematics,
+Solarsystemen und Planeten
 die Aktivierung weiterhin verhindern.
 
 ## Kalkulationssnapshots

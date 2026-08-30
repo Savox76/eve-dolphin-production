@@ -215,7 +215,10 @@ Initiales, versioniertes PI-Steuerbasisprofil:
 | P3 | 60.000 ISK |
 | P4 | 1.200.000 ISK |
 
-Die Werte werden nicht im Rechenkern hartcodiert. P1 bis P4 entsprechen CCPs veröffentlichten Steuerbasen; P0 wird mit dem aktiven Typ-/Client-Snapshot kontrolliert.
+Diese Werte gehören zum versionierten Formelprofil und sind durch Referenztests abgesichert.
+P1 bis P4 entsprechen CCPs veröffentlichten Steuerbasen; P0 wird bei jeder
+Kompatibilitätsprüfung mit dem aktuellen Client beziehungsweise den geltenden Regeln
+kontrolliert.
 
 Fehlt ein Customs Office oder Skyhook, ist normaler Import/Export `BLOCKED`. Ein Command-Center-Launch darf nur als eigener manueller Transportweg mit bestätigter Kapazität und Kosten geplant werden.
 

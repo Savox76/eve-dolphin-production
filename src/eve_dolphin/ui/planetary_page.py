@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
+from decimal import Decimal
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -19,7 +20,13 @@ from PySide6.QtWidgets import (
 
 from eve_dolphin.database import Database
 from eve_dolphin.i18n import Translator
-from eve_dolphin.pi import ColonyOverview, NamedCount, NamedQuantity, PlanetaryOverviewService
+from eve_dolphin.pi import (
+    ColonyOverview,
+    ForecastQuantity,
+    NamedCount,
+    NamedQuantity,
+    PlanetaryOverviewService,
+)
 
 ListColonies = Callable[[str], tuple[ColonyOverview, ...]]
 
@@ -42,7 +49,7 @@ class PlanetaryPage(QWidget):
         self.summary_label = QLabel()
         self.summary_label.setObjectName("planetarySummary")
         self.summary_label.setWordWrap(True)
-        self.table = QTableWidget(0, 8)
+        self.table = QTableWidget(0, 11)
         self.table.setObjectName("planetaryColonyTable")
         self.detail_label = QLabel()
         self.detail_label.setObjectName("muted")
@@ -81,6 +88,9 @@ class PlanetaryPage(QWidget):
                 self._translator.text("pi_extractors"),
                 self._translator.text("pi_factories"),
                 self._translator.text("pi_last_update"),
+                self._translator.text("pi_status"),
+                self._translator.text("pi_storage"),
+                self._translator.text("pi_next_attention"),
             )
         )
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -119,13 +129,20 @@ class PlanetaryPage(QWidget):
         for row, colony in enumerate(self._colonies):
             values = (
                 colony.character_name,
-                str(colony.planet_id),
+                colony.planet_name or str(colony.planet_id),
                 self._planet_type(colony.planet_type),
-                str(colony.solar_system_id),
+                colony.solar_system_name or str(colony.solar_system_id),
                 str(colony.pin_count),
                 self._extractor_status(colony),
                 str(colony.factory_count),
                 _format_datetime(colony.last_update),
+                self._warning_text(colony),
+                self._storage_text(colony),
+                (
+                    _format_datetime(colony.next_attention)
+                    if colony.next_attention is not None
+                    else self._translator.text("pi_none")
+                ),
             )
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
@@ -169,9 +186,9 @@ class PlanetaryPage(QWidget):
                 (
                     self._translator.text("pi_identity_detail").format(
                         character=colony.character_name,
-                        planet=colony.planet_id,
+                        planet=colony.planet_name or colony.planet_id,
                         planet_type=self._planet_type(colony.planet_type),
-                        system=colony.solar_system_id,
+                        system=colony.solar_system_name or colony.solar_system_id,
                         level=colony.upgrade_level,
                     ),
                     self._translator.text("pi_layout_detail").format(
@@ -194,6 +211,32 @@ class PlanetaryPage(QWidget):
                     ),
                     self._translator.text("pi_storage_detail").format(
                         values=self._format_quantities(colony.stored_contents)
+                    ),
+                    self._translator.text("pi_extractor_rate_detail").format(
+                        values=self._format_rates(colony)
+                    ),
+                    self._translator.text("pi_factory_forecast_detail").format(
+                        values=self._format_forecast_quantities(colony.forecast.factory_outputs),
+                        stalled=colony.forecast.stalled_factories,
+                        constrained=colony.forecast.constrained_factories,
+                    ),
+                    self._translator.text("pi_storage_forecast_detail").format(
+                        used=_format_decimal(colony.forecast.storage_used_m3),
+                        capacity=_format_decimal(colony.forecast.storage_capacity_m3),
+                        percent=(
+                            _format_decimal(colony.forecast.storage_fill_percent)
+                            if colony.forecast.storage_fill_percent is not None
+                            else self._translator.text("pi_unknown")
+                        ),
+                        full=(
+                            _format_datetime(colony.forecast.estimated_full_at)
+                            if colony.forecast.estimated_full_at is not None
+                            else self._translator.text("pi_none")
+                        ),
+                    ),
+                    self._translator.text("pi_data_age_detail").format(
+                        age=_format_duration(colony.data_age),
+                        status=self._warning_text(colony),
                     ),
                     self._translator.text("pi_snapshot_detail").format(
                         snapshot=_format_datetime(colony.snapshot_at)
@@ -229,6 +272,49 @@ class PlanetaryPage(QWidget):
     def _type_name(self, type_id: int, name: str | None) -> str:
         return name or self._translator.text("pi_unknown_type").format(type_id=type_id)
 
+    def _warning_text(self, colony: ColonyOverview) -> str:
+        if not colony.warning_codes:
+            return self._translator.text("pi_status_current")
+        return ", ".join(
+            self._translator.text(f"pi_warning_{code}") for code in colony.warning_codes
+        )
+
+    def _storage_text(self, colony: ColonyOverview) -> str:
+        percent = colony.forecast.storage_fill_percent
+        if percent is None:
+            return self._translator.text("pi_unknown")
+        return f"{_format_decimal(percent)} %"
+
+    def _format_rates(self, colony: ColonyOverview) -> str:
+        if not colony.forecast.extractor_rates:
+            return self._translator.text("pi_none")
+        return ", ".join(
+            self._translator.text("pi_rate_value").format(
+                name=value.commodity.name,
+                hourly=_format_decimal(value.units_per_hour),
+                daily=_format_decimal(value.units_per_hour * 24),
+            )
+            for value in colony.forecast.extractor_rates
+        )
+
+    def _format_forecast_quantities(self, values: tuple[ForecastQuantity, ...]) -> str:
+        if not values:
+            return self._translator.text("pi_none")
+        return ", ".join(f"{value.commodity.name} x {value.quantity:,}" for value in values)
+
 
 def _format_datetime(value: datetime) -> str:
     return value.astimezone().strftime("%Y-%m-%d %H:%M")
+
+
+def _format_duration(value: timedelta) -> str:
+    seconds = max(0, int(value.total_seconds()))
+    if seconds >= 86400:
+        return f"{seconds / 86400:.1f} d"
+    if seconds >= 3600:
+        return f"{seconds / 3600:.1f} h"
+    return f"{seconds // 60} min"
+
+
+def _format_decimal(value: Decimal) -> str:
+    return f"{value.quantize(Decimal('0.01')):,.2f}"

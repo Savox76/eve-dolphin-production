@@ -26,14 +26,23 @@ class SdeUpdateService:
         self._destination_dir = destination_dir
 
     def update(self) -> SdeImportResult:
+        needs_planning_data = not self._repository.has_pi_planning_data()
         etag, last_modified = self._repository.latest_cache_headers()
         release = self._client.fetch_latest(etag=etag, last_modified=last_modified)
         active = self._repository.active_build()
         if release is None:
             if active is None:
                 raise SdeImportError("SDE metadata is unchanged but no active build exists")
-            return SdeImportResult(status=active, activated=False)
-        if active is not None and active.build_number == release.build_number:
+            if not needs_planning_data:
+                return SdeImportResult(status=active, activated=False)
+            release = self._client.fetch_latest()
+            if release is None:
+                raise SdeImportError("SDE planning catalog requires current release metadata")
+        if (
+            active is not None
+            and active.build_number == release.build_number
+            and not needs_planning_data
+        ):
             return SdeImportResult(status=active, activated=False)
 
         archive = self._client.download_archive(release, self._destination_dir)

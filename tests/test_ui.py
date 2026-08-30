@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -14,7 +15,15 @@ from PySide6.QtWidgets import QApplication
 from eve_dolphin.characters import AuthorizationStatus, CharacterRepository, EveCharacter
 from eve_dolphin.database import Database
 from eve_dolphin.i18n import Translator
-from eve_dolphin.pi import ColonyOverview, NamedCount, NamedQuantity
+from eve_dolphin.pi import (
+    ColonyForecast,
+    ColonyOverview,
+    ForecastQuantity,
+    NamedCount,
+    NamedQuantity,
+    PiCommodity,
+    PiTier,
+)
 from eve_dolphin.sso.scopes import ScopePackage, scopes_for_packages
 from eve_dolphin.sync.coordinator import CharacterSyncBatch, CharacterSyncOutcome
 from eve_dolphin.ui.character_page import (
@@ -23,6 +32,7 @@ from eve_dolphin.ui.character_page import (
     CharacterSsoWorker,
 )
 from eve_dolphin.ui.main_window import SECTIONS, MainWindow
+from eve_dolphin.ui.pi_planner_page import PiPlannerPage
 from eve_dolphin.ui.planetary_page import PlanetaryPage
 
 
@@ -49,6 +59,8 @@ def test_main_window_contains_all_planned_sections(
     assert window.windowTitle() == "EVE Dolphin"
     assert isinstance(window.planetary_page, PlanetaryPage)
     assert window.planetary_page.property("viewId") == "pi-colonies"
+    assert isinstance(window.pi_planner_page, PiPlannerPage)
+    assert window.pi_planner_page.property("viewId") == "pi-planner"
 
     window.close()
 
@@ -409,6 +421,9 @@ def _colony_overview() -> ColonyOverview:
         character_name="Industrial Pilot",
         planet_id=4001,
         solar_system_id=30000142,
+        solar_system_name="Jita",
+        planet_name="Jita IV",
+        security_status=Decimal("0.9459"),
         planet_type="temperate",
         snapshot_at=datetime(2026, 8, 30, 12, 5, tzinfo=UTC),
         last_update=datetime(2026, 8, 30, 12, 0, tzinfo=UTC),
@@ -420,7 +435,27 @@ def _colony_overview() -> ColonyOverview:
         active_extractors=1,
         expired_extractors=1,
         incomplete_extractors=0,
+        ending_soon_extractors=1,
         next_expiry=datetime(2026, 8, 30, 14, 0, tzinfo=UTC),
+        next_attention=datetime(2026, 8, 30, 14, 0, tzinfo=UTC),
+        data_age=timedelta(minutes=5),
+        warning_codes=("extractors_ending_soon",),
+        forecast=ColonyForecast(
+            horizon=timedelta(hours=24),
+            extractor_rates=(),
+            extracted=(),
+            factory_outputs=(
+                ForecastQuantity(PiCommodity(3645, "Water", Decimal("0.38"), PiTier.BASIC), 40),
+            ),
+            projected_inventory=(),
+            stalled_factories=0,
+            constrained_factories=0,
+            incomplete_factories=0,
+            storage_used_m3=Decimal("475"),
+            storage_capacity_m3=Decimal("12000"),
+            storage_fill_percent=Decimal("3.9583"),
+            estimated_full_at=None,
+        ),
         pin_types=(NamedCount(2848, "Extraktorkontrolleinheit", 2),),
         extractor_products=(NamedCount(2268, "Wässrige Flüssigkeiten", 2),),
         stored_contents=(NamedQuantity(3645, "Water", 1_250),),

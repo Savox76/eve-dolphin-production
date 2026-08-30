@@ -70,7 +70,8 @@ QFrame#card {
 }
 
 QTableWidget#characterTable,
-QTableWidget#planetaryColonyTable {
+QTableWidget#planetaryColonyTable,
+QTableWidget#piPlanTable {
     background-color: #0d1622;
     border: 1px solid #233246;
     border-radius: 6px;
@@ -80,7 +81,8 @@ QTableWidget#planetaryColonyTable {
 }
 
 QTableWidget#characterTable QHeaderView::section,
-QTableWidget#planetaryColonyTable QHeaderView::section {
+QTableWidget#planetaryColonyTable QHeaderView::section,
+QTableWidget#piPlanTable QHeaderView::section {
     background-color: #152131;
     border: 0;
     border-bottom: 1px solid #2b3d53;

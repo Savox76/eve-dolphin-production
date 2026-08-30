@@ -36,6 +36,9 @@ class _Importer:
 
 
 class _Repository:
+    def has_pi_planning_data(self) -> bool:
+        return True
+
     def latest_cache_headers(self) -> tuple[str | None, str | None]:
         return '"metadata"', "Fri, 28 Aug 2026 11:07:12 GMT"
 
@@ -49,6 +52,38 @@ class _Repository:
             dataset_counts={"types": 5},
             warnings={},
         )
+
+
+class _PlanningClient(_Client):
+    def __init__(self, release: SdeRelease, archive: SdeArchive) -> None:
+        super().__init__(release)
+        self.archive = archive
+        self.fetch_calls: list[tuple[str | None, str | None]] = []
+
+    def fetch_latest(
+        self, *, etag: str | None = None, last_modified: str | None = None
+    ) -> SdeRelease | None:
+        self.fetch_calls.append((etag, last_modified))
+        return None if len(self.fetch_calls) == 1 else self.release
+
+    def download_archive(self, release: SdeRelease, destination_dir: Path) -> SdeArchive:
+        self.downloaded = True
+        return self.archive
+
+
+class _PlanningImporter:
+    def __init__(self, status: SdeBuildStatus) -> None:
+        self.status = status
+        self.imported: SdeArchive | None = None
+
+    def import_archive(self, archive: SdeArchive) -> SdeImportResult:
+        self.imported = archive
+        return SdeImportResult(status=self.status, activated=False)
+
+
+class _PlanningRepository(_Repository):
+    def has_pi_planning_data(self) -> bool:
+        return False
 
 
 def test_update_uses_cache_headers_and_skips_active_build(tmp_path: Path) -> None:
@@ -72,3 +107,40 @@ def test_update_uses_cache_headers_and_skips_active_build(tmp_path: Path) -> Non
     assert result.status.build_number == 101
     assert client.fetch_args == ('"metadata"', "Fri, 28 Aug 2026 11:07:12 GMT")
     assert client.downloaded is False
+
+
+def test_update_refetches_unchanged_metadata_to_enrich_active_build(tmp_path: Path) -> None:
+    release = SdeRelease(
+        build_number=101,
+        release_date=NOW,
+        archive_url="https://example.invalid/sde.zip",
+    )
+    archive_path = tmp_path / "sde.zip"
+    archive_path.write_bytes(b"archive")
+    archive = SdeArchive(
+        release=release,
+        path=archive_path,
+        sha256="a" * 64,
+        size_bytes=7,
+        downloaded_at=NOW,
+    )
+    repository = _PlanningRepository()
+    status = repository.active_build()
+    client = _PlanningClient(release, archive)
+    importer = _PlanningImporter(status)
+    service = SdeUpdateService(
+        cast(EveSdeClient, client),
+        cast(SdeImporter, importer),
+        cast(SdeRepository, repository),
+        tmp_path,
+    )
+
+    result = service.update()
+
+    assert result.status == status
+    assert client.fetch_calls == [
+        ('"metadata"', "Fri, 28 Aug 2026 11:07:12 GMT"),
+        (None, None),
+    ]
+    assert client.downloaded
+    assert importer.imported == archive
