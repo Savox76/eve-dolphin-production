@@ -59,12 +59,24 @@ Phase 2 verbindet den lokalen Client sicher mit EVE Online und baut die belastba
 - [x] bekannte verwaiste Blueprint-Typreferenzen der offiziellen SDE werden gezählt und sichtbar als Importwarnung gespeichert
 - [x] Import gegen den offiziellen Tranquility-Build `3484357` vom 28.08.2026 erfolgreich geprüft
 
+## Fünfter Baustein: zentraler ESI-Transport
+
+- [x] festes, zentral dokumentiertes `X-Compatibility-Date` für jede ESI-Anfrage
+- [x] eindeutiger User-Agent mit Produkt und Version
+- [x] frische Antworten werden bis `Expires` ohne erneute Netzwerkanfrage verwendet
+- [x] abgelaufene Antworten werden mit `ETag`, `If-None-Match`, `Last-Modified` und `If-Modified-Since` revalidiert
+- [x] private Cacheeinträge sind strikt nach Charakter getrennt; Tokens werden nicht Teil von URL oder Cache-Schlüssel
+- [x] begrenzte Wiederholungen für Transportfehler sowie temporäre `420`, `429`, `502`, `503` und `504`
+- [x] `Retry-After`, globales ESI-Fehlerlimit und neue Rate-Limit-Buckets werden ausgewertet
+- [x] Authentifizierungs- und Berechtigungsfehler erzeugen keine automatischen Wiederholungsschleifen
+- [x] Antwortgröße, JSON, HTTP-Daten, Seitenzahl und numerische Limitheader werden geprüft
+
 ## Noch offen bis zur Phase-2-Abnahme
 
 - [ ] EVE-Developer-Anwendung mit öffentlicher Client ID und exaktem Callback registrieren
 - [ ] Modulaktivierung fordert fehlende Industrie-/PI-Scopes sichtbar über eine erneute Autorisierung an
 - [x] SDE-Download, Prüfung, Versionierung und atomarer Import
-- [ ] ESI-Client mit Kompatibilitätsdatum, Cache, ETag, Retry und Fehlerlimit-Schutz
+- [x] ESI-Client mit Kompatibilitätsdatum, Cache, ETag, Retry und Fehlerlimit-Schutz
 - [ ] erste Asset-, Blueprint-, Job- und Planetensynchronisation
 - [ ] parallele, voneinander isolierte Synchronisation von mindestens zwei Charakteren
 - [ ] sichtbare SDE-Version sowie korrekte Kennzeichnung veralteter und fehlgeschlagener Daten

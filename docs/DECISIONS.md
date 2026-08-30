@@ -197,3 +197,13 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Fehlerfall:** Ein fehlgeschlagener Import entfernt seine Teildaten und lässt die vorherige aktive Version unverändert nutzbar.
 - **Datenqualität:** Verwaiste Blueprint-Material- und Produkttypen, die bereits in der offiziellen Quelle vorkommen, werden als gezählte Warnungen gespeichert; gebrochene Kernbeziehungen verhindern die Aktivierung.
 - **Nachweis:** Der reale Tranquility-Build `3484357` wurde vollständig importiert; isolierte Tests decken Cache, Downloadabbruch, Manipulation, Idempotenz, Warnungen und Rollback ab.
+
+### D-023 – Zentraler und limitbewusster ESI-Transport
+
+- **Status:** beschlossen am 30.08.2026
+- **Kompatibilität:** Jede Anfrage verwendet zentral `X-Compatibility-Date: 2026-08-30`; Änderungen werden erst nach Prüfung durch ein bewusstes Codeupdate übernommen.
+- **Cache:** EVE Dolphins Prozesscache respektiert `Expires` und revalidiert abgelaufene Repräsentationen mit `ETag` und `Last-Modified`. Private Einträge sind je Charakter getrennt.
+- **Sicherheit:** Access Tokens werden nur im Authorization-Header gesendet und sind weder Bestandteil der URL noch des Cache-Schlüssels oder einer Fehlermeldung.
+- **Wiederholungen:** Netzwerkfehler und temporäre `420`, `429`, `502`, `503` und `504` erhalten höchstens zwei begrenzte Wiederholungen. Authentifizierungs- und fachliche 4xx-Antworten werden nicht wiederholt.
+- **Limits:** Der Client respektiert `Retry-After`, das globale ESI-Fehlerbudget und die neuen gruppenbezogenen Rate-Limit-Buckets. Ein niedriges Restbudget sperrt weitere Anfragen vorübergehend lokal.
+- **Grenze:** Dieser Baustein stellt den gemeinsamen Transport bereit. Konsistente Mehrseiten-Snapshots und ihre dauerhafte SQLite-Speicherung gehören zu den folgenden ressourcenspezifischen Synchronisierern.
