@@ -187,3 +187,13 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Temporäre Fehler:** Netzwerk-, Rate-Limit- und sonstige vorübergehende OAuth-Fehler verändern Token und Berechtigungsstatus nicht.
 - **Scopes:** Identität fordert keine Fachberechtigung. Industrie und PI besitzen getrennte Minimalpakete, die erst bei Aktivierung des jeweiligen Moduls angefordert werden.
 - **Begründung:** EVE kann Refresh Tokens rotieren und Spieler können den Zugriff widerrufen. Der Client muss beide Fälle sicher unterscheiden, ohne gültige Tokens bei vorübergehenden Störungen zu zerstören oder ungültige Tokens wiederholt an EVE zu senden.
+
+### D-022 – Buildbasierter und atomarer SDE-Import
+
+- **Status:** beschlossen am 30.08.2026
+- **Quelle:** EVE Dolphin verwendet die aktuelle offizielle Tranquility-SDE im JSON-Lines-Format und ermittelt neue Versionen über `latest.jsonl`.
+- **Download:** Metadatenabfragen verwenden HTTP-Cachevalidatoren. Archive werden begrenzt gestreamt, zunächst als temporäre Datei gespeichert und lokal mit SHA-256 gehasht.
+- **Persistenz:** Jeder Build wird vollständig versioniert importiert. Die aktive Buildreferenz wechselt erst nach erfolgreichen Struktur-, Mengen-, Fremdschlüssel- und Integritätsprüfungen.
+- **Fehlerfall:** Ein fehlgeschlagener Import entfernt seine Teildaten und lässt die vorherige aktive Version unverändert nutzbar.
+- **Datenqualität:** Verwaiste Blueprint-Material- und Produkttypen, die bereits in der offiziellen Quelle vorkommen, werden als gezählte Warnungen gespeichert; gebrochene Kernbeziehungen verhindern die Aktivierung.
+- **Nachweis:** Der reale Tranquility-Build `3484357` wurde vollständig importiert; isolierte Tests decken Cache, Downloadabbruch, Manipulation, Idempotenz, Warnungen und Rollback ab.

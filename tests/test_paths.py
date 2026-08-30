@@ -16,3 +16,4 @@ def test_explicit_paths_are_created_below_selected_directory(tmp_path: Path) -> 
     assert paths.database_path.parent == paths.data_dir
     assert paths.backup_dir.is_dir()
     assert paths.log_dir.is_dir()
+    assert paths.sde_dir.is_dir()

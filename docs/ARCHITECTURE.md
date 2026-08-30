@@ -162,6 +162,15 @@ Seitennummerierte Ressourcen werden als konsistenter Abruf behandelt. Widersprec
 
 Ein fehlgeschlagener Import verändert niemals die aktive SDE-Version.
 
+Der Import verwendet das aktuelle offizielle JSON-Lines-Archiv und liest Datensätze
+zeilenweise, damit das vollständige Archiv nicht im Arbeitsspeicher liegen muss. Die
+Download-Prüfsumme wird lokal während des Streamings berechnet; CCP veröffentlicht
+im aktuellen Metadatensatz keine separate SHA-256-Summe. Metadaten- und Archiv-
+Cachevalidatoren werden getrennt gespeichert. Offizielle verwaiste Referenzen in
+Blueprint-Materialien oder -Produkten werden als gezählte Warnungen übernommen,
+während gebrochene Kernreferenzen von Gruppen, Typen, Blueprints und PI-Schematics
+die Aktivierung weiterhin verhindern.
+
 ## Kalkulationssnapshots
 
 Ein gespeicherter Produktionsplan verweist nicht nur auf aktuelle Werte, sondern hält verwendete Mengen, Preise, Gebühren, SDE-Version, ESI-Datenalter, Formelversion und manuelle Eingaben fest. Dadurch bleiben spätere Soll-/Ist-Vergleiche nachvollziehbar.

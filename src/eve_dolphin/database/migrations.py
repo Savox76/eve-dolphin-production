@@ -59,6 +59,179 @@ MIGRATIONS = (
             ADD COLUMN authorization_error_at TEXT;
         """,
     ),
+    Migration(
+        version=3,
+        description="versioned production SDE foundation",
+        sql="""
+        CREATE TABLE sde_builds (
+            build_number INTEGER PRIMARY KEY CHECK (build_number > 0),
+            release_date TEXT NOT NULL,
+            source_url TEXT NOT NULL,
+            archive_sha256 TEXT NOT NULL CHECK (length(archive_sha256) = 64),
+            archive_size INTEGER NOT NULL CHECK (archive_size > 0),
+            metadata_etag TEXT,
+            metadata_last_modified TEXT,
+            archive_etag TEXT,
+            archive_last_modified TEXT,
+            downloaded_at TEXT NOT NULL,
+            import_started_at TEXT NOT NULL,
+            imported_at TEXT,
+            activated_at TEXT,
+            status TEXT NOT NULL CHECK (status IN ('importing', 'ready', 'failed')),
+            failure_reason TEXT
+        );
+
+        CREATE TABLE sde_current (
+            singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+            build_number INTEGER NOT NULL UNIQUE,
+            FOREIGN KEY (build_number) REFERENCES sde_builds(build_number)
+        );
+
+        CREATE TABLE sde_dataset_counts (
+            build_number INTEGER NOT NULL,
+            dataset TEXT NOT NULL,
+            record_count INTEGER NOT NULL CHECK (record_count >= 0),
+            PRIMARY KEY (build_number, dataset),
+            FOREIGN KEY (build_number) REFERENCES sde_builds(build_number) ON DELETE CASCADE
+        );
+
+        CREATE TABLE sde_import_warnings (
+            build_number INTEGER NOT NULL,
+            warning TEXT NOT NULL,
+            record_count INTEGER NOT NULL CHECK (record_count > 0),
+            PRIMARY KEY (build_number, warning),
+            FOREIGN KEY (build_number) REFERENCES sde_builds(build_number) ON DELETE CASCADE
+        );
+
+        CREATE TABLE sde_categories (
+            build_number INTEGER NOT NULL,
+            category_id INTEGER NOT NULL CHECK (category_id >= 0),
+            name_de TEXT NOT NULL,
+            name_en TEXT NOT NULL,
+            published INTEGER NOT NULL CHECK (published IN (0, 1)),
+            PRIMARY KEY (build_number, category_id),
+            FOREIGN KEY (build_number) REFERENCES sde_builds(build_number) ON DELETE CASCADE
+        );
+
+        CREATE TABLE sde_market_groups (
+            build_number INTEGER NOT NULL,
+            market_group_id INTEGER NOT NULL CHECK (market_group_id >= 0),
+            parent_group_id INTEGER,
+            name_de TEXT NOT NULL,
+            name_en TEXT NOT NULL,
+            has_types INTEGER NOT NULL CHECK (has_types IN (0, 1)),
+            PRIMARY KEY (build_number, market_group_id),
+            FOREIGN KEY (build_number) REFERENCES sde_builds(build_number) ON DELETE CASCADE
+        );
+
+        CREATE TABLE sde_groups (
+            build_number INTEGER NOT NULL,
+            group_id INTEGER NOT NULL CHECK (group_id >= 0),
+            category_id INTEGER NOT NULL,
+            name_de TEXT NOT NULL,
+            name_en TEXT NOT NULL,
+            published INTEGER NOT NULL CHECK (published IN (0, 1)),
+            PRIMARY KEY (build_number, group_id),
+            FOREIGN KEY (build_number) REFERENCES sde_builds(build_number) ON DELETE CASCADE,
+            FOREIGN KEY (build_number, category_id)
+                REFERENCES sde_categories(build_number, category_id)
+        );
+
+        CREATE TABLE sde_types (
+            build_number INTEGER NOT NULL,
+            type_id INTEGER NOT NULL CHECK (type_id >= 0),
+            group_id INTEGER NOT NULL,
+            market_group_id INTEGER,
+            name_de TEXT NOT NULL,
+            name_en TEXT NOT NULL,
+            volume REAL,
+            mass REAL,
+            portion_size INTEGER,
+            published INTEGER NOT NULL CHECK (published IN (0, 1)),
+            PRIMARY KEY (build_number, type_id),
+            FOREIGN KEY (build_number) REFERENCES sde_builds(build_number) ON DELETE CASCADE,
+            FOREIGN KEY (build_number, group_id)
+                REFERENCES sde_groups(build_number, group_id),
+            FOREIGN KEY (build_number, market_group_id)
+                REFERENCES sde_market_groups(build_number, market_group_id)
+        );
+
+        CREATE TABLE sde_blueprints (
+            build_number INTEGER NOT NULL,
+            blueprint_type_id INTEGER NOT NULL,
+            max_production_limit INTEGER,
+            PRIMARY KEY (build_number, blueprint_type_id),
+            FOREIGN KEY (build_number) REFERENCES sde_builds(build_number) ON DELETE CASCADE,
+            FOREIGN KEY (build_number, blueprint_type_id)
+                REFERENCES sde_types(build_number, type_id)
+        );
+
+        CREATE TABLE sde_blueprint_activities (
+            build_number INTEGER NOT NULL,
+            blueprint_type_id INTEGER NOT NULL,
+            activity TEXT NOT NULL,
+            time_seconds INTEGER,
+            PRIMARY KEY (build_number, blueprint_type_id, activity),
+            FOREIGN KEY (build_number, blueprint_type_id)
+                REFERENCES sde_blueprints(build_number, blueprint_type_id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE sde_blueprint_materials (
+            build_number INTEGER NOT NULL,
+            blueprint_type_id INTEGER NOT NULL,
+            activity TEXT NOT NULL,
+            material_type_id INTEGER NOT NULL,
+            quantity INTEGER NOT NULL CHECK (quantity > 0),
+            PRIMARY KEY (build_number, blueprint_type_id, activity, material_type_id),
+            FOREIGN KEY (build_number, blueprint_type_id, activity)
+                REFERENCES sde_blueprint_activities(build_number, blueprint_type_id, activity)
+                ON DELETE CASCADE
+        );
+
+        CREATE TABLE sde_blueprint_products (
+            build_number INTEGER NOT NULL,
+            blueprint_type_id INTEGER NOT NULL,
+            activity TEXT NOT NULL,
+            product_type_id INTEGER NOT NULL,
+            quantity INTEGER NOT NULL CHECK (quantity > 0),
+            probability REAL,
+            PRIMARY KEY (build_number, blueprint_type_id, activity, product_type_id),
+            FOREIGN KEY (build_number, blueprint_type_id, activity)
+                REFERENCES sde_blueprint_activities(build_number, blueprint_type_id, activity)
+                ON DELETE CASCADE
+        );
+
+        CREATE TABLE sde_planet_schematics (
+            build_number INTEGER NOT NULL,
+            schematic_id INTEGER NOT NULL CHECK (schematic_id >= 0),
+            cycle_time_seconds INTEGER NOT NULL CHECK (cycle_time_seconds > 0),
+            name_de TEXT NOT NULL,
+            name_en TEXT NOT NULL,
+            PRIMARY KEY (build_number, schematic_id),
+            FOREIGN KEY (build_number) REFERENCES sde_builds(build_number) ON DELETE CASCADE
+        );
+
+        CREATE TABLE sde_planet_schematic_types (
+            build_number INTEGER NOT NULL,
+            schematic_id INTEGER NOT NULL,
+            type_id INTEGER NOT NULL,
+            is_input INTEGER NOT NULL CHECK (is_input IN (0, 1)),
+            quantity INTEGER NOT NULL CHECK (quantity > 0),
+            PRIMARY KEY (build_number, schematic_id, type_id),
+            FOREIGN KEY (build_number, schematic_id)
+                REFERENCES sde_planet_schematics(build_number, schematic_id) ON DELETE CASCADE,
+            FOREIGN KEY (build_number, type_id)
+                REFERENCES sde_types(build_number, type_id)
+        );
+
+        CREATE INDEX sde_types_name_en_idx ON sde_types(build_number, name_en);
+        CREATE INDEX sde_types_name_de_idx ON sde_types(build_number, name_de);
+        CREATE INDEX sde_blueprint_products_type_idx
+            ON sde_blueprint_products(build_number, product_type_id);
+        CREATE INDEX sde_blueprint_materials_type_idx
+            ON sde_blueprint_materials(build_number, material_type_id);
+        """,
+    ),
 )
 
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1].version
