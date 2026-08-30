@@ -2,7 +2,7 @@
 
 ## 1. Ziel
 
-Diese Spezifikation legt die Informationsarchitektur, Navigation, mobilen Prioritäten und kritischen Nutzerwege für Version 1.0 fest. Sie ergänzt die fachlichen Referenzabläufe und den Formel- und Bewertungskatalog.
+Diese Spezifikation legt die Informationsarchitektur, Desktop-Navigation, skalierbaren Fensterzustände und kritischen Nutzerwege für Version 1.0 fest. Sie ergänzt die fachlichen Referenzabläufe und den Formel- und Bewertungskatalog. D-014 hat das Ziel von einer Web-App auf einen lokalen Python-Desktop-Client geändert.
 
 Die Wireframes sind bewusst keine finale Farb- oder Markenentscheidung. Sie definieren Anordnung, Hierarchie, Zustände und Aktionen, damit die Implementierung nicht bei jeder Seite neue Bedienmuster erfindet.
 
@@ -13,12 +13,12 @@ Die Wireframes sind bewusst keine finale Farb- oder Markenentscheidung. Sie defi
 3. **Quelle an jeder kritischen Zahl:** Marktseite, Standort, Datenalter und Bewertungsmethode sind ohne Untermenü erkennbar.
 4. **Unsicherheit bleibt sichtbar:** `CURRENT`, `STALE`, `ESTIMATED`, `MANUAL`, `INCOMPLETE` und `BLOCKED` werden niemals gleich dargestellt.
 5. **Progressive Offenlegung:** Übersichten zeigen Entscheidungen; Rohdaten und Formeldetails erscheinen auf Abruf.
-6. **Desktop und Mobil haben dieselben Fähigkeiten:** Mobil werden Inhalte priorisiert und gestapelt, nicht fachlich entfernt.
+6. **Fenstergröße ändert nicht die Fähigkeiten:** Bei schmalen Desktop-Fenstern werden Inhalte priorisiert und gestapelt, nicht fachlich entfernt.
 7. **Deutsch und Englisch sind gleichwertig:** Navigation, Buttons und Tabellen reservieren Platz für die längere Fassung beider Sprachen.
 
 ## 3. Globale Informationsarchitektur
 
-| Hauptansicht | Route | Zweck | Wichtigste Aktion |
+| Hauptansicht | View-ID | Zweck | Wichtigste Aktion |
 |---|---|---|---|
 | Übersicht | `/overview` | nächste Aktionen, Blocker und Projektstatus | neues Projekt |
 | Planetare Industrie | `/pi/colonies` | Kolonien, Extractors, Fabriken und Lager | Kolonie öffnen |
@@ -29,7 +29,7 @@ Die Wireframes sind bewusst keine finale Farb- oder Markenentscheidung. Sie defi
 | Markt & Kalkulation | `/market` | Preisprofile, Tiefe, Gebühren und Szenarien | Szenario vergleichen |
 | Einstellungen & Charaktere | `/settings/characters` | EVE-Verbindungen, Profile, Sprache und Datenstatus | Charakter verbinden |
 
-Detailrouten bleiben direkt verlinkbar:
+Detailansichten erhalten stabile interne View-IDs, damit Navigation, Verlauf und spätere Deep Links nicht von Widget-Instanzen abhängen:
 
 - `/pi/colonies/:planetId`
 - `/projects/:projectId`
@@ -39,7 +39,7 @@ Detailrouten bleiben direkt verlinkbar:
 
 ## 4. Desktop-Navigation
 
-Ab `1.024 px` verwendet die Anwendung eine feste linke Navigation und eine obere Kontextleiste.
+Bei ausreichender Fensterbreite verwendet die Anwendung eine feste linke Navigation und eine obere Kontextleiste.
 
 ### Linke Navigation
 
@@ -51,34 +51,26 @@ Ab `1.024 px` verwendet die Anwendung eine feste linke Navigation und eine obere
 
 ### Obere Kontextleiste
 
-- aktueller Nutzer/Workspace
+- aktives lokales Profil beziehungsweise gewählte Charaktere
 - globaler Datenstatus mit letztem erfolgreichen Sync
 - Sprache DE/EN
 - primäre Aktion `Neues Projekt`
 
 Seitenspezifische Filter, Profile oder Zeiträume gehören in den Inhaltskopf der Seite und nicht in die globale Leiste.
 
-## 5. Mobile Navigation
+## 5. Kompakte Desktop-Navigation
 
-Unter `768 px` wird die Seitenleiste durch eine Bottom Navigation ersetzt:
+Bei einem schmalen Fenster wird die linke Navigation auf eine kompakte Icon-/Text-Leiste reduziert. Sie bleibt per Tastatur und Maus vollständig erreichbar und kann jederzeit wieder aufgeklappt werden.
 
-1. Übersicht
-2. PI
-3. Projekte
-4. Mehr
-
-`Mehr` öffnet Blueprints, Inventar & Logistik, Markt & Kalkulation sowie Einstellungen & Charaktere. Der PI-Bereich enthält Kolonien und Zielplaner als lokale Tabs.
-
-Mobile Prioritäten:
+Prioritäten bei wenig Platz:
 
 - Blocker und nächste Aktion zuerst
 - Timer und Status vor Diagrammen
-- Tabellen werden zu gestapelten Zeilen/Karten mit sichtbarer Hauptaktion
+- mehrspaltige Bereiche werden in einer festgelegten Reihenfolge gestapelt
 - Kostenbrücken werden vertikal dargestellt
 - Abhängigkeitsgraphen beginnen als eingerückte Liste; die vollständige Graphansicht bleibt optional
-- primäre Aktion ist mindestens `44 × 44 px` erreichbar
-- wesentliche Inhalte funktionieren ab `320 px` ohne horizontales Scrollen
 - breite Rohdatentabellen dürfen in einem klar abgegrenzten Bereich horizontal scrollen
+- Dialoge bleiben bei hoher Windows-Anzeigeskalierung vollständig bedienbar
 
 ## 6. Struktur der Hauptansichten
 
@@ -104,7 +96,7 @@ Desktop:
 - rechts Timer, Prognose, Engpass und Datenqualität
 - lokale Tabs: `Kolonie`, `Produktion`, `Lager`, `Routen`
 
-Mobil:
+Kompaktes Desktop-Fenster:
 
 - Charakter und Planet als Auswahl im Seitenkopf
 - Timer und Warnungen vor dem Layout
@@ -120,7 +112,7 @@ Schrittfolge in einer Seite:
 4. Entscheidung je Vorstufe: PI, Bestand, Kaufen oder manuell
 5. Projekt speichern
 
-Desktop zeigt Eingaben links und Ergebnis rechts. Mobil werden die Blöcke in derselben Reihenfolge gestapelt; das Ergebnis bleibt nach einer Neuberechnung im sichtbaren Bereich.
+Bei ausreichender Breite stehen Eingaben links und Ergebnisse rechts. Im kompakten Fenster werden die Blöcke in derselben Reihenfolge gestapelt; das Ergebnis bleibt nach einer Neuberechnung im sichtbaren Bereich.
 
 ### 6.4 Produktionsprojekte
 
@@ -159,7 +151,7 @@ Desktop:
 - Bestände in der Mitte
 - Reservierungen und geplante Transporte rechts
 
-Mobil:
+Kompaktes Desktop-Fenster:
 
 - Standortauswahl im Kopf
 - Bestand zuerst, danach Reservierungen und Transporte
@@ -231,8 +223,8 @@ Eine gemischte Berechnung erhält den schwächsten relevanten Zustand. Beispiels
 - Tastaturreihenfolge folgt der visuellen Reihenfolge.
 - Fokus bleibt nach Neuberechnung oder Dialogschluss nachvollziehbar.
 - Formulare besitzen sichtbare Labels; Platzhalter ersetzen keine Labels.
-- Touch-Ziele sind mobil mindestens `44 × 44 px`.
-- Prüfung bei `200 %` Browser-Zoom und ab `320 px` Breite gehört zur Abnahme.
+- Bedienelemente bleiben bei `100 %`, `150 %` und `200 %` Windows-Anzeigeskalierung erreichbar.
+- Prüfung mit Tastaturbedienung, hoher Skalierung und der festgelegten minimalen Fenstergröße gehört zur Abnahme.
 
 ## 10. Wireframes
 
@@ -244,16 +236,18 @@ Eine gemischte Berechnung erhält den schwächsten relevanten Zustand. Beispiels
 
 ![Desktop-Wireframe eines Produktionsprojekts](wireframes/desktop-project.svg)
 
-### Mobil – Übersicht und Projektdetail
+### Historische mobile Skizze
 
 ![Mobile Wireframes für Übersicht und Projektdetail](wireframes/mobile-core.svg)
+
+Diese Skizze bleibt als Dokumentation der ursprünglichen PWA-Planung erhalten, ist nach D-014 jedoch kein Abnahmekriterium für Version 1.0.
 
 ## 11. Abnahmematrix
 
 | Kriterium aus Issue #5 | Nachweis |
 |---|---|
 | Desktop-Struktur aller Hauptansichten | Abschnitt 6 und Desktop-Wireframes |
-| Mobile Prioritäten und Navigation | Abschnitt 5 und Mobile-Wireframes |
+| Kompakte Desktop-Navigation | Abschnitt 5 und Desktop-Wireframes |
 | kurze kritische Nutzerwege | Abschnitt 7 |
 | optisch getrennte Datenzustände | Abschnitt 8 und Statusdarstellung in den Wireframes |
 | DE/EN und längere Texte | Abschnitte 3, 6.4 und 9 |

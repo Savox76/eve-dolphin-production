@@ -12,7 +12,7 @@
 
 ## 1. Zielbild
 
-Das Projekt wird ein privates, später optional mehrbenutzerfähiges Produktions-Cockpit für **EVE Online**. Es verbindet klassische Industrie und Planetare Industrie (PI) in einer gemeinsamen Planung.
+Das Projekt wird ein lokaler Python-Desktop-Client für **EVE Online**. Es verbindet klassische Industrie und Planetare Industrie (PI) in einer gemeinsamen Planung. Jeder Spieler betreibt eine eigene Installation mit seinen eigenen Charakteren und Daten.
 
 Der Nutzer soll nicht nur erfahren, welche Materialien theoretisch benötigt werden. Das Tool soll beantworten:
 
@@ -33,8 +33,8 @@ Der Nutzer soll nicht nur erfahren, welche Materialien theoretisch benötigt wer
 2. **Ein gemeinsames Bestandsmodell:** PI, Assets, Blueprints, Einkaufslisten und Produktionsprojekte greifen auf dieselben Bestände zu.
 3. **Erklärbare Berechnungen:** Jede Zahl lässt sich bis zu Quelle, Formel und Eingabewert zurückverfolgen.
 4. **ESI-konform und sicher:** Das Tool liest erlaubte Daten, führt aber keine Spielaktionen automatisiert aus.
-5. **Privat beginnen, Erweiterung ermöglichen:** Die erste Installation ist für den Eigentümer und seine Charaktere gedacht; Daten- und Rechtekonzept werden trotzdem mehrbenutzerfähig angelegt.
-6. **Desktop und Mobilgerät:** Die Oberfläche wird als responsive Web-App/PWA entworfen.
+5. **Lokal und unabhängig:** Jede Installation gehört ihrem Nutzer; ein Hoster, zentrale Konten oder verkaufte Zugänge sind nicht erforderlich.
+6. **Desktop zuerst:** Version 1.0 wird als eigenständiger Windows-Client ausgeliefert und bleibt technisch für weitere Desktop-Systeme portierbar.
 
 ---
 
@@ -412,21 +412,21 @@ Die gewählte Bewertungsmethode wird im Ergebnis angezeigt.
 
 ### 7.1 Zielarchitektur
 
-- **Frontend:** responsive TypeScript-Web-App/PWA
-- **Backend:** typisierte API und Berechnungsdienste
-- **Worker:** ESI-Synchronisation, Preisaktualisierung, SDE-Import und Benachrichtigungen
-- **Datenbank:** PostgreSQL
-- **Cache/Queue:** zunächst Datenbank-basiert, Redis nur bei tatsächlichem Bedarf
-- **Bereitstellung:** Docker Compose für reproduzierbare Installation
-- **Reverse Proxy/HTTPS:** für eine gehostete Installation
+- **Client:** lokaler Python-Desktop-Client mit PySide6/Qt
+- **Domänenkern:** UI-unabhängige Python-Dienste und Berechnungslogik
+- **Hintergrundaufgaben:** lokale ESI-Synchronisation, Preisaktualisierung, SDE-Import und Prognosen während der Client läuft
+- **Datenbank:** lokale SQLite-Datenbank mit versionierten Migrationen
+- **SSO:** Authorization Code mit PKCE über Systembrowser und lokalen Callback
+- **Tokenablage:** sicherer Anmeldedatenspeicher des Betriebssystems
+- **Bereitstellung:** eigenständiges Windows-Release inklusive Python-Laufzeit
 - **Repository:** privates GitHub-Repository
 
-Die endgültige Framework-Auswahl wird in Phase 0 festgeschrieben. Bevorzugt wird ein TypeScript-Stack mit möglichst wenigen unabhängig zu wartenden Komponenten.
+Für Endnutzer sind weder Python, Docker, PostgreSQL noch ein Hoster erforderlich. Framework- und Paketversionen werden zu Beginn von Phase 1 festgeschrieben und durch Lockfiles reproduzierbar gehalten.
 
 ### 7.2 Kernkomponenten
 
-1. Authentifizierung und Benutzerverwaltung
-2. EVE-SSO- und Token-Service
+1. lokales Profil und Charakterverwaltung
+2. EVE-SSO- und Tokenverwaltung mit PKCE
 3. ESI-Client mit Cache, Retry und Rate-Limit-Schutz
 4. SDE-Importer
 5. gemeinsamer Gegenstands- und Bestandskatalog
@@ -438,7 +438,7 @@ Die endgültige Framework-Auswahl wird in Phase 0 festgeschrieben. Bevorzugt wir
 
 ### 7.3 Datenmodell – Hauptobjekte
 
-- User
+- LocalProfile
 - EveCharacter
 - EveAuthorization
 - Location
@@ -474,20 +474,21 @@ Die endgültige Framework-Auswahl wird in Phase 0 festgeschrieben. Bevorzugt wir
 ### 8.1 Authentifizierung
 
 - Anmeldung ausschließlich über den offiziellen EVE-SSO-Prozess
+- Authorization Code mit PKCE für den lokalen Desktop-Client
 - minimale erforderliche Scopes
 - getrennte Freigabe pro Charakter
 - Prüfung von `state`, Token-Signatur, Aussteller, Zielgruppe und Ablaufzeit
-- Refresh Tokens nur serverseitig und verschlüsselt speichern
-- Secrets niemals im Repository oder Frontend
+- Refresh Tokens nur im sicheren Anmeldedatenspeicher des Betriebssystems ablegen
+- kein Client Secret in Release-Paket, SQLite, Repository oder Logs
 - Widerruf und vollständige Trennung eines Charakters jederzeit möglich
 
 ### 8.2 Datenzugriff
 
-- ein Benutzer sieht ausschließlich freigegebene eigene Daten
+- eine Installation verarbeitet ausschließlich die lokal verbundenen Charaktere
 - Corporation-Daten erfordern später eigene Berechtigungs- und Rollenprüfung
 - sensible Werte werden nicht in Logs geschrieben
-- Datenexport und Datenlöschung werden vorbereitet
-- tägliche Datenbanksicherung mit Wiederherstellungstest vor öffentlichem Betrieb
+- lokale Datenexporte enthalten keine Tokens
+- Backup vor Migrationen sowie Wiederherstellungstest vor Version 1.0
 
 ### 8.3 Spielregeln
 
@@ -519,7 +520,7 @@ Eine Funktion ist erst fertig, wenn:
 - Implementierung und Datenmigration vorliegen,
 - Unit- und Integrationstests bestehen,
 - Fehlerzustände sinnvoll angezeigt werden,
-- Desktop- und mobile Ansicht geprüft sind,
+- Desktop-Ansicht, unterschiedliche Fenstergrößen und Skalierungsstufen geprüft sind,
 - sicherheitsrelevante Daten nicht geloggt werden,
 - Nutzertext auf Deutsch und Englisch vorhanden ist,
 - Abnahmekriterien erfüllt wurden.
@@ -533,11 +534,11 @@ Eine Funktion ist erst fertig, wenn:
 - Tests mit leeren, sehr großen und teilweise verfügbaren Beständen
 - Tests mit mehreren Charakteren und gleichen Gegenständen an mehreren Orten
 - End-to-End-Test vom Login bis zum abgeschlossenen Produktionsprojekt
-- Backup-/Restore-Test
+- lokaler Backup-/Restore-Test
 
 ### 9.4 Beobachtbarkeit
 
-- Gesundheitsstatus für App, Datenbank, Worker und ESI-Synchronisation
+- Gesundheitsstatus für Client, lokale Datenbank und ESI-Synchronisation
 - strukturierte, datensparsame Logs
 - Fehler-ID für verständliche Fehlermeldungen
 - Synchronisationshistorie
@@ -584,19 +585,21 @@ Die Prozentanzeige beschreibt den gewichteten Gesamtfortschritt bis Version 1.0.
 **Aufgaben**
 
 - privates Repository und Branch-Regeln
-- Projektstruktur und Docker-Umgebung
-- PostgreSQL und Migrationen
+- Python-Projektstruktur und reproduzierbare Entwicklungsumgebung
+- PySide6-Anwendungsgerüst und lokale SQLite-Migrationen
 - CI für Formatierung, Typprüfung, Tests und Build
 - deutsch/englische Übersetzungsstruktur
-- Grundnavigation und responsives Dark-UI
-- Konfigurations- und Secret-Management
+- Grundnavigation und skalierbares Desktop-Dark-UI
+- lokale Datenpfade, OS-Anmeldedatenspeicher und Konfigurationsmanagement
+- erster reproduzierbarer Windows-Paketbuild
 
 **Abnahme**
 
 - frische Installation startet reproduzierbar
 - Tests laufen automatisch
 - `main` ist geschützt und grün
-- Grundansichten funktionieren auf Desktop und Mobilgerät
+- Grundansichten funktionieren bei den unterstützten Desktop-Auflösungen und Skalierungsstufen
+- Testpaket startet auf einem Windows-System ohne separat installiertes Python
 
 ### Phase 2 – EVE-Datenbasis
 
@@ -605,7 +608,7 @@ Die Prozentanzeige beschreibt den gewichteten Gesamtfortschritt bis Version 1.0.
 - EVE-Developer-Anwendung konfigurieren
 - SSO-Anmeldung und Charakterverknüpfung
 - verschlüsselte Tokenablage und Erneuerung
-- mehrere Charaktere je Benutzer
+- mehrere Charaktere je lokaler Installation
 - SDE-Download, Prüfung, Import und Versionierung
 - ESI-Client mit ETag, Cache, Retry und Fehlerlimit-Schutz
 - erste Asset-, Blueprint-, Job- und Planetensynchronisation
@@ -808,21 +811,20 @@ Passwörter, Client Secrets und Refresh Tokens werden niemals im Chat oder Repos
 - Routen- und Transportvergleich
 - Marktliquidität und erwartete Verkaufsdauer
 
-### Spätere öffentliche Version
+### Spätere Client-Erweiterungen
 
-- echte Mandantentrennung
-- Self-Service-Konten
-- Datenschutz- und Löschprozesse
-- Monitoring, Support und Statusseite
-- Kosten- und Monetarisierungsmodell
-- erneute CCP-Lizenz-, Branding- und Sicherheitsprüfung
+- weitere Desktop-Betriebssysteme
+- signierte Installer und komfortabler Updatekanal
+- portable Datenexporte ohne Tokens
+- zusätzliche Backupziele
+- erneute CCP-Lizenz-, Branding- und Sicherheitsprüfung vor einer öffentlichen Release-Verteilung
 
 ---
 
 ## 15. Abgeschlossene Entscheidungen aus Phase 0
 
 1. **Produktname:** EVE Production Tool
-2. **Betrieb:** privat online erreichbare Web-App, technisch mehrbenutzerfähig
+2. **Betrieb:** lokaler Python-Desktop-Client ohne Hoster oder zentrale Konten
 3. **Markt:** Jita als erstes Profil; weitere Hubs und Marktseiten konfigurierbar
 4. **Produktionsorte:** kein hartcodierter Primärort; versionierte Standort- und Strukturprofile
 5. **Charaktere:** mehrere eigene Charaktere von Beginn an, ohne feste fachliche Obergrenze
@@ -830,11 +832,11 @@ Passwörter, Client Secrets und Refresh Tokens werden niemals im Chat oder Repos
 7. **Abnahmeszenarien:** Water, Robotics, Caracal, Nanite Repair Paste und J151141
 8. **Optimierungsziel:** pro Projekt auswählbar; konservative Wirtschaftsbewertung als Standard
 9. **Oberflächensprache:** Deutsch und Englisch in derselben Codebasis
-10. **Spätere Nutzer:** Mandantentrennung von Beginn an; Corporation-Funktionen nach Version 1.0
+10. **Weitere Nutzer:** Jeder installiert einen eigenen Client und verbindet nur seine eigenen Charaktere; Corporation-Funktionen folgen nach Version 1.0
 
 ### Empfohlene Ausgangsentscheidungen
 
-- private, online erreichbare Web-App, technisch von Beginn an mehrbenutzerfähig
+- lokaler Python-Desktop-Client mit SQLite und eigenständigem Windows-Paket
 - mehrere eigene Charaktere von Beginn an
 - Deutsch und Englisch in derselben Codebasis
 - PI P0–P4 vollständig in v1.0

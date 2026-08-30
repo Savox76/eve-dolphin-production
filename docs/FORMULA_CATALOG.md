@@ -21,9 +21,9 @@ Jeder Eingabewert erhält `sourceKind`, `sourceRef`, `observedAt`, `validFrom` u
 |---|---|---|
 | `SDE` | Blueprint-Materialien, Produkte, Basiszeiten | an SDE-Build gebunden |
 | `ESI_PUBLIC` | Orders, Adjusted Prices, System Cost Index | an ESI-Snapshot und Cache-Zeit gebunden |
-| `ESI_CHARACTER` | Blueprint-Instanz, Assets, Kolonie, Industry Job | an Nutzer und Charakter gebunden |
+| `ESI_CHARACTER` | Blueprint-Instanz, Assets, Kolonie, Industry Job | an die lokale Installation und den Charakter gebunden |
 | `EVE_ACTUAL` | tatsächliche Jobkosten oder Wallet-Buchung | maßgeblich für Soll-/Ist, nicht rückwirkend für die Prognose |
-| `MANUAL` | POCO-Steuer, Strukturbonus, Transportprofil | Nutzer, Zeitpunkt und Notiz sind Pflicht |
+| `MANUAL` | POCO-Steuer, Strukturbonus, Transportprofil | lokale Herkunft, Zeitpunkt und Notiz sind Pflicht |
 | `DERIVED` | Materialbedarf, Gewinn, Marge | Formelversion und alle Eingabereferenzen sind Pflicht |
 
 Fehlt ein kritischer Wert, ist das Ergebnis `INCOMPLETE`. Ein veralteter, aber vorhandener Wert erzeugt `STALE`; eine manuelle Annahme erzeugt `ASSUMED`. Keine dieser Markierungen darf in der Oberfläche als Live-Wert erscheinen.
