@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import time
+from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -63,12 +64,10 @@ def apply_staged_update(
             raise
         raise UpdateApplyError("update replacement failed") from error
 
-    try:
+    # A successful, self-checked update must not be rolled back only because an
+    # antivirus scanner temporarily retains a handle in the disposable backup.
+    with suppress(OSError):
         shutil.rmtree(backup)
-    except OSError:
-        # A successful, self-checked update must not be rolled back only because an
-        # antivirus scanner temporarily retains a handle in the disposable backup.
-        pass
     if restart:
         _restart(target / EXECUTABLE_NAME)
     return 0
