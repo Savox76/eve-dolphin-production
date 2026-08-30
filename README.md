@@ -47,7 +47,7 @@ ESI liefert nicht jeden aktiven Missionsschritt als vollständigen Live-Status. 
 
 Nächster Meilenstein: **Phase 2 – EVE-Datenbasis**
 
-Phase 1 ist abgeschlossen. Phase 2 ist technisch vollständig und wartet nur noch auf die betreiberabhängige Live-SSO-Abnahme. Der lokale Client fordert Industrie und PI sichtbar und getrennt über EVE SSO an. „EVE-Daten synchronisieren“ aktualisiert die offizielle JSON-Lines-SDE und lädt Assets, Blueprints, Industry Jobs sowie vollständige PI-Kolonien mit Pins, Links und Routen. Mehrere Charaktere werden parallel und voneinander isoliert verarbeitet. Die Übersicht zeigt die aktive SDE-Version und kennzeichnet jeden Datenstand korrekt als aktuell, veraltet, fehlgeschlagen oder fehlend. Atomare Snapshots, persistente Cachegrenzen und sichere Refresh-Token-Rotation verhindern halbfertige oder unnötige Abrufe. Bis die öffentliche Client-ID registriert und der echte Zwei-Charakter-Durchlauf gemäß [Phase-2-Abnahme](docs/PHASE_2_ACCEPTANCE.md) bestätigt ist, bleibt der formale Gesamtfortschritt bei `15 %`.
+Phase 1 ist abgeschlossen. Phase 2 ist technisch vollständig und wartet nur noch auf die betreiberabhängige Live-SSO-Abnahme. Der lokale Client fordert Industrie und PI sichtbar und getrennt über EVE SSO an. „EVE-Daten synchronisieren“ aktualisiert die offizielle JSON-Lines-SDE und lädt Assets, Blueprints, Industry Jobs sowie vollständige PI-Kolonien mit Pins, Links und Routen. Mehrere Charaktere werden parallel und voneinander isoliert verarbeitet. Die Übersicht zeigt die aktive SDE-Version und kennzeichnet jeden Datenstand korrekt als aktuell, veraltet, fehlgeschlagen oder fehlend. Atomare Snapshots, persistente Cachegrenzen und sichere Refresh-Token-Rotation verhindern halbfertige oder unnötige Abrufe. Bis der exakte Callback und der echte Zwei-Charakter-Durchlauf gemäß [Phase-2-Abnahme](docs/PHASE_2_ACCEPTANCE.md) bestätigt sind, bleibt der formale Gesamtfortschritt bei `15 %`.
 
 ## Entwicklung und lokaler Start
 
@@ -59,10 +59,15 @@ uv run eve-dolphin --self-check
 uv run eve-dolphin
 ```
 
-Für einen echten SSO-Entwicklungstest muss eine EVE-Developer-Anwendung für den PKCE-Flow registriert sein. Der exakte Callback lautet `http://127.0.0.1:38636/callback`; die vollständige Einrichtung ist in der [Developer-Anwendungsanleitung](docs/EVE_DEVELOPER_APPLICATION.md) dokumentiert. Die öffentliche Client-ID wird unter Windows vor dem Start gesetzt:
+Für einen echten SSO-Test muss die vorkonfigurierte EVE-Developer-Anwendung für den
+PKCE-Flow den exakten Callback `http://127.0.0.1:38636/callback` registriert haben. Die
+öffentliche Client-ID ist bereits im Desktop-Client enthalten; ein Client Secret wird
+nicht verwendet. Die vollständige Einrichtung steht in der
+[Developer-Anwendungsanleitung](docs/EVE_DEVELOPER_APPLICATION.md). Nur für einen gezielten
+Entwicklungstest kann die öffentliche Client-ID unter Windows überschrieben werden:
 
 ```powershell
-$env:EVE_SSO_CLIENT_ID = "<öffentliche-client-id>"
+$env:EVE_SSO_CLIENT_ID = "<alternative-öffentliche-client-id>"
 uv run eve-dolphin
 ```
 

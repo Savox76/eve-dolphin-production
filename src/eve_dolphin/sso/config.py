@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from urllib.parse import urlsplit
 
 DEFAULT_REDIRECT_URI = "http://127.0.0.1:38636/callback"
+DEFAULT_CLIENT_ID = "6eb6e51acc67412ba266189b7ceb8e16"
 CLIENT_ID_ENVIRONMENT_VARIABLE = "EVE_SSO_CLIENT_ID"
 REDIRECT_URI_ENVIRONMENT_VARIABLE = "EVE_SSO_REDIRECT_URI"
 
@@ -32,7 +33,7 @@ class SsoConfig:
     def from_environment(cls, environment: Mapping[str, str] | None = None) -> SsoConfig:
         values = os.environ if environment is None else environment
         return cls(
-            client_id=values.get(CLIENT_ID_ENVIRONMENT_VARIABLE, ""),
+            client_id=values.get(CLIENT_ID_ENVIRONMENT_VARIABLE, DEFAULT_CLIENT_ID),
             redirect_uri=values.get(REDIRECT_URI_ENVIRONMENT_VARIABLE, DEFAULT_REDIRECT_URI),
         )
 

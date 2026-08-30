@@ -5,7 +5,7 @@
 Die Implementierung der EVE-Datenbasis ist **technisch vollständig und abnahmebereit**.
 Alle lokal und in GitHub automatisierbaren Kriterien sind erfüllt. Die formale Abnahme
 und der Sprung des Gesamtfortschritts von `15 %` auf `30 %` benötigen noch einen echten
-EVE-SSO-Durchlauf mit einer vom Betreiber registrierten öffentlichen Client-ID.
+EVE-SSO-Durchlauf mit der vorkonfigurierten öffentlichen Client-ID.
 
 ## Automatisiert bestanden
 
@@ -22,20 +22,20 @@ EVE-SSO-Durchlauf mit einer vom Betreiber registrierten öffentlichen Client-ID.
 
 ## Manuell noch auszuführen
 
-1. Im EVE-Developer-Portal die in
+1. Im EVE-Developer-Portal prüfen, dass die in
    [`EVE_DEVELOPER_APPLICATION.md`](EVE_DEVELOPER_APPLICATION.md) dokumentierte Anwendung
-   registrieren.
-2. Die öffentliche Client-ID als `EVE_SSO_CLIENT_ID` setzen; kein Client Secret verwenden.
-3. Den Windows-Client starten und einen echten Charakter über den Systembrowser verbinden.
-4. Für denselben ausgewählten Charakter „Industrie freigeben“ und „PI freigeben“ ausführen.
-5. „EVE-Daten synchronisieren“ starten und in der Übersicht SDE-Build, Industrie, Jobs und PI prüfen.
-6. Einen zweiten Charakter verbinden und den gemeinsamen Abruf wiederholen.
-7. Den Client neu starten und bestätigen, dass Charaktere, sichere Refresh Tokens und lokale
+   mit dem exakten Callback registriert ist.
+2. Den Windows-Client ohne Client-ID-Umgebungsvariable starten und einen echten Charakter
+   über den Systembrowser verbinden.
+3. Für denselben ausgewählten Charakter „Industrie freigeben“ und „PI freigeben“ ausführen.
+4. „EVE-Daten synchronisieren“ starten und in der Übersicht SDE-Build, Industrie, Jobs und PI prüfen.
+5. Einen zweiten Charakter verbinden und den gemeinsamen Abruf wiederholen.
+6. Den Client neu starten und bestätigen, dass Charaktere, sichere Refresh Tokens und lokale
    Snapshots weiter verfügbar sind und frische Daten nicht unnötig erneut abgefragt werden.
 
 ## Abnahmegrenze
 
-Die Client-ID ist öffentlich, bleibt aber installationsspezifische Betreiberkonfiguration.
+Die Client-ID ist öffentlich und darf deshalb distributionsweit im Client enthalten sein.
 EVE-Zugangsdaten, Access Tokens, Refresh Tokens und ein mögliches Client Secret dürfen weder
 für automatisierte Tests noch für das Repository bereitgestellt werden. Deshalb kann der
 letzte Live-Schritt erst auf der Installation des Betreibers abgeschlossen werden.

@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from eve_dolphin.sso.config import (
+    DEFAULT_CLIENT_ID,
     DEFAULT_REDIRECT_URI,
     SsoConfig,
     SsoConfigurationError,
@@ -17,9 +18,16 @@ def test_sso_config_loads_public_client_values_from_environment() -> None:
     assert not hasattr(config, "client_secret")
 
 
-def test_missing_client_id_is_rejected() -> None:
+def test_sso_config_uses_distributable_public_client_id_by_default() -> None:
+    config = SsoConfig.from_environment({})
+
+    assert config.client_id == DEFAULT_CLIENT_ID
+    assert config.redirect_uri == DEFAULT_REDIRECT_URI
+
+
+def test_blank_client_id_override_is_rejected() -> None:
     with pytest.raises(SsoConfigurationError, match="client ID"):
-        SsoConfig.from_environment({})
+        SsoConfig.from_environment({"EVE_SSO_CLIENT_ID": ""})
 
 
 @pytest.mark.parametrize(

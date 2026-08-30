@@ -46,15 +46,19 @@ Weitere Pakete für Mining, Markt/Wirtschaft und PVE werden erst ergänzt, wenn 
 jeweilige Modul implementiert wird. Es ist nicht nötig und nicht erwünscht, jetzt
 pauschal alle ESI-Scopes freizuschalten.
 
-## 3. Öffentliche Client-ID lokal setzen
+## 3. Öffentliche Client-ID des Clients
 
-Nach dem Speichern der Anwendung die **Client ID** kopieren. Sie ist eine öffentliche
-Anwendungskennung und wird für einen Entwicklungsstart als Umgebungsvariable gesetzt.
+Die öffentliche Client-ID `6eb6e51acc67412ba266189b7ceb8e16` ist im Desktop-Client
+vorkonfiguriert. Nutzer müssen deshalb keine Umgebungsvariable setzen. Diese Kennung ist
+kein Geheimnis; ein Client Secret wird weiterhin weder benötigt noch gespeichert.
+
+Nur für Tests mit einer alternativen Developer-Anwendung kann die Client-ID lokal
+überschrieben werden.
 
 PowerShell, nur für das aktuelle Terminal:
 
 ```powershell
-$env:EVE_SSO_CLIENT_ID = "<öffentliche-client-id>"
+$env:EVE_SSO_CLIENT_ID = "<alternative-öffentliche-client-id>"
 uv run eve-dolphin
 ```
 
@@ -63,7 +67,7 @@ PowerShell, dauerhaft für den aktuellen Windows-Benutzer:
 ```powershell
 [Environment]::SetEnvironmentVariable(
     "EVE_SSO_CLIENT_ID",
-    "<öffentliche-client-id>",
+    "<alternative-öffentliche-client-id>",
     "User"
 )
 ```
@@ -91,7 +95,7 @@ Die im Portal registrierte URL und `EVE_SSO_REDIRECT_URI` müssen immer identisc
 
 ## 5. Kurzer Abnahmetest
 
-1. `EVE_SSO_CLIENT_ID` setzen und `uv run eve-dolphin` starten.
+1. `uv run eve-dolphin` starten; die öffentliche Client-ID ist bereits enthalten.
 2. „Einstellungen & Charaktere“ öffnen und „EVE-Charakter verbinden“ wählen.
 3. Im Browser anmelden, einen Charakter auswählen und zustimmen.
 4. Prüfen, dass der Charakter lokal erscheint und kein Passwort im Client abgefragt wurde.
