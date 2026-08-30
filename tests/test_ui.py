@@ -14,6 +14,8 @@ from PySide6.QtWidgets import QApplication
 from eve_dolphin.characters import AuthorizationStatus, CharacterRepository, EveCharacter
 from eve_dolphin.database import Database
 from eve_dolphin.i18n import Translator
+from eve_dolphin.sso.scopes import ScopePackage, scopes_for_packages
+from eve_dolphin.sync.coordinator import CharacterSyncBatch, CharacterSyncOutcome
 from eve_dolphin.ui.character_page import CharacterPage, CharacterSsoWorker
 from eve_dolphin.ui.main_window import SECTIONS, MainWindow
 
@@ -127,6 +129,83 @@ def test_settings_page_shows_reauthorization_required(
     page.close()
 
 
+def test_settings_page_exposes_progressive_industry_and_pi_authorization(
+    qt_application: QApplication, tmp_path: Path
+) -> None:
+    repository = _repository(tmp_path)
+    repository.upsert(
+        EveCharacter(
+            1001,
+            "Industrial Pilot",
+            "owner",
+            (),
+            datetime(2026, 8, 30, 12, 0, tzinfo=UTC),
+        )
+    )
+    page = CharacterPage(repository, Translator("de"))
+
+    assert not page.industry_button.isEnabled()
+    assert not page.planetary_button.isEnabled()
+    page.table.selectRow(0)
+    qt_application.processEvents()
+
+    assert page.industry_button.isEnabled()
+    assert page.planetary_button.isEnabled()
+    assert page.industry_button.text() == "Industrie freigeben"
+    assert page.planetary_button.text() == "PI freigeben"
+
+    repository.upsert(
+        EveCharacter(
+            1001,
+            "Industrial Pilot",
+            "owner",
+            scopes_for_packages(ScopePackage.INDUSTRY, ScopePackage.PLANETARY_INDUSTRY),
+            datetime(2026, 8, 30, 12, 0, tzinfo=UTC),
+        )
+    )
+    page.refresh()
+    page.table.selectRow(0)
+    qt_application.processEvents()
+
+    assert not page.industry_button.isEnabled()
+    assert not page.planetary_button.isEnabled()
+    page.close()
+
+
+def test_settings_page_runs_multi_character_sync_in_background(
+    qt_application: QApplication, tmp_path: Path
+) -> None:
+    repository = _repository(tmp_path)
+    repository.upsert(
+        EveCharacter(
+            1001,
+            "Industrial Pilot",
+            None,
+            (),
+            datetime(2026, 8, 30, 12, 0, tzinfo=UTC),
+        )
+    )
+    page = CharacterPage(
+        repository,
+        Translator("en"),
+        sync_characters=lambda: CharacterSyncBatch(
+            (CharacterSyncOutcome(1001, ("industry", "industry_jobs", "planetary"), ()),)
+        ),
+    )
+
+    assert page.sync_button.isEnabled()
+    page.sync_button.click()
+    for _attempt in range(100):
+        qt_application.processEvents()
+        if page.sync_button.isEnabled():
+            break
+        QThread.msleep(10)
+
+    assert page.sync_button.isEnabled()
+    assert page.status_label.text() == "EVE data for 1 character(s) is current."
+    page.close()
+
+
 def test_main_window_summary_uses_stored_character_count(
     qt_application: QApplication, tmp_path: Path
 ) -> None:
@@ -147,6 +226,38 @@ def test_main_window_summary_uses_stored_character_count(
     assert isinstance(window.character_page, CharacterPage)
     assert issubclass(CharacterSsoWorker, QThread)
 
+    window.close()
+
+
+def test_main_window_shows_sde_and_character_data_freshness(
+    qt_application: QApplication, tmp_path: Path
+) -> None:
+    database = Database(tmp_path / "client.sqlite3", tmp_path / "backups")
+    database.initialize()
+    repository = CharacterRepository(database)
+    repository.upsert(
+        EveCharacter(
+            1001,
+            "Industrial Pilot",
+            None,
+            (),
+            datetime(2020, 1, 1, 12, 0, tzinfo=UTC),
+        )
+    )
+    with database.connect() as connection, connection:
+        connection.execute(
+            """
+            INSERT INTO industry_snapshots(
+                character_id, fetched_at, asset_count, blueprint_count
+            ) VALUES (1001, '2020-01-01T12:00:00+00:00', 1, 1)
+            """
+        )
+
+    window = MainWindow(database, Translator("de"), repository)
+
+    status = window.data_status_detail.text()
+    assert "SDE · fehlt" in status
+    assert "Industrial Pilot · Industrie: veraltet · Jobs: fehlt · PI: fehlt" in status
     window.close()
 
 

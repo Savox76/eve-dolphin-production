@@ -58,6 +58,13 @@ Client-Cachezeit von 300 Sekunden. Installationskosten und Wahrscheinlichkeiten
 werden als Dezimalwerte gespeichert, Jobstatus und Zeitangaben bleiben unveränderte
 ESI-Ist-Daten.
 
+Kolonieliste und Kolonie-Layout besitzen laut derselben OpenAPI-Spezifikation jeweils
+eine Client-Cachezeit von 600 Sekunden. Ein Planetary-Snapshot wird erst aktiviert,
+wenn jedes zugehörige Layout mit Pins, Links und Routen vollständig geprüft wurde.
+ESI berechnet PI-Informationen erst neu, wenn die Kolonie im EVE-Client angesehen wird;
+EVE Dolphin zeigt den von ESI gelieferten `last_update` deshalb als fachlichen Stand und
+interpretiert den lokalen Abrufzeitpunkt nicht als garantierte Echtzeitberechnung.
+
 ## Private Charakterdaten für spätere Module
 
 Diese Routen und Scopes gehören ausdrücklich nicht zum Mindestumfang von Version 1.0. Sie werden erst mit dem jeweiligen Modul angeboten und progressiv freigegeben.

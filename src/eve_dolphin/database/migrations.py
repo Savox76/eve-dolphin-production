@@ -354,6 +354,146 @@ MIGRATIONS = (
             ON character_industry_jobs(snapshot_id, product_type_id);
         """,
     ),
+    Migration(
+        version=6,
+        description="atomic planetary colony layout snapshots",
+        sql="""
+        CREATE TABLE planetary_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            character_id INTEGER NOT NULL,
+            fetched_at TEXT NOT NULL,
+            colonies_last_modified TEXT,
+            colony_count INTEGER NOT NULL CHECK (colony_count >= 0),
+            pin_count INTEGER NOT NULL CHECK (pin_count >= 0),
+            link_count INTEGER NOT NULL CHECK (link_count >= 0),
+            route_count INTEGER NOT NULL CHECK (route_count >= 0),
+            UNIQUE (id, character_id),
+            FOREIGN KEY (character_id) REFERENCES eve_characters(character_id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE planetary_current (
+            character_id INTEGER PRIMARY KEY,
+            snapshot_id INTEGER NOT NULL UNIQUE,
+            FOREIGN KEY (character_id) REFERENCES eve_characters(character_id) ON DELETE CASCADE,
+            FOREIGN KEY (snapshot_id, character_id)
+                REFERENCES planetary_snapshots(id, character_id)
+        );
+
+        CREATE TABLE character_planets (
+            snapshot_id INTEGER NOT NULL,
+            planet_id INTEGER NOT NULL,
+            owner_id INTEGER NOT NULL,
+            solar_system_id INTEGER NOT NULL,
+            planet_type TEXT NOT NULL
+                CHECK (planet_type IN (
+                    'temperate', 'barren', 'oceanic', 'ice', 'gas', 'lava', 'storm', 'plasma'
+                )),
+            last_update TEXT NOT NULL,
+            upgrade_level INTEGER NOT NULL CHECK (upgrade_level >= 0),
+            num_pins INTEGER NOT NULL CHECK (num_pins >= 0),
+            layout_last_modified TEXT,
+            PRIMARY KEY (snapshot_id, planet_id),
+            FOREIGN KEY (snapshot_id) REFERENCES planetary_snapshots(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE planet_pins (
+            snapshot_id INTEGER NOT NULL,
+            planet_id INTEGER NOT NULL,
+            pin_id INTEGER NOT NULL,
+            type_id INTEGER NOT NULL CHECK (type_id > 0),
+            latitude_decimal TEXT NOT NULL,
+            longitude_decimal TEXT NOT NULL,
+            schematic_id INTEGER,
+            expiry_time TEXT,
+            install_time TEXT,
+            last_cycle_start TEXT,
+            has_extractor_details INTEGER NOT NULL CHECK (has_extractor_details IN (0, 1)),
+            extractor_cycle_time INTEGER,
+            extractor_head_radius_decimal TEXT,
+            extractor_product_type_id INTEGER,
+            extractor_qty_per_cycle INTEGER,
+            factory_schematic_id INTEGER,
+            PRIMARY KEY (snapshot_id, planet_id, pin_id),
+            FOREIGN KEY (snapshot_id, planet_id)
+                REFERENCES character_planets(snapshot_id, planet_id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE planet_pin_contents (
+            snapshot_id INTEGER NOT NULL,
+            planet_id INTEGER NOT NULL,
+            pin_id INTEGER NOT NULL,
+            type_id INTEGER NOT NULL CHECK (type_id > 0),
+            amount INTEGER NOT NULL CHECK (amount >= 0),
+            PRIMARY KEY (snapshot_id, planet_id, pin_id, type_id),
+            FOREIGN KEY (snapshot_id, planet_id, pin_id)
+                REFERENCES planet_pins(snapshot_id, planet_id, pin_id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE planet_extractor_heads (
+            snapshot_id INTEGER NOT NULL,
+            planet_id INTEGER NOT NULL,
+            pin_id INTEGER NOT NULL,
+            head_id INTEGER NOT NULL CHECK (head_id >= 0),
+            latitude_decimal TEXT NOT NULL,
+            longitude_decimal TEXT NOT NULL,
+            PRIMARY KEY (snapshot_id, planet_id, pin_id, head_id),
+            FOREIGN KEY (snapshot_id, planet_id, pin_id)
+                REFERENCES planet_pins(snapshot_id, planet_id, pin_id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE planet_links (
+            snapshot_id INTEGER NOT NULL,
+            planet_id INTEGER NOT NULL,
+            source_pin_id INTEGER NOT NULL,
+            destination_pin_id INTEGER NOT NULL,
+            link_level INTEGER NOT NULL CHECK (link_level >= 0),
+            PRIMARY KEY (snapshot_id, planet_id, source_pin_id, destination_pin_id),
+            FOREIGN KEY (snapshot_id, planet_id)
+                REFERENCES character_planets(snapshot_id, planet_id) ON DELETE CASCADE,
+            FOREIGN KEY (snapshot_id, planet_id, source_pin_id)
+                REFERENCES planet_pins(snapshot_id, planet_id, pin_id),
+            FOREIGN KEY (snapshot_id, planet_id, destination_pin_id)
+                REFERENCES planet_pins(snapshot_id, planet_id, pin_id)
+        );
+
+        CREATE TABLE planet_routes (
+            snapshot_id INTEGER NOT NULL,
+            planet_id INTEGER NOT NULL,
+            route_id INTEGER NOT NULL,
+            source_pin_id INTEGER NOT NULL,
+            destination_pin_id INTEGER NOT NULL,
+            content_type_id INTEGER NOT NULL CHECK (content_type_id > 0),
+            quantity_decimal TEXT NOT NULL,
+            PRIMARY KEY (snapshot_id, planet_id, route_id),
+            FOREIGN KEY (snapshot_id, planet_id)
+                REFERENCES character_planets(snapshot_id, planet_id) ON DELETE CASCADE,
+            FOREIGN KEY (snapshot_id, planet_id, source_pin_id)
+                REFERENCES planet_pins(snapshot_id, planet_id, pin_id),
+            FOREIGN KEY (snapshot_id, planet_id, destination_pin_id)
+                REFERENCES planet_pins(snapshot_id, planet_id, pin_id)
+        );
+
+        CREATE TABLE planet_route_waypoints (
+            snapshot_id INTEGER NOT NULL,
+            planet_id INTEGER NOT NULL,
+            route_id INTEGER NOT NULL,
+            position INTEGER NOT NULL CHECK (position >= 0),
+            pin_id INTEGER NOT NULL,
+            PRIMARY KEY (snapshot_id, planet_id, route_id, position),
+            FOREIGN KEY (snapshot_id, planet_id, route_id)
+                REFERENCES planet_routes(snapshot_id, planet_id, route_id) ON DELETE CASCADE,
+            FOREIGN KEY (snapshot_id, planet_id, pin_id)
+                REFERENCES planet_pins(snapshot_id, planet_id, pin_id)
+        );
+
+        CREATE INDEX character_planets_system_idx
+            ON character_planets(snapshot_id, solar_system_id);
+        CREATE INDEX planet_pins_type_idx
+            ON planet_pins(snapshot_id, type_id);
+        CREATE INDEX planet_routes_content_idx
+            ON planet_routes(snapshot_id, content_type_id);
+        """,
+    ),
 )
 
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1].version

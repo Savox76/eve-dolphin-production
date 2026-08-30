@@ -10,6 +10,7 @@ from collections.abc import Callable, Mapping
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from email.utils import parsedate_to_datetime
+from threading import RLock
 from typing import cast
 from urllib.parse import urlencode
 
@@ -55,6 +56,7 @@ class EveEsiClient:
         self._clock = clock or (lambda: datetime.now(UTC))
         self._sleeper = sleeper or time.sleep
         self._blocked_until: datetime | None = None
+        self._limit_lock = RLock()
 
     def close(self) -> None:
         if self._owns_client:
@@ -153,14 +155,15 @@ class EveEsiClient:
         raise AssertionError("bounded ESI retry loop did not return")
 
     def _observe_limits(self, response: httpx.Response, now: datetime) -> None:
-        error_remaining = _nonnegative_header(response.headers.get("X-ESI-Error-Limit-Remain"))
-        error_reset = _nonnegative_header(response.headers.get("X-ESI-Error-Limit-Reset"))
-        if error_remaining is not None and error_remaining <= ERROR_LIMIT_FLOOR:
-            self._block(now, float(error_reset or 60))
-        bucket_remaining = _nonnegative_header(response.headers.get("X-Ratelimit-Remaining"))
-        retry_after = _seconds(response.headers.get("Retry-After"))
-        if bucket_remaining is not None and bucket_remaining <= BUCKET_REMAINING_FLOOR:
-            self._block(now, retry_after or 1.0)
+        with self._limit_lock:
+            error_remaining = _nonnegative_header(response.headers.get("X-ESI-Error-Limit-Remain"))
+            error_reset = _nonnegative_header(response.headers.get("X-ESI-Error-Limit-Reset"))
+            if error_remaining is not None and error_remaining <= ERROR_LIMIT_FLOOR:
+                self._block(now, float(error_reset or 60))
+            bucket_remaining = _nonnegative_header(response.headers.get("X-Ratelimit-Remaining"))
+            retry_after = _seconds(response.headers.get("Retry-After"))
+            if bucket_remaining is not None and bucket_remaining <= BUCKET_REMAINING_FLOOR:
+                self._block(now, retry_after or 1.0)
 
     def _block(self, now: datetime, seconds: float) -> None:
         candidate = now + timedelta(seconds=max(seconds, 0.0))
@@ -168,11 +171,12 @@ class EveEsiClient:
             self._blocked_until = candidate
 
     def _enforce_gate(self, now: datetime) -> None:
-        if self._blocked_until is not None and now < self._blocked_until:
-            raise EsiRateLimitError(
-                "ESI requests are paused by the server limit",
-                (self._blocked_until - now).total_seconds(),
-            )
+        with self._limit_lock:
+            if self._blocked_until is not None and now < self._blocked_until:
+                raise EsiRateLimitError(
+                    "ESI requests are paused by the server limit",
+                    (self._blocked_until - now).total_seconds(),
+                )
 
     def _now(self) -> datetime:
         value = self._clock()

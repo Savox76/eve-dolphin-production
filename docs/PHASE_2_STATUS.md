@@ -94,17 +94,46 @@ Phase 2 verbindet den lokalen Client sicher mit EVE Online und baut die belastba
 - [x] die persistierte fünfminütige ESI-Cachezeit bleibt auch über einen Programmneustart hinweg wirksam
 - [x] fehlender Job-Scope stoppt vor der ESI-Anfrage und wird als erwarteter Berechtigungszustand protokolliert
 
+## Achter Baustein: Planetare Industrie
+
+- [x] Kolonieliste und vollständige Layouts gegen die offizielle ESI-OpenAPI-Spezifikation vom 30.08.2026 geprüft
+- [x] `esi-planets.manage_planets.v1` wird vor der ersten PI-Anfrage kontrolliert
+- [x] Planeten, Pins, Inhalte, Extraktorköpfe, Fabrikschematics, Links, Routen und Wegpunkte werden validiert
+- [x] Mengen und Koordinaten werden ohne unnötige binäre Fließkomma-Zwischenstufe verarbeitet
+- [x] alle Kolonien eines Charakters werden gemeinsam und atomar als neuer Snapshot aktiviert
+- [x] ein fehlerhaftes Planetenlayout lässt den vorherigen Gesamtstand und andere Charaktere unverändert
+- [x] die offizielle zehnminütige ESI-Cachezeit bleibt auch über einen Programmneustart hinweg wirksam
+- [x] Schema 6 löscht ältere charakterbezogene PI-Snapshots erst nach erfolgreicher Aktivierung
+
+## Neunter Baustein: Bedienbarer Gesamtabruf und sichtbarer Datenstand
+
+- [x] SDE, Assets, Blueprints, Jobs und PI können über „EVE-Daten synchronisieren“ gemeinsam gestartet werden
+- [x] Netzwerk-, Token-, Datenbank- und SDE-Arbeit läuft außerhalb des Qt-UI-Threads
+- [x] mehrere Charaktere werden mit begrenzter Parallelität tatsächlich gleichzeitig verarbeitet
+- [x] Fehler eines Charakters oder einer Ressource stoppen die übrigen Charaktere und Ressourcen nicht
+- [x] die gemeinsamen ESI-Cache- und Rate-Limit-Zustände sind threadsicher
+- [x] die Übersicht zeigt die aktive SDE-Buildnummer und den Veröffentlichungstag
+- [x] Industrie, Jobs und PI werden pro Charakter korrekt als aktuell, veraltet, fehlgeschlagen oder fehlend markiert
+- [x] ein fehlgeschlagenes SDE-Update bleibt sichtbar, ohne die letzte gültige aktive Version zu ersetzen
+- [x] „Industrie freigeben“ und „PI freigeben“ fordern nur die fehlenden Scope-Pakete über erneute Browserautorisierung an
+- [x] bei einer Scope-Erweiterung wird ausschließlich der zuvor ausgewählte Charakter akzeptiert
+
 ## Noch offen bis zur Phase-2-Abnahme
 
 - [ ] EVE-Developer-Anwendung mit öffentlicher Client ID und exaktem Callback registrieren
-- [ ] Modulaktivierung fordert fehlende Industrie-/PI-Scopes sichtbar über eine erneute Autorisierung an
+- [x] Modulaktivierung fordert fehlende Industrie-/PI-Scopes sichtbar über eine erneute Autorisierung an
 - [x] SDE-Download, Prüfung, Versionierung und atomarer Import
 - [x] ESI-Client mit Kompatibilitätsdatum, Cache, ETag, Retry und Fehlerlimit-Schutz
-- [ ] erste Asset-, Blueprint-, Job- und Planetensynchronisation
-- [ ] parallele, voneinander isolierte Synchronisation von mindestens zwei Charakteren
-- [ ] sichtbare SDE-Version sowie korrekte Kennzeichnung veralteter und fehlgeschlagener Daten
-- [ ] vollständiger Windows-Paket- und Live-SSO-Abnahmetest
+- [x] erste Asset-, Blueprint-, Job- und Planetensynchronisation
+- [x] parallele, voneinander isolierte Synchronisation von mindestens zwei Charakteren
+- [x] sichtbare SDE-Version sowie korrekte Kennzeichnung veralteter und fehlgeschlagener Daten
+- [x] vollständiger automatisierter Windows-Pakettest
+- [ ] Live-SSO-Abnahmetest mit registrierter öffentlicher Client ID und echten Charakterfreigaben
 
 ## Fortschritt
 
-Der gewichtete Gesamtfortschritt bleibt bis zur vollständigen Abnahme von Phase 2 bei `15 %`. Nach bestandener Phase-2-Abnahme steigt er gemäß Masterplan auf `30 %`.
+Die Implementierung von Phase 2 ist technisch vollständig und automatisiert geprüft. Der
+gewichtete Gesamtfortschritt bleibt bis zu den beiden betreiberabhängigen Schritten –
+Portalregistrierung und Live-SSO-Abnahme – bei `15 %`. Nach dieser manuellen Abnahme steigt
+er gemäß Masterplan auf `30 %`. Die genaue Abnahme steht in
+[`PHASE_2_ACCEPTANCE.md`](PHASE_2_ACCEPTANCE.md).

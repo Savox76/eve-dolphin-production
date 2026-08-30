@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -21,7 +23,10 @@ from PySide6.QtWidgets import (
 )
 
 from eve_dolphin.characters import CharacterRepository
+from eve_dolphin.database import Database
 from eve_dolphin.i18n import Translator
+from eve_dolphin.status import DataStatusRepository, ResourceDataStatus
+from eve_dolphin.sync.coordinator import CharacterSyncBatch
 from eve_dolphin.ui.character_page import CharacterPage
 
 
@@ -48,14 +53,20 @@ class MainWindow(QMainWindow):
 
     def __init__(
         self,
-        database_path: Path,
+        database_path: Path | Database,
         translator: Translator,
         character_repository: CharacterRepository,
+        sync_characters: Callable[[], CharacterSyncBatch] | None = None,
     ) -> None:
         super().__init__()
         self.translator = translator
-        self.database_path = database_path
+        self.database = (
+            database_path if isinstance(database_path, Database) else Database(database_path)
+        )
+        self.database_path = self.database.path
+        self.data_status_repository = DataStatusRepository(self.database)
         self.character_repository = character_repository
+        self.sync_characters = sync_characters
         self.navigation = QListWidget()
         self.pages = QStackedWidget()
         self.character_page: CharacterPage | None = None
@@ -113,8 +124,11 @@ class MainWindow(QMainWindow):
                 self.character_page = CharacterPage(
                     self.character_repository,
                     self.translator,
+                    sync_characters=self.sync_characters,
                 )
                 self.character_page.characters_changed.connect(self._refresh_character_summary)
+                self.character_page.characters_changed.connect(self._refresh_data_status)
+                self.character_page.data_changed.connect(self._refresh_data_status)
                 page = self.character_page
             else:
                 page = self._build_placeholder_page(section)
@@ -148,8 +162,14 @@ class MainWindow(QMainWindow):
         self.character_summary_title = summary_title
         self.character_summary_detail = summary_detail
         layout.addWidget(summary_card)
+        status_card = self._build_card(self.translator.text("data_status"), "")
+        status_detail = status_card.findChild(QLabel, "muted")
+        assert status_detail is not None
+        self.data_status_detail = status_detail
+        layout.addWidget(status_card)
         layout.addStretch(1)
         self._refresh_character_summary()
+        self._refresh_data_status()
         return page
 
     def _refresh_character_summary(self) -> None:
@@ -162,6 +182,37 @@ class MainWindow(QMainWindow):
             detail = self.translator.text("phase2_note")
         self.character_summary_title.setText(title)
         self.character_summary_detail.setText(detail)
+
+    def _refresh_data_status(self) -> None:
+        overview = self.data_status_repository.overview()
+        state = self.translator.text(f"data_{overview.sde.state.value}")
+        if overview.sde.build_number is None or overview.sde.release_date is None:
+            lines = [f"SDE · {state}"]
+        else:
+            lines = [
+                self.translator.text("sde_status").format(
+                    build=overview.sde.build_number,
+                    state=state,
+                    date=overview.sde.release_date.astimezone(UTC).strftime("%Y-%m-%d"),
+                )
+            ]
+        for character in overview.characters:
+            lines.append(
+                " · ".join(
+                    (
+                        character.character_name,
+                        self._resource_status_text("resource_industry", character.industry),
+                        self._resource_status_text("resource_jobs", character.jobs),
+                        self._resource_status_text("resource_planetary", character.planetary),
+                    )
+                )
+            )
+        self.data_status_detail.setText("\n".join(lines))
+
+    def _resource_status_text(self, name_key: str, status: ResourceDataStatus) -> str:
+        name = self.translator.text(name_key)
+        state = self.translator.text(f"data_{status.state.value}")
+        return f"{name}: {state}"
 
     def _build_placeholder_page(self, section: Section) -> QWidget:
         page = QWidget()
@@ -200,7 +251,7 @@ class MainWindow(QMainWindow):
         return card
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        if self.character_page is not None and self.character_page.authorization_pending:
+        if self.character_page is not None and self.character_page.background_work_pending:
             if not self._close_pending:
                 self._close_pending = True
                 self.character_page.authorization_stopped.connect(self.close)

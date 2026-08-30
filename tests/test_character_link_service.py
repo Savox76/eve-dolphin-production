@@ -106,6 +106,25 @@ def test_wrong_state_stops_before_token_exchange() -> None:
         )
 
 
+def test_progressive_authorization_rejects_a_different_character() -> None:
+    repository = FakeRepository()
+    token_store = FakeTokenStore()
+    service = CharacterLinkService(
+        repository,
+        token_store,
+        FakeSsoClient(),
+        FakeValidator(),
+        clock=lambda: datetime(2026, 8, 30, 12, 0, tzinfo=UTC),
+        expected_character_id=2002,
+    )
+
+    with pytest.raises(SsoAuthorizationError, match="different character"):
+        service.complete_link(_metadata(), _config(), _request(), _callback())
+
+    assert repository.characters == {}
+    assert token_store.tokens == {}
+
+
 def _service(repository: FakeRepository, token_store: FakeTokenStore) -> CharacterLinkService:
     return CharacterLinkService(
         repository,

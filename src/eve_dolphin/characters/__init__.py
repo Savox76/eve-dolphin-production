@@ -2,7 +2,7 @@
 
 from eve_dolphin.characters.models import AuthorizationStatus, EveCharacter
 from eve_dolphin.characters.repository import CharacterRepository
-from eve_dolphin.characters.service import CharacterLinkService
+from eve_dolphin.characters.service import CharacterLinkService, UnexpectedCharacterError
 from eve_dolphin.characters.sso_flow import BrowserLaunchError, CharacterSsoFlow
 from eve_dolphin.characters.token_service import (
     CharacterAccessToken,
@@ -20,4 +20,5 @@ __all__ = [
     "CharacterSsoFlow",
     "CharacterTokenService",
     "EveCharacter",
+    "UnexpectedCharacterError",
 ]
