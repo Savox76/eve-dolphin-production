@@ -10,6 +10,24 @@
 
 Direkte Entwicklungscommits auf `main` werden nach der Ersteinrichtung vermieden.
 
+## Lokale Python-Umgebung
+
+```bash
+uv sync --locked --all-groups
+uv run eve-production-tool --self-check
+```
+
+Vor einem Pull Request müssen lokal mindestens Formatierung, Lint, Typprüfung und Tests ausgeführt werden:
+
+```bash
+uv run ruff format --check .
+uv run ruff check .
+uv run mypy
+uv run pytest
+```
+
+Die Benutzeroberfläche verwendet für headless Tests `QT_QPA_PLATFORM=offscreen`. Der Windows-Paketbuild wird auf einem Windows-Runner ausgeführt, weil PyInstaller keine Cross-Compilation unterstützt.
+
 ## Pull Requests
 
 Vor dem Merge müssen:

@@ -1,0 +1,83 @@
+name: Python Client
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-client-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Python Quality
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Qt runtime libraries
+        run: sudo apt-get update && sudo apt-get install --yes libegl1 libxkbcommon-x11-0
+
+      - name: Install locked dependencies
+        run: uv sync --locked --all-groups
+
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Type-check
+        run: uv run mypy
+
+      - name: Test
+        run: uv run pytest
+
+      - name: Check packaged entry point
+        run: uv run eve-production-tool --self-check
+
+  windows-package:
+    name: Windows Package
+    needs: quality
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install locked dependencies
+        run: uv sync --locked --all-groups
+
+      - name: Build and validate Windows client
+        shell: pwsh
+        run: ./scripts/build_windows.ps1
+
+      - name: Upload Windows client
+        uses: actions/upload-artifact@v4
+        with:
+          name: EVE-Production-Tool-Windows
+          path: dist/EVE-Production-Tool/
+          if-no-files-found: error
