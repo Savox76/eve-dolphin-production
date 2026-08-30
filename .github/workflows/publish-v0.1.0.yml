@@ -1,0 +1,85 @@
+name: Publish EVE Dolphin v0.1.0
+
+on:
+  push:
+    branches:
+      - automation/release-v0.1.0
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-eve-dolphin-v0.1.0
+  cancel-in-progress: false
+
+jobs:
+  windows-release:
+    name: Build and publish Windows client
+    runs-on: windows-latest
+    steps:
+      - name: Checkout tested source
+        uses: actions/checkout@v4
+        with:
+          ref: 77c972cd15dd6390a20583f29918bf82dbf5b4f6
+          persist-credentials: false
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install locked dependencies
+        run: uv sync --locked --all-groups
+
+      - name: Build and validate Windows client
+        shell: pwsh
+        run: ./scripts/build_windows.ps1
+
+      - name: Package Windows client
+        shell: pwsh
+        run: |
+          $Archive = "EVE-Dolphin-Windows-v0.1.0.zip"
+          Compress-Archive -Path "dist/EVE-Dolphin" -DestinationPath $Archive
+          $Hash = (Get-FileHash $Archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$Hash  $Archive" | Set-Content "$Archive.sha256"
+
+      - name: Write release notes
+        shell: pwsh
+        run: |
+          @'
+          ## EVE Dolphin v0.1.0 – erste Testversion
+
+          Dies ist die erste lokal ausführbare Windows-Vorabversion von EVE Dolphin.
+
+          Enthalten:
+          - lokaler Python-/Qt-Desktop-Client
+          - mehrere EVE-Charaktere über EVE SSO und PKCE
+          - Industrie-Assets, Blueprints und laufende Industrieaufträge
+          - Planetare Industrie und Kolonie-Synchronisierung
+          - lokale SQLite-Datenbank und sichere Refresh-Token-Ablage im Betriebssystem
+          - vorkonfigurierte EVE-Client-ID und Callback http://127.0.0.1:38636/callback
+
+          Installation:
+          1. EVE-Dolphin-Windows-v0.1.0.zip herunterladen.
+          2. ZIP vollständig entpacken.
+          3. EVE-Dolphin.exe im Ordner EVE-Dolphin starten.
+
+          Hinweis: Die Anwendung ist noch nicht digital signiert. Windows SmartScreen kann deshalb beim ersten Start eine Warnung anzeigen. Diese Version ist ausdrücklich zum Testen vorgesehen.
+          '@ | Set-Content RELEASE_NOTES.md
+
+      - name: Create GitHub prerelease
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.1.0 `
+            --repo "${{ github.repository }}" `
+            --target "77c972cd15dd6390a20583f29918bf82dbf5b4f6" `
+            --title "EVE Dolphin v0.1.0 – Testversion" `
+            --notes-file RELEASE_NOTES.md `
+            --prerelease `
+            "EVE-Dolphin-Windows-v0.1.0.zip" `
+            "EVE-Dolphin-Windows-v0.1.0.zip.sha256"
