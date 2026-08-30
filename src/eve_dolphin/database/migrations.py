@@ -47,6 +47,18 @@ MIGRATIONS = (
             ON sync_runs(character_id, started_at DESC);
         """,
     ),
+    Migration(
+        version=2,
+        description="character authorization health",
+        sql="""
+        ALTER TABLE eve_characters
+            ADD COLUMN authorization_status TEXT NOT NULL DEFAULT 'active'
+            CHECK (authorization_status IN ('active', 'reauthorization_required'));
+
+        ALTER TABLE eve_characters
+            ADD COLUMN authorization_error_at TEXT;
+        """,
+    ),
 )
 
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1].version

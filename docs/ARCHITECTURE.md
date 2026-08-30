@@ -98,6 +98,8 @@ Weitere Regeln:
 - Scopes werden modulbezogen und so spät wie möglich angefordert.
 - Refresh Tokens stehen niemals in SQLite, Logs, Exporten oder Fehlerberichten.
 - Access Tokens bleiben nur so lange wie nötig im Arbeitsspeicher.
+- Ein zurückgegebenes Refresh Token ersetzt den bisherigen Keyring-Wert, bevor nachrangige Charaktermetadaten aktualisiert werden; gleichzeitige Refresh-Versuche desselben Charakters werden serialisiert.
+- `invalid_grant` und sichere Identitätsabweichungen markieren nur den betroffenen Charakter als „erneut verbinden“ und entfernen dessen ungültiges Token. Temporäre OAuth-Fehler behalten es.
 - Ein entfernter Charakter löscht seinen lokalen Tokenverweis und die gespeicherte Berechtigung.
 - Widerrufene oder abgelaufene Berechtigungen verlangen eine neue ausdrückliche Anmeldung.
 - OAuth-Endpunkte und Signaturschlüssel werden aus den offiziellen Metadaten ermittelt und angemessen gecacht.

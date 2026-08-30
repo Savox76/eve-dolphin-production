@@ -31,6 +31,9 @@ Die gemeinsame Charakter-, Daten-, Markt- und Inventarbasis wird später von Min
 
 Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md), die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md), der [Formel- und Bewertungskatalog](docs/FORMULA_CATALOG.md), die [Seitenstruktur und Wireframes](docs/UX_STRUCTURE.md), die Abnahmen von [Phase 0](docs/PHASE_0_ACCEPTANCE.md) und [Phase 1](docs/PHASE_1_ACCEPTANCE.md) sowie der [aktuelle Stand von Phase 2](docs/PHASE_2_STATUS.md).
 
+Die später benötigten Portalwerte, Scopes, PowerShell-Befehle und Sicherheitsregeln
+stehen gesammelt in der **[Anleitung zur EVE-Developer-Anwendung](docs/EVE_DEVELOPER_APPLICATION.md)**.
+
 ## Geplante Module nach Version 1.0
 
 - **Mining und Reprocessing:** persönliches Mining-Ledger, Ertrag, Bewertung, Aufbereitung, Ziele und lokal fortgeschriebene Historie
@@ -44,7 +47,7 @@ ESI liefert nicht jeden aktiven Missionsschritt als vollständigen Live-Status. 
 
 Nächster Meilenstein: **Phase 2 – EVE-Datenbasis**
 
-Phase 1 ist abgeschlossen. Phase 2 läuft: Der abgesicherte EVE-SSO-/PKCE-Kern, der lokale Einmal-Callback, die JWT-Prüfung und die transaktionale lokale Verwaltung mehrerer Charaktere sind implementiert. Unter „Einstellungen & Charaktere“ steht nun außerdem die sichtbare, nicht blockierende Browser-Anmeldung mit lokaler Charakterliste und sicherem Trennen bereit. Token-Erneuerung, SDE- und ESI-Synchronisation bleiben Teil dieses Meilensteins; deshalb bleibt der abgenommene Gesamtfortschritt bei `15 %`.
+Phase 1 ist abgeschlossen. Phase 2 läuft: Der abgesicherte EVE-SSO-/PKCE-Kern, der lokale Einmal-Callback, die JWT-Prüfung und die transaktionale lokale Verwaltung mehrerer Charaktere sind implementiert. Unter „Einstellungen & Charaktere“ steht die sichtbare, nicht blockierende Browser-Anmeldung mit lokalem Berechtigungsstatus und sicherem Trennen bereit. Der Refresh-Kern ersetzt rotierte Tokens, erkennt widerrufene Freigaben und bereitet getrennte Industrie-/PI-Scope-Pakete vor. SDE- und ESI-Synchronisation bleiben Teil dieses Meilensteins; deshalb bleibt der abgenommene Gesamtfortschritt bei `15 %`.
 
 ## Entwicklung und lokaler Start
 
@@ -56,7 +59,7 @@ uv run eve-dolphin --self-check
 uv run eve-dolphin
 ```
 
-Für einen echten SSO-Entwicklungstest muss eine EVE-Developer-Anwendung für den PKCE-Flow registriert sein. Der exakte Callback lautet `http://127.0.0.1:38636/callback`; die öffentliche Client-ID wird unter Windows vor dem Start gesetzt:
+Für einen echten SSO-Entwicklungstest muss eine EVE-Developer-Anwendung für den PKCE-Flow registriert sein. Der exakte Callback lautet `http://127.0.0.1:38636/callback`; die vollständige Einrichtung ist in der [Developer-Anwendungsanleitung](docs/EVE_DEVELOPER_APPLICATION.md) dokumentiert. Die öffentliche Client-ID wird unter Windows vor dem Start gesetzt:
 
 ```powershell
 $env:EVE_SSO_CLIENT_ID = "<öffentliche-client-id>"

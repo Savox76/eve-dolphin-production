@@ -11,7 +11,7 @@ pytest.importorskip("PySide6.QtWidgets", exc_type=ImportError)
 from PySide6.QtCore import QThread
 from PySide6.QtWidgets import QApplication
 
-from eve_dolphin.characters import CharacterRepository, EveCharacter
+from eve_dolphin.characters import AuthorizationStatus, CharacterRepository, EveCharacter
 from eve_dolphin.database import Database
 from eve_dolphin.i18n import Translator
 from eve_dolphin.ui.character_page import CharacterPage, CharacterSsoWorker
@@ -84,6 +84,9 @@ def test_settings_page_lists_and_unlinks_local_character(
     assert scope_item is not None
     assert name_item.text() == "Industrial Pilot"
     assert scope_item.text() == "2"
+    status_item = page.table.item(0, 2)
+    assert status_item is not None
+    assert status_item.text() == "Aktiv"
     assert not page.unlink_button.isEnabled()
 
     page.table.selectRow(0)
@@ -94,6 +97,32 @@ def test_settings_page_lists_and_unlinks_local_character(
     qt_application.processEvents()
     assert page.table.rowCount() == 0
     assert repository.list_all() == ()
+
+    page.close()
+
+
+def test_settings_page_shows_reauthorization_required(
+    qt_application: QApplication, tmp_path: Path
+) -> None:
+    repository = _repository(tmp_path)
+    failed_at = datetime(2026, 8, 30, 13, 0, tzinfo=UTC)
+    repository.upsert(
+        EveCharacter(
+            1001,
+            "Industrial Pilot",
+            "owner",
+            (),
+            datetime(2026, 8, 30, 12, 0, tzinfo=UTC),
+            authorization_status=AuthorizationStatus.REAUTHORIZATION_REQUIRED,
+            authorization_error_at=failed_at,
+        )
+    )
+
+    page = CharacterPage(repository, Translator("en"))
+
+    status_item = page.table.item(0, 2)
+    assert status_item is not None
+    assert status_item.text() == "Reconnect"
 
     page.close()
 

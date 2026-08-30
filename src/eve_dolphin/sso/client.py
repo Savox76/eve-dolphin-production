@@ -71,6 +71,24 @@ class EveSsoClient:
         )
         return TokenResponse.from_mapping(payload)
 
+    def refresh_access_token(
+        self,
+        metadata: SsoMetadata,
+        config: SsoConfig,
+        refresh_token: str,
+    ) -> TokenResponse:
+        if not refresh_token:
+            raise ValueError("refresh token is required")
+        payload = self._transport.post_form(
+            metadata.token_endpoint,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": refresh_token,
+                "client_id": config.client_id,
+            },
+        )
+        return TokenResponse.from_mapping(payload)
+
 
 def _normalize_scopes(scopes: Sequence[str]) -> tuple[str, ...]:
     normalized = tuple(dict.fromkeys(scope.strip() for scope in scopes if scope.strip()))

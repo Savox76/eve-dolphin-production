@@ -5,7 +5,7 @@ from contextlib import suppress
 from pathlib import Path
 
 from eve_dolphin.database import Database
-from eve_dolphin.database.migrations import LATEST_SCHEMA_VERSION
+from eve_dolphin.database.migrations import LATEST_SCHEMA_VERSION, MIGRATIONS
 
 
 def test_initialize_is_repeatable_and_reaches_latest_schema(tmp_path: Path) -> None:
@@ -92,3 +92,46 @@ def test_existing_database_is_backed_up_before_migration(tmp_path: Path) -> None
         preserved = connection.execute("SELECT value FROM legacy_data").fetchone()
     assert preserved is not None
     assert preserved[0] == "preserved"
+
+
+def test_version_one_database_migrates_character_authorization_state(tmp_path: Path) -> None:
+    database_path = tmp_path / "client.sqlite3"
+    with sqlite3.connect(database_path) as connection:
+        connection.executescript(MIGRATIONS[0].sql)
+        connection.execute(
+            """
+            CREATE TABLE schema_migrations (
+                version INTEGER PRIMARY KEY,
+                description TEXT NOT NULL,
+                applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        connection.execute(
+            "INSERT INTO schema_migrations(version, description) VALUES (1, 'version one')"
+        )
+        connection.execute(
+            """
+            INSERT INTO eve_characters(
+                character_id, character_name, owner_hash,
+                granted_scopes_json, linked_at, last_sync_at
+            ) VALUES (1001, 'Industrial Pilot', 'owner', '[]', ?, NULL)
+            """,
+            ("2026-08-30T12:00:00+00:00",),
+        )
+
+    database = Database(database_path, tmp_path / "backups")
+    database.initialize()
+
+    with database.connect() as connection:
+        character = connection.execute(
+            """
+            SELECT authorization_status, authorization_error_at
+            FROM eve_characters WHERE character_id = 1001
+            """
+        ).fetchone()
+
+    assert database.schema_version() == LATEST_SCHEMA_VERSION
+    assert character is not None
+    assert character["authorization_status"] == "active"
+    assert character["authorization_error_at"] is None

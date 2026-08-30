@@ -7,7 +7,7 @@ import sqlite3
 from datetime import datetime
 from typing import Protocol
 
-from eve_dolphin.characters.models import EveCharacter
+from eve_dolphin.characters.models import AuthorizationStatus, EveCharacter
 from eve_dolphin.database import Database
 
 
@@ -15,6 +15,14 @@ class CharacterWriter(Protocol):
     def upsert(self, character: EveCharacter) -> None: ...
 
     def remove(self, character_id: int) -> bool: ...
+
+
+class CharacterAuthorizationRepository(Protocol):
+    def get(self, character_id: int) -> EveCharacter | None: ...
+
+    def upsert(self, character: EveCharacter) -> None: ...
+
+    def mark_reauthorization_required(self, character_id: int, failed_at: datetime) -> bool: ...
 
 
 class CharacterRepository:
@@ -32,13 +40,17 @@ class CharacterRepository:
                     owner_hash,
                     granted_scopes_json,
                     linked_at,
-                    last_sync_at
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    last_sync_at,
+                    authorization_status,
+                    authorization_error_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(character_id) DO UPDATE SET
                     character_name = excluded.character_name,
                     owner_hash = excluded.owner_hash,
                     granted_scopes_json = excluded.granted_scopes_json,
-                    linked_at = excluded.linked_at
+                    linked_at = excluded.linked_at,
+                    authorization_status = excluded.authorization_status,
+                    authorization_error_at = excluded.authorization_error_at
                 """,
                 (
                     character.character_id,
@@ -48,6 +60,10 @@ class CharacterRepository:
                     character.linked_at.isoformat(),
                     character.last_sync_at.isoformat()
                     if character.last_sync_at is not None
+                    else None,
+                    character.authorization_status.value,
+                    character.authorization_error_at.isoformat()
+                    if character.authorization_error_at is not None
                     else None,
                 ),
             )
@@ -59,7 +75,8 @@ class CharacterRepository:
             row = connection.execute(
                 """
                 SELECT character_id, character_name, owner_hash, granted_scopes_json,
-                       linked_at, last_sync_at
+                       linked_at, last_sync_at, authorization_status,
+                       authorization_error_at
                 FROM eve_characters
                 WHERE character_id = ?
                 """,
@@ -72,7 +89,8 @@ class CharacterRepository:
             rows = connection.execute(
                 """
                 SELECT character_id, character_name, owner_hash, granted_scopes_json,
-                       linked_at, last_sync_at
+                       linked_at, last_sync_at, authorization_status,
+                       authorization_error_at
                 FROM eve_characters
                 ORDER BY character_name COLLATE NOCASE, character_id
                 """
@@ -88,6 +106,26 @@ class CharacterRepository:
             )
         return cursor.rowcount > 0
 
+    def mark_reauthorization_required(self, character_id: int, failed_at: datetime) -> bool:
+        if character_id <= 0:
+            raise ValueError("character_id must be positive")
+        if failed_at.tzinfo is None:
+            raise ValueError("failed_at must include a timezone")
+        with self._database.connect() as connection, connection:
+            cursor = connection.execute(
+                """
+                UPDATE eve_characters
+                SET authorization_status = ?, authorization_error_at = ?
+                WHERE character_id = ?
+                """,
+                (
+                    AuthorizationStatus.REAUTHORIZATION_REQUIRED.value,
+                    failed_at.isoformat(),
+                    character_id,
+                ),
+            )
+        return cursor.rowcount > 0
+
 
 def _character_from_row(row: sqlite3.Row) -> EveCharacter:
     character_id = int(row["character_id"])
@@ -96,6 +134,7 @@ def _character_from_row(row: sqlite3.Row) -> EveCharacter:
     scopes_value = json.loads(str(row["granted_scopes_json"]))
     linked_at = datetime.fromisoformat(str(row["linked_at"]))
     last_sync_value = row["last_sync_at"]
+    authorization_error_value = row["authorization_error_at"]
     if not isinstance(scopes_value, list) or not all(
         isinstance(scope, str) for scope in scopes_value
     ):
@@ -107,4 +146,10 @@ def _character_from_row(row: sqlite3.Row) -> EveCharacter:
         granted_scopes=tuple(scopes_value),
         linked_at=linked_at,
         last_sync_at=(datetime.fromisoformat(str(last_sync_value)) if last_sync_value else None),
+        authorization_status=AuthorizationStatus(str(row["authorization_status"])),
+        authorization_error_at=(
+            datetime.fromisoformat(str(authorization_error_value))
+            if authorization_error_value
+            else None
+        ),
     )
