@@ -71,6 +71,18 @@ Phase 2 verbindet den lokalen Client sicher mit EVE Online und baut die belastba
 - [x] Authentifizierungs- und Berechtigungsfehler erzeugen keine automatischen Wiederholungsschleifen
 - [x] Antwortgröße, JSON, HTTP-Daten, Seitenzahl und numerische Limitheader werden geprüft
 
+## Sechster Baustein: Asset- und Blueprint-Snapshots
+
+- [x] aktuelle Asset- und Blueprint-Schemas sowie Scopes gegen die offizielle ESI-OpenAPI-Spezifikation vom 30.08.2026 geprüft
+- [x] vollständige Mehrseitenabfragen mit festem `X-Pages` und identischem `Last-Modified` über alle Seiten
+- [x] strikte Prüfung aller Pflichtfelder, IDs, Mengen, Standorte, BPO-/BPC-Werte und Duplikate
+- [x] Assets und persönliche Blueprints werden gemeinsam als neuer charakterbezogener Snapshot aktiviert
+- [x] ein Fehler in einer Ressource oder Seite lässt den vorherigen vollständigen Snapshot unverändert
+- [x] Snapshot- und Synchronisationsdaten eines Charakters sind von allen anderen Charakteren getrennt
+- [x] der persistierte Snapshot verhindert auch nach einem Neustart erneute ESI-Abfragen vor Ablauf der einstündigen Cachezeit
+- [x] erfolgreiche und fehlgeschlagene Läufe sowie der letzte erfolgreiche Synchronisationszeitpunkt werden lokal protokolliert
+- [x] fehlende Asset-/Blueprint-Scopes stoppen vor der ersten ESI-Datenanfrage und nennen das benötigte Berechtigungspaket
+
 ## Noch offen bis zur Phase-2-Abnahme
 
 - [ ] EVE-Developer-Anwendung mit öffentlicher Client ID und exaktem Callback registrieren

@@ -36,6 +36,10 @@ def test_initialize_is_repeatable_and_reaches_latest_schema(tmp_path: Path) -> N
         "sde_types",
         "sde_blueprints",
         "sde_planet_schematics",
+        "industry_snapshots",
+        "industry_current",
+        "character_assets",
+        "character_blueprints",
     } <= tables
     assert migration_count is not None
     assert migration_count["count"] == LATEST_SCHEMA_VERSION
@@ -84,6 +88,37 @@ def test_failed_write_does_not_leave_invalid_sync_run(tmp_path: Path) -> None:
 
     assert count is not None
     assert count[0] == 0
+
+
+def test_industry_current_cannot_reference_another_character_snapshot(tmp_path: Path) -> None:
+    database = Database(tmp_path / "client.sqlite3")
+    database.initialize()
+    with database.connect() as connection, connection:
+        for character_id in (7, 8):
+            connection.execute(
+                """
+                INSERT INTO eve_characters(
+                    character_id, character_name, granted_scopes_json, linked_at
+                ) VALUES (?, ?, '[]', '2026-08-30T14:00:00+00:00')
+                """,
+                (character_id, f"Pilot {character_id}"),
+            )
+        cursor = connection.execute(
+            """
+            INSERT INTO industry_snapshots(
+                character_id, fetched_at, asset_count, blueprint_count
+            ) VALUES (7, '2026-08-30T14:00:00+00:00', 0, 0)
+            """
+        )
+        assert cursor.lastrowid is not None
+        with suppress(sqlite3.IntegrityError):
+            connection.execute(
+                "INSERT INTO industry_current(character_id, snapshot_id) VALUES (8, ?)",
+                (cursor.lastrowid,),
+            )
+        count = connection.execute("SELECT COUNT(*) FROM industry_current").fetchone()
+
+    assert count is not None and count[0] == 0
 
 
 def test_existing_database_is_backed_up_before_migration(tmp_path: Path) -> None:

@@ -232,6 +232,67 @@ MIGRATIONS = (
             ON sde_blueprint_materials(build_number, material_type_id);
         """,
     ),
+    Migration(
+        version=4,
+        description="atomic character asset and blueprint snapshots",
+        sql="""
+        CREATE TABLE industry_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            character_id INTEGER NOT NULL,
+            fetched_at TEXT NOT NULL,
+            assets_last_modified TEXT,
+            blueprints_last_modified TEXT,
+            asset_count INTEGER NOT NULL CHECK (asset_count >= 0),
+            blueprint_count INTEGER NOT NULL CHECK (blueprint_count >= 0),
+            UNIQUE (id, character_id),
+            FOREIGN KEY (character_id) REFERENCES eve_characters(character_id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE industry_current (
+            character_id INTEGER PRIMARY KEY,
+            snapshot_id INTEGER NOT NULL UNIQUE,
+            FOREIGN KEY (character_id) REFERENCES eve_characters(character_id) ON DELETE CASCADE,
+            FOREIGN KEY (snapshot_id, character_id)
+                REFERENCES industry_snapshots(id, character_id)
+        );
+
+        CREATE TABLE character_assets (
+            snapshot_id INTEGER NOT NULL,
+            item_id INTEGER NOT NULL,
+            type_id INTEGER NOT NULL CHECK (type_id > 0),
+            quantity INTEGER NOT NULL CHECK (quantity > 0),
+            location_id INTEGER NOT NULL,
+            location_type TEXT NOT NULL
+                CHECK (location_type IN ('station', 'solar_system', 'item', 'other')),
+            location_flag TEXT NOT NULL,
+            is_singleton INTEGER NOT NULL CHECK (is_singleton IN (0, 1)),
+            is_blueprint_copy INTEGER CHECK (is_blueprint_copy IN (0, 1)),
+            PRIMARY KEY (snapshot_id, item_id),
+            FOREIGN KEY (snapshot_id) REFERENCES industry_snapshots(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE character_blueprints (
+            snapshot_id INTEGER NOT NULL,
+            item_id INTEGER NOT NULL,
+            type_id INTEGER NOT NULL CHECK (type_id > 0),
+            location_id INTEGER NOT NULL,
+            location_flag TEXT NOT NULL,
+            quantity INTEGER NOT NULL CHECK (quantity >= -2 AND quantity != 0),
+            time_efficiency INTEGER NOT NULL,
+            material_efficiency INTEGER NOT NULL,
+            runs INTEGER NOT NULL CHECK (runs >= -1),
+            PRIMARY KEY (snapshot_id, item_id),
+            FOREIGN KEY (snapshot_id) REFERENCES industry_snapshots(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX character_assets_type_idx
+            ON character_assets(snapshot_id, type_id);
+        CREATE INDEX character_assets_location_idx
+            ON character_assets(snapshot_id, location_id);
+        CREATE INDEX character_blueprints_type_idx
+            ON character_blueprints(snapshot_id, type_id);
+        """,
+    ),
 )
 
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1].version

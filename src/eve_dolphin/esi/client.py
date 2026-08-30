@@ -96,6 +96,7 @@ class EveEsiClient:
                 last_modified=response.headers.get("Last-Modified", cached.last_modified),
                 expires_at=_http_date(response.headers.get("Expires")),
                 received_at=received_at,
+                pages=_positive_header(response.headers.get("X-Pages")) or cached.pages,
             )
             self._cache.put(cache_key, refreshed)
             return _cached_response(refreshed, not_modified=True)
@@ -113,6 +114,7 @@ class EveEsiClient:
             last_modified=response.headers.get("Last-Modified"),
             expires_at=_http_date(response.headers.get("Expires")),
             received_at=received_at,
+            pages=_positive_header(response.headers.get("X-Pages")),
         )
         self._cache.put(cache_key, entry)
         return EsiResponse(
@@ -121,7 +123,9 @@ class EveEsiClient:
             expires_at=entry.expires_at,
             from_cache=False,
             not_modified=False,
-            pages=_positive_header(response.headers.get("X-Pages")),
+            pages=entry.pages,
+            etag=entry.etag,
+            last_modified=entry.last_modified,
         )
 
     def _request_with_retries(
@@ -203,7 +207,9 @@ def _cached_response(entry: EsiCacheEntry, *, not_modified: bool) -> EsiResponse
         expires_at=entry.expires_at,
         from_cache=True,
         not_modified=not_modified,
-        pages=None,
+        pages=entry.pages,
+        etag=entry.etag,
+        last_modified=entry.last_modified,
     )
 
 

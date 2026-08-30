@@ -43,6 +43,14 @@ Veränderung zwischen Download und Import.
 
 Wallet, Skills und eigene Marktorders werden erst angefordert, wenn die zugehörige Funktion aktiviert wird. PI-Nutzer müssen nicht automatisch Walletzugriff gewähren.
 
+Assets und Blueprints sind gegen die offizielle OpenAPI-Spezifikation mit
+Kompatibilitätsdatum `2026-08-30` implementiert. Beide Routen sind seitens ESI
+seitennummeriert und besitzen aktuell eine Client-Cachezeit von 3.600 Sekunden.
+Ein lokaler Industrie-Snapshot wird deshalb frühestens nach einer Stunde erneuert.
+Die Blueprint-Menge unterscheidet BPO (`-1`), BPC (`-2`) und noch unveränderte
+Blueprint-Stapel; `runs`, Materialeffizienz und Zeiteffizienz bleiben unverändert
+als charakterbezogene Ist-Werte erhalten.
+
 ## Private Charakterdaten für spätere Module
 
 Diese Routen und Scopes gehören ausdrücklich nicht zum Mindestumfang von Version 1.0. Sie werden erst mit dem jeweiligen Modul angeboten und progressiv freigegeben.
