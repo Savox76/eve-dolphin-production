@@ -100,4 +100,3 @@ Die im Portal registrierte URL und `EVE_SSO_REDIRECT_URI` müssen immer identisc
 Der Client liest die Konfiguration in
 [`src/eve_dolphin/sso/config.py`](../src/eve_dolphin/sso/config.py). Der Implementierungs-
 und Abnahmestand steht in [`docs/PHASE_2_STATUS.md`](PHASE_2_STATUS.md).
-
