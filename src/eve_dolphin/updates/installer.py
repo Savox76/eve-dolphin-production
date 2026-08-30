@@ -177,7 +177,7 @@ def _verify_build_info(package_dir: Path, expected_version: str) -> None:
         raise UpdatePackageError("update build information is missing or invalid") from error
     if not isinstance(payload, dict) or payload.get("version") != expected_version:
         raise UpdatePackageError("update build version does not match the release")
-    if payload.get("distribution_repository") != "Savox76/eve-dolphin-releases":
+    if payload.get("distribution_repository") != "Savox76/eve-dolphin-production":
         raise UpdatePackageError("update build has an unexpected distribution source")
 
 
