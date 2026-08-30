@@ -21,10 +21,22 @@ Phase 2 verbindet den lokalen Client sicher mit EVE Online und baut die belastba
 - [x] Trennen eines Charakters löscht zuerst sein lokales Refresh Token
 - [x] isolierte Tests ohne echte EVE-Zugangsdaten
 
+## Zweiter Baustein: sichtbare Charakterverwaltung
+
+- [x] echte Charakterseite statt Platzhalter unter „Einstellungen & Charaktere“
+- [x] lokale Tabelle mit Charaktername, Anzahl freigegebener Scopes und Verknüpfungszeit
+- [x] EVE-Anmeldung über den Systembrowser, ohne Passwortabfrage durch EVE Dolphin
+- [x] Netzwerk, Callback, Tokenprüfung und Keyring-Zugriff außerhalb des UI-Threads
+- [x] lokaler Callback ist bereits gebunden, bevor der Browser geöffnet wird
+- [x] fehlende Client-ID, Browser-, Netzwerk-, Timeout-, Token- und Keyring-Fehler werden verständlich angezeigt
+- [x] ausstehende Callback-Anmeldung wird beim Schließen der Anwendung beendet
+- [x] Charaktere können erst nach ausdrücklicher Bestätigung getrennt werden
+- [x] Übersichtsseite zeigt die tatsächliche Anzahl lokal verbundener Charaktere
+- [x] Authorization-Code-Austausch sendet Client-ID, PKCE-Verifier und die registrierte Redirect-URL, aber kein Client Secret
+
 ## Noch offen bis zur Phase-2-Abnahme
 
 - [ ] EVE-Developer-Anwendung mit öffentlicher Client ID und exaktem Callback registrieren
-- [ ] nicht blockierende SSO-Anmeldung in die PySide6-Charakteransicht integrieren
 - [ ] Refresh-Flow, Widerrufserkennung und erneute Autorisierung
 - [ ] progressive Scope-Pakete für Assets, Blueprints, Jobs und PI
 - [ ] SDE-Download, Prüfung, Versionierung und atomarer Import

@@ -44,7 +44,7 @@ ESI liefert nicht jeden aktiven Missionsschritt als vollständigen Live-Status. 
 
 Nächster Meilenstein: **Phase 2 – EVE-Datenbasis**
 
-Phase 1 ist abgeschlossen. Phase 2 läuft: Der erste Baustein implementiert bereits den abgesicherten EVE-SSO-/PKCE-Kern, den lokalen Einmal-Callback, die JWT-Prüfung sowie die transaktionale lokale Verwaltung mehrerer Charaktere. Die noch fehlende UI-Anbindung, Token-Erneuerung, SDE- und ESI-Synchronisation bleiben Teil dieses Meilensteins; deshalb bleibt der abgenommene Gesamtfortschritt bei `15 %`.
+Phase 1 ist abgeschlossen. Phase 2 läuft: Der abgesicherte EVE-SSO-/PKCE-Kern, der lokale Einmal-Callback, die JWT-Prüfung und die transaktionale lokale Verwaltung mehrerer Charaktere sind implementiert. Unter „Einstellungen & Charaktere“ steht nun außerdem die sichtbare, nicht blockierende Browser-Anmeldung mit lokaler Charakterliste und sicherem Trennen bereit. Token-Erneuerung, SDE- und ESI-Synchronisation bleiben Teil dieses Meilensteins; deshalb bleibt der abgenommene Gesamtfortschritt bei `15 %`.
 
 ## Entwicklung und lokaler Start
 
@@ -55,6 +55,15 @@ uv sync --locked --all-groups
 uv run eve-dolphin --self-check
 uv run eve-dolphin
 ```
+
+Für einen echten SSO-Entwicklungstest muss eine EVE-Developer-Anwendung für den PKCE-Flow registriert sein. Der exakte Callback lautet `http://127.0.0.1:38636/callback`; die öffentliche Client-ID wird unter Windows vor dem Start gesetzt:
+
+```powershell
+$env:EVE_SSO_CLIENT_ID = "<öffentliche-client-id>"
+uv run eve-dolphin
+```
+
+Ein Client Secret wird weder benötigt noch in den Desktop-Client eingebettet. Der erste Verbindungsdialog dient nur der sicheren Charakteridentität und fordert noch keine zusätzlichen Industrie- oder PI-Scopes an.
 
 Qualitätsprüfungen:
 

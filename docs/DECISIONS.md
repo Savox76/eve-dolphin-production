@@ -167,3 +167,13 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Missions-Grenze:** ESI bietet kein vollständiges Live-Journal aller klassischen Missionen. Das PVE-Modul kombiniert Standing, Wallet, Assets, Killmails und optionalen Standort mit einem lokalen Missionsjournal.
 - **Sicherheit:** Die neuen Scopes werden nicht vorsorglich in Version 1.0 angefordert, sondern erst bei Aktivierung des jeweiligen Moduls.
 - **Automatisierung:** EVE Dolphin beobachtet und bewertet Daten, führt jedoch keine Spielaktionen aus.
+
+### D-020 – Nicht blockierende Charakterverknüpfung
+
+- **Status:** beschlossen am 30.08.2026
+- **Oberfläche:** Unter „Einstellungen & Charaktere“ werden lokal verbundene Charaktere sichtbar aufgelistet, einzeln verbunden und nach Bestätigung getrennt.
+- **Thread-Grenze:** Metadatenabruf, lokaler Callback, Token-Austausch, JWT-Prüfung und Keyring-Zugriff laufen außerhalb des UI-Threads.
+- **Browser:** Der Callback-Port wird gebunden, bevor der Systembrowser geöffnet wird. EVE Dolphin zeigt oder verarbeitet keine EVE-Passwörter.
+- **Berechtigungen:** Die erste Anmeldung bestätigt nur die Charakteridentität. Fachliche Scopes werden später progressiv mit dem jeweiligen Modul angefordert.
+- **Konfiguration:** Entwicklungsstände lesen die öffentliche Client-ID aus `EVE_SSO_CLIENT_ID`; der exakte registrierte Callback ist `http://127.0.0.1:38636/callback`. Ein Client Secret wird nicht verwendet.
+- **Begründung:** Mehrere Charaktere müssen sicher verbunden werden können, ohne dass Netzwerk- oder Browserwartezeiten das Desktop-Fenster blockieren.

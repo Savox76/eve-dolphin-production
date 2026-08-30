@@ -69,6 +69,43 @@ QFrame#card {
     border-radius: 10px;
 }
 
+QTableWidget#characterTable {
+    background-color: #0d1622;
+    border: 1px solid #233246;
+    border-radius: 6px;
+    gridline-color: #233246;
+    selection-background-color: #173a52;
+    selection-color: #ffffff;
+}
+
+QTableWidget#characterTable QHeaderView::section {
+    background-color: #152131;
+    border: 0;
+    border-bottom: 1px solid #2b3d53;
+    color: #aebfd0;
+    font-weight: 650;
+    padding: 8px;
+}
+
+QPushButton {
+    background-color: #173a52;
+    border: 1px solid #286487;
+    border-radius: 6px;
+    color: #ffffff;
+    font-weight: 650;
+    padding: 8px 14px;
+}
+
+QPushButton:hover {
+    background-color: #1d4d6d;
+}
+
+QPushButton:disabled {
+    background-color: #15202d;
+    border-color: #263446;
+    color: #607286;
+}
+
 QLabel#cardTitle {
     color: #ffffff;
     font-size: 12pt;

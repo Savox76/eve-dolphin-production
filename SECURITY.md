@@ -16,6 +16,7 @@ Ein Desktop-Release darf kein EVE Client Secret enthalten. Die öffentliche Clie
 
 - Es werden nur die tatsächlich benötigten Scopes angefordert.
 - Der Desktop-Client verwendet Authorization Code mit PKCE und öffnet EVE SSO im Systembrowser.
+- EVE Dolphin fragt selbst niemals nach dem EVE-Passwort; Anmeldung und Charakterauswahl erfolgen ausschließlich auf der EVE-SSO-Seite im Systembrowser.
 - Der lokale Callback bindet ausschließlich an `127.0.0.1`, prüft Pfad und kryptografisches `state` exakt und protokolliert keine Callback-Parameter.
 - Access Tokens werden vor jeder Charakterverknüpfung anhand der offiziellen JWKS-Signatur, eines fest erlaubten RSA-Algorithmus, Issuer, Ablauf, Charakter-Subject und beider Audience-Werte validiert.
 - Refresh Tokens werden charakterbezogen im sicheren Anmeldedatenspeicher des Betriebssystems abgelegt.
@@ -24,6 +25,7 @@ Ein Desktop-Release darf kein EVE Client Secret enthalten. Die öffentliche Clie
 - Ein Charakter kann jederzeit getrennt und seine Daten können gelöscht werden.
 - ESI-Cache-, Fehlerlimit- und Retry-Vorgaben werden respektiert.
 - Das Tool automatisiert keine Aktionen im EVE-Client.
+- Das Trennen eines Charakters verlangt eine sichtbare Bestätigung und entfernt dessen Refresh Token, bevor der lokale Charakterdatensatz gelöscht wird.
 
 ## Sicherheitsprobleme
 

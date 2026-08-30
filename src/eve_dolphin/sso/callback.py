@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import secrets
 import time
+from collections.abc import Callable
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from types import TracebackType
@@ -15,6 +16,10 @@ from eve_dolphin.sso.models import CallbackResult
 
 class CallbackTimeoutError(TimeoutError):
     """The browser did not return to the local client in time."""
+
+
+class CallbackCancelledError(RuntimeError):
+    """The desktop client was closed while authorization was pending."""
 
 
 class CallbackStateMismatchError(ValueError):
@@ -47,7 +52,10 @@ class LoopbackCallbackServer:
         self.close()
 
     def wait_for_result(
-        self, expected_state: str, timeout_seconds: float = 180.0
+        self,
+        expected_state: str,
+        timeout_seconds: float = 180.0,
+        cancelled: Callable[[], bool] | None = None,
     ) -> CallbackResult:
         if not expected_state:
             raise ValueError("expected_state must not be empty")
@@ -57,6 +65,8 @@ class LoopbackCallbackServer:
         self._server.expected_state = expected_state
         deadline = time.monotonic() + timeout_seconds
         while self._server.result is None:
+            if cancelled is not None and cancelled():
+                raise CallbackCancelledError("EVE SSO callback was cancelled")
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise CallbackTimeoutError("EVE SSO callback timed out")
