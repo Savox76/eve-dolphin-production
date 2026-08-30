@@ -5,6 +5,7 @@
 - öffentliche ESI-Daten benötigen kein Charakter-Token
 - private Daten werden nur mit ausdrücklicher Freigabe des betroffenen Charakters geladen
 - Scopes werden progressiv und modulbezogen angefordert
+- der lokale Client verwendet Authorization Code mit PKCE und speichert Refresh Tokens ausschließlich im Anmeldedatenspeicher des Betriebssystems
 - Corporation-Scopes gehören nicht zum Mindestumfang von Version 1.0
 - jede ESI-Anfrage verwendet ein geprüftes Kompatibilitätsdatum
 - konkrete Routen und Scopes werden bei Implementierungsbeginn nochmals gegen den offiziellen API Explorer für dieses Datum geprüft
@@ -84,7 +85,7 @@ Der Import speichert Buildnummer, Abrufzeit, Schemaänderungsstand und Aktivieru
 | Wurmloch-Risikoaufschlag | subjektive beziehungsweise betriebliche Annahme |
 | interne Materialpreise | private oder Corporation-Vereinbarung |
 
-Jeder manuelle Wert erhält Nutzer, Quelle, Gültigkeitsbeginn und Änderungszeitpunkt.
+Jeder manuelle Wert erhält lokale Herkunft, Quelle, Gültigkeitsbeginn und Änderungszeitpunkt.
 
 ## Synchronisationsklassen
 

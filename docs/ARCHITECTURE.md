@@ -2,120 +2,129 @@
 
 ## Status
 
-Diese Architektur ist die verbindliche Ausgangsbasis für Version 1.0. Framework- und Paketversionen werden bei Beginn von Phase 1 anhand der dann unterstützten Releases festgeschrieben und durch Lockfiles reproduzierbar gehalten.
+Diese Architektur ersetzt mit Beschluss D-014 die zuvor geplante gehostete TypeScript-/PostgreSQL-Web-App. Version 1.0 wird als lokaler Python-Desktop-Client umgesetzt. Framework- und Paketversionen werden zu Beginn von Phase 1 auf unterstützte Releases festgelegt und durch Lockfiles reproduzierbar gehalten.
 
 ## Ziele
 
-- privat online erreichbar
-- sicherer Betrieb mit mehreren getrennten Nutzern
-- responsive Web-Oberfläche und PWA-Vorbereitung
-- langlebige ESI- und SDE-Hintergrundarbeiten außerhalb von Web-Anfragen
-- geringe laufende Kosten und wenige Infrastrukturkomponenten
-- lokal und auf einem Server identische Docker-basierte Umgebung
-- gemeinsam testbare Berechnungslogik für PI und Manufacturing
+- lokale Nutzung ohne Hoster, Domain oder Serververwaltung
+- einfache Installation und eigener Programmstart unter Windows
+- mehrere eigene EVE-Charaktere pro Installation
+- vollständig getrennte Daten je Installation
+- sichere EVE-SSO-Anbindung ohne eingebettetes Client Secret
+- gemeinsame, exakt testbare Berechnungslogik für PI und Manufacturing
+- nachvollziehbare lokale Backups und Datenexporte
+- spätere Portierung auf weitere Desktop-Systeme ohne fachlichen Neubau
 
 ## Systemübersicht
 
 | Komponente | Verantwortung |
 |---|---|
-| Web | Oberfläche, serverseitiges Rendering, PWA, Session-Nutzung |
-| API | Autorisierung, Projekte, Bestände, Berechnungen und Benutzeraktionen |
-| Worker | ESI-Synchronisation, SDE-Import, Marktpreise, Prognosen und Warnungen |
-| PostgreSQL | Anwendungsdaten, Snapshots, Warteschlange und Synchronisationsstatus |
-| Reverse Proxy | HTTPS, Routing, sichere Header und Request-Limits |
+| Desktop-Oberfläche | Navigation, Tabellen, Diagramme, Eingaben und Datenstatus |
+| Domänenkern | PI-, Blueprint-, Bestands-, Logistik- und Gewinnberechnungen |
+| Synchronisation | EVE SSO, ESI, SDE, Marktpreise, Cache und Wiederholungen |
+| Aufgabensteuerung | lokale Hintergrundaufgaben, Fortschritt und Fehlerstatus |
+| SQLite | Anwendungsdaten, Snapshots, Projekte und Synchronisationshistorie |
+| OS-Anmeldedatenspeicher | Refresh Tokens je EVE-Charakter |
+| Release-Paket | installierbarer Windows-Client mit Python-Laufzeit und Abhängigkeiten |
 
-Version 1.0 benötigt weder Redis noch einen externen Queue-, Such- oder Objektspeicherdienst.
+Version 1.0 benötigt weder PostgreSQL noch Redis, Docker, Reverse Proxy oder einen Hintergrundserver.
+
+## Technologiestack
+
+- **Sprache:** Python
+- **Desktop-UI:** PySide6/Qt
+- **Datenbank:** SQLite mit versionierten Migrationen
+- **HTTP:** asynchroner Python-Client mit zentralen Timeout-, Cache- und Retry-Regeln
+- **SSO:** Authorization Code mit PKCE über den Systembrowser und einen kurzlebigen lokalen Callback
+- **Tokenablage:** sicherer Anmeldedatenspeicher des Betriebssystems
+- **Tests:** pytest, Golden Tests und UI-nahe Integrationstests
+- **Paketierung:** eigenständiges Windows-Release, das keine separate Python-Installation verlangt
+
+Die Berechnungs- und Datenzugriffsschicht darf keine Abhängigkeit von Qt besitzen. Dadurch bleibt die Fachlogik unabhängig testbar und kann später auch von einer anderen Oberfläche verwendet werden.
 
 ## Repository-Struktur
 
 ```text
-apps/
-  web/                 Browser-Oberfläche und PWA
-  api/                 HTTP-API und Sitzungsprüfung
-  worker/              geplante und asynchrone Aufgaben
-packages/
+src/eve_production_tool/
+  app/                 Programmstart, Lebenszyklus und globale Konfiguration
+  ui/                  PySide6-Fenster, Ansichten, Dialoge und View-Modelle
   domain/              PI-, Blueprint-, Bestands- und Gewinnlogik
-  database/            Schema, Migrationen und Repositories
+  database/            SQLite-Schema, Migrationen und Repositories
   esi/                 ESI-Client, Cache und Datenadapter
+  sso/                 PKCE, lokaler Callback und Tokenverwaltung
   sde/                 SDE-Download, Prüfung und Import
-  contracts/           API-Verträge und gemeinsame Datentypen
-  config/              validierte Konfiguration
+  sync/                lokale Aufgabensteuerung und Synchronisationsläufe
   i18n/                deutsche und englische Texte
-docs/                   Produkt-, Architektur- und Fachdokumentation
+  resources/           Icons, Themes und statische Anwendungsressourcen
+tests/
+  unit/
+  integration/
+  golden/
+docs/
 ```
 
-Ein TypeScript-Monorepo stellt sicher, dass Web, API und Worker dieselben validierten Verträge und Domänentypen verwenden.
+## Lokales Betriebsmodell
 
-## Anwendungsgrenzen
+Eine Installation entspricht einem lokalen Nutzerprofil. Es gibt keine Anwendungskonten und keine Mandantenverwaltung.
 
-### Web
+- mehrere eigene EVE-Charaktere werden einzeln verbunden
+- jeder Datensatz mit Charakterbezug trägt eine `character_id`
+- gemeinsame lokale Projekte können Bestände mehrerer verbundener Charaktere verwenden
+- der Benutzer entscheidet pro Projekt, welche Charaktere berücksichtigt werden
+- alle Daten verbleiben im Anwendungsdatenverzeichnis des angemeldeten Betriebssystemnutzers
+- parallele Windows-Benutzerkonten erhalten durch getrennte Anwendungsdatenverzeichnisse unabhängige Installationsdaten
 
-- zeigt Daten und Prognosen an
-- besitzt keine EVE Client Secrets
-- führt keine direkten ESI-Aufrufe mit Refresh Tokens aus
-- kommuniziert ausschließlich mit der eigenen API
-- kennzeichnet aktuelle, veraltete, geschätzte und manuelle Werte
+Ein anderer Spieler erhält keine Zugangsdaten zu einer gemeinsamen Instanz. Er installiert seinen eigenen Client und verbindet ausschließlich seine eigenen Charaktere.
 
-### API
+## EVE SSO und Tokens
 
-- authentifiziert Nutzer und prüft jede Objektberechtigung
-- bietet kleine, versionierte Endpunkte
-- validiert alle Eingaben an der Systemgrenze
-- startet langlebige Aufgaben nur über die Warteschlange
-- speichert Kalkulationssnapshots für reproduzierbare Ergebnisse
+Desktop-Anwendungen können kein dauerhaftes Client Secret geheim halten. Deshalb verwendet der Client den für Desktop-Anwendungen vorgesehenen Authorization-Code-Flow mit PKCE.
 
-### Worker
+1. Der Client erzeugt einen kryptografisch zufälligen Code Verifier, Code Challenge und `state`.
+2. Die EVE-Anmeldung öffnet sich im Systembrowser.
+3. EVE SSO leitet auf einen registrierten lokalen Loopback-Callback zurück.
+4. Der Client akzeptiert genau den erwarteten Callback und prüft `state`.
+5. Der Authorization Code wird mit Code Verifier und öffentlicher Client ID eingelöst.
+6. Das Access Token wird vollständig validiert.
+7. Das Refresh Token wird unter einer charakterbezogenen Kennung im OS-Anmeldedatenspeicher abgelegt.
 
-- erneuert EVE Access Tokens serverseitig
-- verarbeitet ESI-Seiten konsistent
-- respektiert Cache- und Fehlerlimit-Header
-- importiert SDE-Daten in eine Staging-Version
-- berechnet PI-Prognosen und Markt-Snapshots
-- arbeitet wiederholbar; ein Retry darf Daten nicht doppelt erzeugen
+Weitere Regeln:
 
-## Authentifizierung und Nutzertrennung
+- Scopes werden modulbezogen und so spät wie möglich angefordert.
+- Refresh Tokens stehen niemals in SQLite, Logs, Exporten oder Fehlerberichten.
+- Access Tokens bleiben nur so lange wie nötig im Arbeitsspeicher.
+- Ein entfernter Charakter löscht seinen lokalen Tokenverweis und die gespeicherte Berechtigung.
+- Widerrufene oder abgelaufene Berechtigungen verlangen eine neue ausdrückliche Anmeldung.
+- OAuth-Endpunkte und Signaturschlüssel werden aus den offiziellen Metadaten ermittelt und angemessen gecacht.
 
-### Anmeldung
+## SQLite und lokale Daten
 
-Die Anmeldung erfolgt über EVE SSO. Der erste freigegebene Charakter erstellt beziehungsweise findet den zugehörigen Anwendungsnutzer. Weitere eigene Charaktere werden aus einer bereits authentifizierten Sitzung verknüpft.
+SQLite speichert:
 
-### Privater Zugang
-
-- öffentliche Selbstregistrierung ist deaktiviert
-- eine serverseitige Allowlist entscheidet, welche Charaktere erstmals einen Nutzer anlegen dürfen
-- ein Administrator kann später weitere Nutzer freigeben oder sperren
-- das Trennen eines Charakters widerruft seine lokale Tokenverwendung und löscht beziehungsweise archiviert seine privaten Daten nach festgelegter Regel
-
-### Mandantentrennung
-
-- private Tabellen tragen eine nicht-nullbare `user_id`
-- zusammengesetzte Fremdschlüssel verhindern Verknüpfungen zwischen Nutzern
-- Repository-/Service-Funktionen verlangen immer einen Nutzerkontext
-- Hintergrundjobs speichern `user_id` und `character_id` explizit
-- Tests versuchen gezielt, Daten eines anderen Nutzers zu lesen oder zu verändern
-- Corporation-Daten erhalten später einen getrennten Zugriffsbereich mit Rollen
-
-## Token- und Secret-Sicherheit
-
-- EVE Client Secret, Datenbankschlüssel und Verschlüsselungsschlüssel nur als Server-Secrets
-- Refresh Tokens verschlüsselt mit authentifizierter Verschlüsselung
-- pro Token eigener Nonce/IV und gespeicherte Schlüsselversion
-- Access Tokens nur kurzzeitig im Arbeitsspeicher beziehungsweise verschlüsselten Cache
-- keine Tokens in URLs, Browser-Storage, Logs oder Fehlermeldungen
-- JWT-Signatur, Aussteller, Zielgruppe, Ablauf und freigegebene Scopes werden geprüft
-- `state` schützt den OAuth-Callback gegen CSRF
-- Schlüsselrotation ist im Datenmodell vorgesehen
-
-## PostgreSQL und Hintergrundaufgaben
-
-PostgreSQL ist in Version 1.0 zugleich:
-
-- relationale Anwendungsdatenbank
-- Speicher für versionierte ESI-/Markt-/Kalkulationssnapshots
-- Job-Warteschlange für Worker-Aufgaben
+- lokale Einstellungen und Charaktermetadaten
+- Assets, Blueprints und Industry Jobs
+- Kolonie-Snapshots mit Pins, Links und Routen
+- Markt-, Preis- und Systemkosten-Snapshots
+- SDE-Importstatus und aktive Datenversion
+- Produktionsprojekte, Kalkulationssnapshots und manuelle Profile
 - Synchronisations- und Fehlerhistorie
 
-Eine PostgreSQL-basierte Warteschlange vermeidet einen zusätzlichen Redis-Dienst. Erst gemessene Last oder Funktionsgrenzen rechtfertigen später eine weitere Infrastrukturkomponente.
+Schreibvorgänge verwenden kurze Transaktionen. Lange Downloads und Berechnungen finden außerhalb einer offenen Schreibtransaktion statt. Migrationen werden vor dem Start der neuen Programmversion ausgeführt; davor legt der Client eine wiederherstellbare Sicherung an.
+
+SQLite selbst wird in Version 1.0 nicht als Ersatz für den sicheren Token-Speicher behandelt. Der Schutz der übrigen lokalen Daten beruht auf dem Benutzerkonto und den Datenträger-Schutzfunktionen des Betriebssystems.
+
+## Lokale Hintergrundaufgaben
+
+ESI-Synchronisation, SDE-Import, Marktpreisabrufe und Prognosen laufen in der Anwendung im Hintergrund, damit die Oberfläche bedienbar bleibt.
+
+- Aufgaben besitzen Status, Fortschritt, Abbruchsignal und verständliche Fehlerausgabe.
+- Netzwerk- und Datenbankarbeit blockiert niemals den UI-Thread.
+- Aufgaben sind wiederholbar; ein erneuter Lauf darf keine Duplikate erzeugen.
+- Fehler eines Charakters blockieren andere Charaktere nicht.
+- Beim Schließen kann der Client einen sicheren Abschluss laufender Schreibvorgänge abwarten.
+- Ist der Client geschlossen oder der Rechner ausgeschaltet, findet keine Synchronisation statt.
+
+Ein separater dauerhaft laufender Worker oder Systemdienst ist für Version 1.0 nicht vorgesehen.
 
 ## ESI-Client
 
@@ -129,79 +138,70 @@ Jede Anfrage verwendet:
 - exponentielles Backoff mit Zufallsanteil bei geeigneten temporären Fehlern
 - kein Retry bei fehlender Berechtigung oder fachlich ungültigen Anfragen
 
-Paginated Resources werden als konsistenter Abruf behandelt. Wenn sich relevante Cache-/Änderungsheader zwischen Seiten widersprechen, wird der Snapshot verworfen und später neu geladen.
+Seitennummerierte Ressourcen werden als konsistenter Abruf behandelt. Widersprechen sich relevante Cache- oder Änderungshinweise zwischen Seiten, wird der Snapshot verworfen und später neu geladen.
 
 ## SDE-Import
 
 1. Aktuelle Build-Metadaten mit HTTP-Caching prüfen.
-2. JSON-Lines-Archiv nur bei neuer Version herunterladen.
+2. Archiv nur bei einer neuen Version herunterladen.
 3. Prüfsumme, Dateistruktur und erwartete Kerndatensätze validieren.
-4. Daten in versionierte Staging-Tabellen importieren.
+4. Daten in eine neue lokale Importversion schreiben.
 5. Referenzen, Mengen und Pflichtfelder prüfen.
 6. Golden Tests gegen bekannte Blueprints und Schematics ausführen.
 7. Neue SDE-Version atomar aktivieren.
-8. Vorherige Version für einen begrenzten Rollback-Zeitraum behalten.
+8. Vorherige Version bis zum erfolgreichen Abschluss beziehungsweise für einen begrenzten Rollback-Zeitraum behalten.
 
 Ein fehlgeschlagener Import verändert niemals die aktive SDE-Version.
 
-## Daten- und Rechenmodell
+## Kalkulationssnapshots
 
-### Statische Daten
+Ein gespeicherter Produktionsplan verweist nicht nur auf aktuelle Werte, sondern hält verwendete Mengen, Preise, Gebühren, SDE-Version, ESI-Datenalter, Formelversion und manuelle Eingaben fest. Dadurch bleiben spätere Soll-/Ist-Vergleiche nachvollziehbar.
 
-- Typen und Übersetzungen
-- Blueprints, Aktivitäten, Materialien, Produkte und Zeiten
-- PI-Schematics
-- Systeme, Planeten, Stationen und weitere Universumsdaten
+Geldbeträge und Mengen verwenden Python `Decimal` beziehungsweise explizite ganzzahlige Einheiten. Unkontrollierte binäre Fließkommazahlen werden nicht für verbindliche ISK- oder Materialwerte eingesetzt.
 
-### Dynamische Daten
+## Installation und Updates
 
-- Charaktere und erteilte Scopes
-- Assets, Blueprints und Industry Jobs
-- Kolonie-Snapshots mit Pins, Links und Routen
-- Marktorder-, Preis- und Systemkosten-Snapshots
-- manuelle Standort-, POCO- und Logistikprofile
-
-### Kalkulationssnapshots
-
-Ein gespeicherter Produktionsplan verweist nicht nur auf „den aktuellen Preis“, sondern hält verwendete Mengen, Preise, Gebühren, SDE-Version, ESI-Datenalter und manuelle Eingaben fest. Dadurch bleiben spätere Soll-/Ist-Vergleiche nachvollziehbar.
-
-## Bereitstellung
-
-Die Zielumgebung wird mit Docker Compose betrieben:
-
-- Web-Container
-- API-Container
-- Worker-Container
-- PostgreSQL-Container beziehungsweise verwaltete PostgreSQL-Instanz
-- Reverse Proxy mit automatischem HTTPS
-
-Entwicklung und Produktion verwenden dieselben Containerdefinitionen mit getrennten Konfigurationen. Produktions-Secrets werden nicht in Compose-Dateien oder das Repository geschrieben.
+- Der normale Nutzer installiert ein signiertes beziehungsweise prüfbar veröffentlichtes Release-Paket und benötigt weder Python noch Docker.
+- Anwendungsdateien und veränderliche Nutzerdaten liegen in getrennten Verzeichnissen.
+- Ein Update darf die lokale Datenbank nicht ungefragt ersetzen.
+- Vor einer Datenmigration wird automatisch eine Sicherung erzeugt.
+- Ein späterer Update-Check darf eine neue Version melden; Download und Installation benötigen eine Bestätigung.
+- Entwicklung erfolgt in einer reproduzierbaren Python-Umgebung mit gesperrten Abhängigkeiten.
 
 ## Backup und Wiederherstellung
 
-- tägliches verschlüsseltes PostgreSQL-Backup
-- Aufbewahrungsregeln nach Generationen
-- Backup außerhalb der laufenden Datenbankinstanz
-- regelmäßiger automatisierter Integritätstest
-- dokumentierter Wiederherstellungstest vor Version 1.0
-- SDE-Daten müssen nicht vollständig gesichert werden, wenn sie reproduzierbar neu importierbar sind
+- manueller Export eines lokalen Backup-Pakets
+- optionaler automatischer Generationen-Backup beim Programmstart und vor Migrationen
+- Datenbank-Integritätsprüfung vor dem Verpacken
+- Refresh Tokens sind ausdrücklich nicht Bestandteil eines Backups
+- Wiederherstellung prüft Schema-, App- und Datenversion
+- SDE-Daten dürfen bei Bedarf neu importiert werden, um Backup-Größe zu reduzieren
 
 ## Architekturregeln
 
-1. Domänenlogik kennt weder HTTP noch konkrete Datenbanktabellen.
-2. ESI- und SDE-Payloads werden an Adaptern in interne Typen übersetzt.
-3. Geldbeträge verwenden eine dezimal sichere Darstellung, keine unkontrollierten Fließkommazahlen.
-4. Zeitpunkte werden intern in UTC gespeichert und in der Oberfläche lokal dargestellt.
+1. Domänenlogik kennt weder Qt-Widgets noch konkrete ESI-Payloads.
+2. ESI- und SDE-Payloads werden an Adaptern in interne Modelle übersetzt.
+3. Geldbeträge verwenden `Decimal`; Rundung erfolgt nur an fachlich festgelegten Grenzen.
+4. Zeitpunkte werden intern in UTC gespeichert und lokal angezeigt.
 5. Berechnungen erhalten explizite Einheiten.
 6. Manuelle, geschätzte und automatisch geladene Werte tragen Herkunft und Zeitstempel.
-7. Fehler in einem Charakter dürfen die Synchronisation anderer Charaktere nicht blockieren.
+7. Netzwerkzugriffe blockieren niemals den UI-Thread.
+8. Tokens werden weder protokolliert noch in SQLite oder Exporte geschrieben.
+9. Datenpfade werden über die Betriebssystem-APIs ermittelt und nicht relativ zum Installationsordner angenommen.
+10. Jede Datenmigration ist getestet und besitzt einen klaren Fehler- und Wiederherstellungsweg.
 
 ## Offene Detailentscheidungen für Phase 1
 
-- konkrete Framework- und Paketversionen
-- konkreter PostgreSQL-Queue-Adapter
-- Hostinganbieter und Domain
-- Backupziel
-- genaue Sitzungsbibliothek
+- unterstützte Python-Version und genaue Paketversionen
+- konkretes Windows-Paketierungs- und Installerverfahren
+- konkreter Datenbank-Migrationsadapter
+- konkrete OS-Anmeldedatenspeicher-Integration
+- finaler lokaler Callback-Port beziehungsweise registrierte Callback-Strategie
+- signierter Release- und Updatekanal
 
-Diese Punkte verändern die beschlossene Systemarchitektur nicht und werden erst bei der technischen Initialisierung festgelegt.
+Diese Punkte verändern die beschlossene lokale Client-Architektur nicht und werden bei der technischen Initialisierung festgelegt.
+
+## Offizielle Referenzen
+
+- [EVE SSO und Authorization Code mit PKCE](https://developers.eveonline.com/docs/services/sso/)
+- [ESI Best Practices](https://developers.eveonline.com/docs/services/esi/best-practices/)

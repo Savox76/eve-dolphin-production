@@ -1,6 +1,6 @@
 # EVE Production Tool
 
-Privat betriebenes Produktions-Cockpit für **EVE Online**, das Planetare Industrie (PI) und klassische Fertigung in einer gemeinsamen Planung verbindet. Die erste Version ist nur für freigegebene Nutzer erreichbar, wird technisch aber von Beginn an mehrbenutzerfähig aufgebaut.
+Lokal betriebenes Produktions-Cockpit für **EVE Online**, das Planetare Industrie (PI) und klassische Fertigung in einer gemeinsamen Planung verbindet. Jede Installation verwaltet ausschließlich die eigenen Charaktere und Daten des jeweiligen Spielers.
 
 ## Projektziel
 
@@ -23,7 +23,9 @@ Das Tool soll aus Blueprints, Kolonien, Assets, Marktpreisen und laufenden Jobs 
 - gemeinsamer PI-/Manufacturing-Produktionsgraph
 - Build-or-Buy-Vergleich
 - Markt-, Gebühren-, Gewinn- und Logistikkalkulation
-- responsive Oberfläche auf Deutsch und Englisch
+- lokale Python-Desktop-Oberfläche auf Deutsch und Englisch
+- lokale SQLite-Datenbank ohne Hoster oder separaten Datenbankdienst
+- eigenständige Installation für jeden Spieler
 
 Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md), die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md), der [Formel- und Bewertungskatalog](docs/FORMULA_CATALOG.md), die [Seitenstruktur und Wireframes](docs/UX_STRUCTURE.md) sowie die [Abnahme von Phase 0](docs/PHASE_0_ACCEPTANCE.md).
 
@@ -39,6 +41,7 @@ Nächster Meilenstein: **Phase 1 – Technisches Fundament**
 - Funktionen werden in eigenen Branches entwickelt.
 - Ein Merge erfolgt erst nach vollständig grünen erforderlichen Checks.
 - EVE-Zugangsdaten und Secrets gehören niemals in das Repository.
+- Refresh Tokens gehören in den sicheren Anmeldedatenspeicher des Betriebssystems und nicht in die SQLite-Datenbank.
 - Das Tool führt keine automatisierten Aktionen im EVE-Client aus.
 - Offizielle EVE-Schnittstellen und veröffentlichte statische Daten bilden die Grundlage.
 

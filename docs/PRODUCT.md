@@ -10,30 +10,28 @@ Der Name ist bewusst funktional. Nutzer sollen ohne zusätzliche Erklärung erke
 
 ## Erster Betriebsmodus
 
-Die erste nutzbare Version wird **privat online erreichbar** betrieben.
+Die erste nutzbare Version wird als **lokaler Python-Desktop-Client** ausgeliefert.
 
-- Zugriff über HTTPS im Desktop- und Mobilbrowser
-- responsive Oberfläche und PWA-Vorbereitung
-- keine öffentliche Registrierung
-- Zugang nur für ausdrücklich freigegebene Nutzer
-- EVE-Charaktere werden ausschließlich über EVE SSO verbunden
-- Secrets und Refresh Tokens verbleiben serverseitig
-- reproduzierbare Bereitstellung mit Docker Compose
+- Bedienung in einem eigenen Desktop-Fenster
+- lokale SQLite-Datenbank ohne Hoster und ohne separaten Datenbankdienst
+- keine öffentliche Registrierung und keine zentrale Benutzerverwaltung
+- mehrere eigene EVE-Charaktere pro Installation
+- Charaktere werden ausschließlich über EVE SSO mit Authorization Code und PKCE verbunden
+- Refresh Tokens werden im sicheren Anmeldedatenspeicher des Betriebssystems abgelegt
+- ESI-, SDE- und Marktdaten werden nur synchronisiert, während der Client läuft
+- Windows ist die erste Release-Plattform; die Python-Codebasis bleibt für weitere Desktop-Systeme portierbar
 
-Der konkrete Hostinganbieter und die Domain werden erst ausgewählt, wenn die technische Grundlage und der Ressourcenbedarf feststehen. Dadurch entstehen in der Spezifikationsphase keine unnötigen laufenden Kosten.
+Jeder Spieler installiert das Tool selbst und besitzt eine vollständig unabhängige Datenablage. Es gibt keine gemeinsamen Konten, keinen zentralen Server und keinen Verkauf von Zugängen.
 
-## Mehrbenutzerfähigkeit
+## Lokale Profile und Charaktere
 
-Obwohl die erste Version privat bleibt, wird die Anwendung von Anfang an mehrbenutzerfähig modelliert:
-
-- jeder Nutzer besitzt einen getrennten Anwendungsbereich
-- jeder EVE-Charakter gehört genau einem freigegebenen Nutzerkonto
-- EVE-Tokens, Kolonien, Assets, Blueprints und Projekte werden benutzerbezogen gespeichert
-- gemeinsame Corporation-Daten erhalten später ein eigenes Rollen- und Freigabemodell
-- Hintergrundjobs dürfen Daten verschiedener Nutzer nicht vermischen
+- eine Installation entspricht einem lokalen Nutzerprofil
+- jeder EVE-Charakter wird einzeln über EVE SSO autorisiert
+- Charakterdaten, Kolonien, Assets, Blueprints und Projekte bleiben auf dem jeweiligen Rechner
+- die Anzahl eigener Charaktere erhält keine künstliche fachliche Obergrenze
+- ein Charakter kann getrennt werden, ohne andere lokale Charaktere zu beeinflussen
+- Export, Backup und Wiederherstellung arbeiten mit einem dokumentierten lokalen Datenpaket; Tokens werden nicht exportiert
 - Logs enthalten keine Tokens oder vollständigen privaten EVE-Daten
-
-Eine spätere Öffnung für weitere Spieler erfordert damit vor allem Betriebs-, Support- und Registrierungsfunktionen, aber keinen grundlegenden Umbau der Datenarchitektur.
 
 ## Produktgrenzen
 
@@ -55,9 +53,9 @@ Maßgeblich bleibt die jeweils aktuelle [CCP Developer License Agreement](https:
 |---|---|
 | Produktname | EVE Production Tool |
 | Beschreibung | Produktionsplanung für EVE Online |
-| Erstbetrieb | privat online erreichbar |
-| Zielgeräte | Desktop- und Mobilbrowser, PWA vorbereitet |
-| Nutzer | zunächst freigegebener privater Nutzerkreis |
-| Architektur | von Anfang an mehrbenutzerfähig |
-| Öffentliche Registrierung | nicht Bestandteil von Version 1.0 |
+| Erstbetrieb | lokaler Python-Desktop-Client |
+| Zielgeräte | Windows-Desktop zuerst; weitere Desktop-Systeme später möglich |
+| Nutzer | ein lokales Profil mit mehreren eigenen Charakteren |
+| Datenspeicher | SQLite lokal; Tokens im Anmeldedatenspeicher des Betriebssystems |
+| Hoster und Registrierung | nicht erforderlich |
 | Monetarisierung | nicht Bestandteil von Version 1.0 |

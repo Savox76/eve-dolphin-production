@@ -33,14 +33,14 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 
 ### D-005 – Betriebsart
 
-- **Status:** beschlossen am 30.08.2026
+- **Status:** ersetzt am 30.08.2026 durch D-014
 - **Entscheidung:** Die erste nutzbare Version wird als privat online erreichbare Web-App betrieben.
 - **Zugriff:** Öffentliche Selbstregistrierung bleibt zunächst deaktiviert; nur freigegebene Nutzer erhalten Zugang.
 - **Zielgeräte:** Desktop- und Mobilbrowser; die Oberfläche wird als installierbare PWA vorbereitet.
 
 ### D-006 – Technologiestack
 
-- **Status:** beschlossen am 30.08.2026
+- **Status:** ersetzt am 30.08.2026 durch D-014
 - **Entscheidung:** TypeScript-Monorepo mit getrennten Web-, API- und Worker-Prozessen, PostgreSQL und Docker Compose.
 - **Web:** React-basierte Server-/Client-Web-App mit PWA-Unterstützung.
 - **API:** schlanker TypeScript-HTTP-Dienst mit typisierten Verträgen.
@@ -50,7 +50,7 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 
 ### D-007 – Mehrbenutzerfähigkeit
 
-- **Status:** beschlossen am 30.08.2026
+- **Status:** ersetzt am 30.08.2026 durch D-014
 - **Entscheidung:** Benutzer-, Charakter-, Token- und Produktionsdaten werden von Anfang an mandantengetrennt modelliert.
 - **Begründung:** Das private Tool kann später für weitere Spieler geöffnet werden, ohne die Sicherheits- und Datenarchitektur neu aufzubauen.
 - **Einschränkung:** Mehrbenutzerfähigkeit bedeutet in Version 1.0 keine öffentliche Registrierung oder Bezahlfunktion.
@@ -86,9 +86,10 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 
 ### D-012 – Arbeitsorientierte responsive Navigation
 
-- **Status:** beschlossen am 30.08.2026
+- **Status:** für den Desktop-Client durch D-014 angepasst
 - **Desktop:** Alle acht Hauptansichten bleiben in einer linken Navigation sichtbar; Datenstatus und „Neues Projekt“ stehen global bereit.
-- **Mobil:** Bottom Navigation priorisiert Übersicht, PI und Projekte; weitere Bereiche liegen unter „Mehr“.
+- **Kompaktes Fenster:** Die Navigation wird schmaler und mehrspaltige Inhalte werden geordnet gestapelt, ohne Funktionen auszublenden.
+- **Historie:** Die ursprünglich beschlossene mobile Bottom Navigation ist durch den lokalen Desktop-Betrieb nicht mehr Bestandteil von Version 1.0.
 - **Datenqualität:** Aktuelle, veraltete, geschätzte, manuelle, unvollständige und blockierte Daten werden durch Text, Symbol und Farbe unterschieden.
 - **Begründung:** Die wichtigsten Kontrollen müssen unterwegs schnell erreichbar sein, ohne dass Desktop-Nutzer Übersicht oder Kontext verlieren.
 
@@ -98,4 +99,19 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Entscheidung:** Die Produktspezifikation ist vollständig genug, um mit dem technischen Fundament zu beginnen.
 - **Nachweis:** Produkt, Referenzabläufe, Datenmatrix, Architektur, Formelkatalog und UX-Spezifikation sind dokumentiert; die Repository-Checks waren erfolgreich.
 - **Fortschritt:** Phase 0 entspricht `5 %` des Gesamtprojekts.
-- **Nächster Schritt:** Phase 1 baut das TypeScript-Monorepo, die lokale Infrastruktur und die automatisierte Qualitätsprüfung auf.
+- **Nächster Schritt:** Phase 1 baut nach der Architekturänderung D-014 den lokalen Python-Client, seine lokale Infrastruktur und die automatisierte Qualitätsprüfung auf.
+
+### D-014 – Lokaler Python-Desktop-Client
+
+- **Status:** beschlossen am 30.08.2026
+- **Entscheidung:** Version 1.0 wird als eigenständiger lokaler Python-Desktop-Client umgesetzt; ein Hoster ist nicht erforderlich.
+- **Oberfläche:** PySide6/Qt mit eigener Desktop-Navigation; Windows ist die erste Release-Plattform.
+- **Daten:** SQLite speichert lokale Anwendungs-, Charakter-, ESI-, PI-, Produktions- und Projektdaten.
+- **Charaktere:** Jede Installation kann mehrere eigene EVE-Charaktere verbinden; es gibt keine zentrale Benutzerverwaltung oder gemeinsamen Zugänge.
+- **SSO:** Authorization Code mit PKCE, öffentlicher Client ID, Systembrowser und registriertem lokalem Callback; ein Client Secret wird nicht in die Anwendung eingebettet.
+- **Tokens:** Refresh Tokens werden im sicheren Anmeldedatenspeicher des Betriebssystems und nicht in SQLite abgelegt.
+- **Hintergrundarbeit:** ESI-, SDE- und Marktaktualisierungen laufen lokal, solange der Client geöffnet ist; ein dauerhafter Worker-Dienst ist nicht vorgesehen.
+- **Auslieferung:** Das Windows-Release enthält die erforderliche Python-Laufzeit, sodass Nutzer weder Python, Docker noch eine Datenbank separat installieren müssen.
+- **Verteilung:** Jeder Spieler installiert eine unabhängige Kopie und verbindet ausschließlich seine eigenen Charaktere. Zugangshandel und zentrale Monetarisierung sind kein Projektziel.
+- **Ersetzt:** D-005, D-006 und D-007. Die Desktop-Struktur aus D-012 bleibt fachliche Grundlage; die mobile PWA gehört nicht mehr zu Version 1.0.
+- **Begründung:** Das Tool soll ohne laufende Hostingkosten und Serverwartung persönlich nutzbar und als eigenständiger Client an andere Spieler weitergebbar sein.
