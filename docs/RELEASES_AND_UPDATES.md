@@ -1,36 +1,31 @@
 # Releases und Updates
 
-## Repositorygrenze
+## Repository und Berechtigungsgrenze
 
-- `Savox76/eve-dolphin-production`: privater Quellcode, Tests und Buildworkflow
-- `Savox76/eve-dolphin-releases`: öffentliche Windows-ZIP-Dateien, SHA-256-Dateien und
-  nutzerseitige Release Notes
+- `Savox76/eve-dolphin-production` enthält öffentlichen Quellcode, Tests, Buildworkflow,
+  Windows-ZIP-Dateien, SHA-256-Dateien und nutzerseitige Release Notes.
+- Releases werden im selben Repository veröffentlicht, aus dem sie gebaut wurden.
 
-Der Desktop-Client besitzt kein GitHub-Token. Er kann das öffentliche Release-Repository
-anonym lesen, während derselbe anonyme Zugriff auf das Produktions-Repository scheitert.
+Der Desktop-Client besitzt kein GitHub-Token und liest veröffentlichte Releases anonym über
+HTTPS. Der GitHub-Actions-Workflow verwendet ausschließlich das kurzlebige, auf dieses
+Repository begrenzte `GITHUB_TOKEN`.
 
-## Einmalige GitHub-Einrichtung
+## GitHub-Einrichtung
 
-Für den Cross-Repository-Schritt benötigt der private Produktionsworkflow ein
-**Fine-grained Personal Access Token** mit:
-
-- Repositoryzugriff ausschließlich auf `Savox76/eve-dolphin-releases`
-- Repository Permission `Contents: Read and write`
-- keine Berechtigung für `eve-dolphin-production`
-
-Das Token wird im privaten Produktions-Repository als Actions Secret
-`EVE_DOLPHIN_RELEASES_TOKEN` gespeichert. Es darf nicht in Quellcode, Release-Repository,
-EXE, Log oder lokale Konfigurationsdateien gelangen.
+Es ist kein Personal Access Token und kein zusätzliches Actions Secret erforderlich. Der
+Workflow fordert nur für den Veröffentlichungsschritt `contents: write` an; Build und Tests
+arbeiten mit `contents: read`.
 
 ## Veröffentlichung
 
 Der Workflow `Publish Windows Release` wird nach einem grünen Merge manuell gestartet. Der
 angegebene Tag muss exakt der Anwendungsversion entsprechen. Der Workflow:
 
-1. baut das Windows-Paket aus dem privaten Quellcode,
+1. baut das Windows-Paket aus dem geprüften `main`-Stand,
 2. führt den paketierten Selbsttest aus,
 3. erzeugt ZIP und SHA-256-Datei,
-4. veröffentlicht nur diese beiden Dateien und die Release Notes im öffentlichen Repository.
+4. veröffentlicht diese beiden Dateien und die Release Notes als GitHub Release im selben
+   Repository.
 
 Die erste updaterfähige Version ist `v0.2.0`. Sie muss noch über den bisherigen manuellen
 Download installiert werden. Ab `v0.2.0` erkennt EVE Dolphin neuere veröffentlichte Versionen
