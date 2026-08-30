@@ -83,3 +83,11 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Alternativen:** Planned Buy, Planned Sell, tatsächliche Einkaufskosten und interne Preise bleiben als ausdrücklich gewählte Szenarien verfügbar.
 - **Nachvollziehbarkeit:** Jede Kalkulation speichert Preisquelle, Marktseite, Datenalter, Gebührenprofil, SDE-Build und Formelversion.
 - **Begründung:** Verdeckte Mischpreise würden Gewinne überzeichnen. Ein konservativer Standard bleibt vergleichbar und kann vom Nutzer bewusst optimistischer eingestellt werden.
+
+### D-012 – Arbeitsorientierte responsive Navigation
+
+- **Status:** beschlossen am 30.08.2026
+- **Desktop:** Alle acht Hauptansichten bleiben in einer linken Navigation sichtbar; Datenstatus und „Neues Projekt“ stehen global bereit.
+- **Mobil:** Bottom Navigation priorisiert Übersicht, PI und Projekte; weitere Bereiche liegen unter „Mehr“.
+- **Datenqualität:** Aktuelle, veraltete, geschätzte, manuelle, unvollständige und blockierte Daten werden durch Text, Symbol und Farbe unterschieden.
+- **Begründung:** Die wichtigsten Kontrollen müssen unterwegs schnell erreichbar sein, ohne dass Desktop-Nutzer Übersicht oder Kontext verlieren.
