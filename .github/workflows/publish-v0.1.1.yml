@@ -1,0 +1,82 @@
+name: Publish EVE Dolphin v0.1.1
+
+on:
+  push:
+    branches:
+      - automation/release-v0.1.1
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-eve-dolphin-v0.1.1
+  cancel-in-progress: false
+
+jobs:
+  windows-release:
+    name: Build and publish Windows client
+    runs-on: windows-latest
+    steps:
+      - name: Checkout tested source
+        uses: actions/checkout@v4
+        with:
+          ref: 0cb49879314c5b76b973041b22baf846a47e5f8b
+          persist-credentials: false
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install locked dependencies
+        run: uv sync --locked --all-groups
+
+      - name: Build and validate Windows client
+        shell: pwsh
+        run: ./scripts/build_windows.ps1
+
+      - name: Package Windows client
+        shell: pwsh
+        run: |
+          $Archive = "EVE-Dolphin-Windows-v0.1.1.zip"
+          Compress-Archive -Path "dist/EVE-Dolphin" -DestinationPath $Archive
+          $Hash = (Get-FileHash $Archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$Hash  $Archive" | Set-Content "$Archive.sha256"
+
+      - name: Write release notes
+        shell: pwsh
+        run: |
+          @'
+          ## EVE Dolphin v0.1.1 – SSO-Patch
+
+          Diese Testversion behebt den Fehler nach der ersten EVE-Charakterauswahl.
+
+          Korrekturen:
+          - PKCE-Tokenaustausch entspricht dem offiziellen EVE-Payload für öffentliche Desktop-Clients.
+          - Ein sicher signiertes Identitäts-Token ohne Scope-Claim wird als Login ohne ESI-Freigaben erkannt.
+          - Signatur, Aussteller, Ablaufzeit, Zielgruppe, Client-ID und Charakteridentität werden weiterhin vollständig geprüft.
+
+          Installation:
+          1. EVE-Dolphin-Windows-v0.1.1.zip herunterladen.
+          2. ZIP vollständig in einen neuen Ordner entpacken; nicht über v0.1.0 kopieren.
+          3. EVE-Dolphin.exe im Ordner EVE-Dolphin starten.
+
+          Hinweis: Die Anwendung ist noch nicht digital signiert. Windows SmartScreen kann deshalb beim ersten Start eine Warnung anzeigen.
+          '@ | Set-Content RELEASE_NOTES.md
+
+      - name: Create GitHub prerelease
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.1.1 `
+            --repo "${{ github.repository }}" `
+            --target "0cb49879314c5b76b973041b22baf846a47e5f8b" `
+            --title "EVE Dolphin v0.1.1 – SSO-Patch" `
+            --notes-file RELEASE_NOTES.md `
+            --prerelease `
+            "EVE-Dolphin-Windows-v0.1.1.zip" `
+            "EVE-Dolphin-Windows-v0.1.1.zip.sha256"
