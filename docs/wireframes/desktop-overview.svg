@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">Desktop-Wireframe der EVE Production Tool Übersicht</title>
+  <desc id="desc">Linke Hauptnavigation, obere Statusleiste, nächste Aktionen, aktive Projekte, PI-Zustand und eine Legende für Datenqualität.</desc>
+  <defs>
+    <style>
+      .bg{fill:#08111f}.side{fill:#0f1b2d}.surface{fill:#111f33}.surface2{fill:#16263c}.line{stroke:#31445f;stroke-width:1}.text{fill:#f3f7fb;font-family:Inter,Arial,sans-serif}.muted{fill:#9aacbf;font-family:Inter,Arial,sans-serif}.accent{fill:#38bdf8}.good{fill:#34d399}.warn{fill:#fbbf24}.estimate{fill:#c084fc}.manual{fill:#60a5fa}.blocked{fill:#fb7185}.h1{font-size:26px;font-weight:600}.h2{font-size:16px;font-weight:600}.body{font-size:14px}.small{font-size:12px}.nav{font-size:14px}.num{font-size:24px;font-weight:600}
+    </style>
+  </defs>
+  <rect class="bg" width="1440" height="900"/>
+  <rect class="side" width="264" height="900"/>
+  <text class="text h2" x="24" y="34">EVE Production Tool</text>
+  <text class="muted small" x="24" y="55">Unabhängiges Produktions-Cockpit</text>
+
+  <g aria-label="Hauptnavigation">
+    <rect class="surface2" x="12" y="82" width="240" height="42" rx="8"/>
+    <circle class="accent" cx="32" cy="103" r="5"/><text class="text nav" x="48" y="108">Übersicht</text>
+    <circle class="muted" cx="32" cy="149" r="5"/><text class="muted nav" x="48" y="154">Planetare Industrie</text>
+    <circle class="muted" cx="32" cy="195" r="5"/><text class="muted nav" x="48" y="200">PI-Zielplaner</text>
+    <circle class="muted" cx="32" cy="241" r="5"/><text class="muted nav" x="48" y="246">Produktionsprojekte</text>
+    <circle class="muted" cx="32" cy="287" r="5"/><text class="muted nav" x="48" y="292">Blueprints</text>
+    <circle class="muted" cx="32" cy="333" r="5"/><text class="muted nav" x="48" y="338">Inventar &amp; Logistik</text>
+    <circle class="muted" cx="32" cy="379" r="5"/><text class="muted nav" x="48" y="384">Markt &amp; Kalkulation</text>
+    <circle class="muted" cx="32" cy="425" r="5"/><text class="muted nav" x="48" y="430">Einstellungen &amp; Charaktere</text>
+  </g>
+
+  <line class="line" x1="264" y1="72" x2="1440" y2="72"/>
+  <text class="muted body" x="294" y="43">Privater Workspace</text>
+  <circle class="good" cx="1028" cy="36" r="5"/><text class="muted small" x="1040" y="40">Sync vor 3 Min.</text>
+  <rect class="surface2" x="1150" y="18" width="74" height="36" rx="8"/><text class="text body" x="1175" y="41">DE</text>
+  <rect class="accent" x="1240" y="18" width="168" height="36" rx="8"/><text class="side body" x="1272" y="41">+ Neues Projekt</text>
+
+  <text class="text h1" x="294" y="120">Übersicht</text>
+  <text class="muted body" x="294" y="145">Was heute Aufmerksamkeit benötigt</text>
+
+  <g aria-label="Dringliche Kennzahlen">
+    <rect class="surface" x="294" y="174" width="260" height="108" rx="10"/>
+    <text class="muted small" x="314" y="202">AKTIVE PROJEKTE</text><text class="text num" x="314" y="244">3</text><text class="muted small" x="350" y="242">1 mit Blocker</text>
+    <rect class="surface" x="570" y="174" width="260" height="108" rx="10"/>
+    <text class="muted small" x="590" y="202">EXTRACTORS &lt; 24 H</text><text class="text num" x="590" y="244">2</text><text class="warn small" x="626" y="242">Aktion nötig</text>
+    <rect class="surface" x="846" y="174" width="260" height="108" rx="10"/>
+    <text class="muted small" x="866" y="202">OFFENER EINKAUF</text><text class="text num" x="866" y="244">184 Mio.</text><text class="muted small" x="980" y="242">ISK</text>
+    <rect class="surface" x="1122" y="174" width="286" height="108" rx="10"/>
+    <text class="muted small" x="1142" y="202">ERWARTETER NETTOGEWINN</text><text class="text num" x="1142" y="244">42,6 Mio.</text><text class="estimate small" x="1268" y="242">Geschätzt</text>
+  </g>
+
+  <rect class="surface" x="294" y="302" width="548" height="258" rx="10"/>
+  <text class="text h2" x="316" y="334">Nächste Aktionen</text>
+  <line class="line" x1="316" y1="352" x2="820" y2="352"/>
+  <circle class="blocked" cx="326" cy="382" r="6"/><text class="text body" x="344" y="379">J151141: Exportweg blockiert</text><text class="muted small" x="344" y="400">Kein Customs Office bestätigt</text><text class="accent small" x="728" y="389">Öffnen →</text>
+  <line class="line" x1="316" y1="420" x2="820" y2="420"/>
+  <circle class="warn" cx="326" cy="450" r="6"/><text class="text body" x="344" y="447">PI-Alt-A: Extractor endet in 7 h</text><text class="muted small" x="344" y="468">Water-Prognose sinkt unter Planbedarf</text><text class="accent small" x="728" y="457">Planen →</text>
+  <line class="line" x1="316" y1="488" x2="820" y2="488"/>
+  <circle class="manual" cx="326" cy="518" r="6"/><text class="text body" x="344" y="515">Industry-Structure-A prüfen</text><text class="muted small" x="344" y="536">Steuerprofil vor 21 Tagen manuell geändert</text><text class="accent small" x="728" y="525">Prüfen →</text>
+
+  <rect class="surface" x="860" y="302" width="548" height="258" rx="10"/>
+  <text class="text h2" x="882" y="334">Planetare Industrie</text>
+  <line class="line" x1="882" y1="352" x2="1386" y2="352"/>
+  <text class="muted small" x="882" y="380">CHARAKTER / PLANET</text><text class="muted small" x="1168" y="380">STATUS</text><text class="muted small" x="1290" y="380">NÄCHSTES EREIGNIS</text>
+  <text class="text body" x="882" y="414">PI-Alt-A · Oceanic I</text><circle class="good" cx="1178" cy="409" r="5"/><text class="muted small" x="1190" y="414">Aktuell</text><text class="text body" x="1290" y="414">7 h</text>
+  <line class="line" x1="882" y1="430" x2="1386" y2="430"/>
+  <text class="text body" x="882" y="464">PI-Alt-B · Barren IV</text><circle class="estimate" cx="1178" cy="459" r="5"/><text class="muted small" x="1190" y="464">Geschätzt</text><text class="text body" x="1290" y="464">18 h</text>
+  <line class="line" x1="882" y1="480" x2="1386" y2="480"/>
+  <text class="text body" x="882" y="514">PI-Alt-B · Temperate II</text><circle class="warn" cx="1178" cy="509" r="5"/><text class="muted small" x="1190" y="514">Veraltet</text><text class="text body" x="1290" y="514">Sync nötig</text>
+
+  <rect class="surface" x="294" y="578" width="1114" height="220" rx="10"/>
+  <text class="text h2" x="316" y="610">Aktive Produktionsprojekte</text>
+  <text class="muted small" x="316" y="642">PROJEKT</text><text class="muted small" x="662" y="642">FORTSCHRITT</text><text class="muted small" x="902" y="642">FERTIG</text><text class="muted small" x="1080" y="642">GEWINN</text><text class="muted small" x="1260" y="642">DATEN</text>
+  <line class="line" x1="316" y1="654" x2="1386" y2="654"/>
+  <text class="text body" x="316" y="686">10 × Caracal</text><rect class="surface2" x="662" y="673" width="180" height="10" rx="5"/><rect class="accent" x="662" y="673" width="126" height="10" rx="5"/><text class="text body" x="902" y="686">Heute, 21:40</text><text class="good body" x="1080" y="686">+18,4 Mio.</text><text class="muted small" x="1260" y="686">Aktuell</text>
+  <line class="line" x1="316" y1="704" x2="1386" y2="704"/>
+  <text class="text body" x="316" y="736">5.000 × Robotics</text><rect class="surface2" x="662" y="723" width="180" height="10" rx="5"/><rect class="estimate" x="662" y="723" width="72" height="10" rx="5"/><text class="text body" x="902" y="736">In 12 Tagen</text><text class="estimate body" x="1080" y="736">+31,2 Mio.</text><text class="estimate small" x="1260" y="736">Geschätzt</text>
+  <line class="line" x1="316" y1="754" x2="1386" y2="754"/>
+  <text class="text body" x="316" y="786">10.000 × Nanite Repair Paste</text><rect class="surface2" x="662" y="773" width="180" height="10" rx="5"/><rect class="blocked" x="662" y="773" width="36" height="10" rx="5"/><text class="blocked body" x="902" y="786">Blockiert</text><text class="muted body" x="1080" y="786">—</text><text class="manual small" x="1260" y="786">Manuell</text>
+
+  <g aria-label="Legende Datenzustände">
+    <text class="muted small" x="294" y="842">DATENZUSTÄNDE</text>
+    <circle class="good" cx="414" cy="838" r="5"/><text class="muted small" x="426" y="842">Aktuell</text>
+    <circle class="warn" cx="500" cy="838" r="5"/><text class="muted small" x="512" y="842">Veraltet</text>
+    <circle class="estimate" cx="600" cy="838" r="5"/><text class="muted small" x="612" y="842">Geschätzt</text>
+    <circle class="manual" cx="710" cy="838" r="5"/><text class="muted small" x="722" y="842">Manuell</text>
+    <circle class="blocked" cx="804" cy="838" r="5"/><text class="muted small" x="816" y="842">Blockiert</text>
+  </g>
+</svg>

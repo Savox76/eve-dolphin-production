@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">Desktop-Wireframe eines Produktionsprojekts</title>
+  <desc id="desc">Projektkopf, Tabs, Warnung, Materialentscheidungen, Kostenbrücke und kritischer Zeitplan für zehn Caracals.</desc>
+  <defs><style>
+    .bg{fill:#08111f}.side{fill:#0f1b2d}.surface{fill:#111f33}.surface2{fill:#16263c}.line{stroke:#31445f;stroke-width:1}.text{fill:#f3f7fb;font-family:Inter,Arial,sans-serif}.muted{fill:#9aacbf;font-family:Inter,Arial,sans-serif}.accent{fill:#38bdf8}.good{fill:#34d399}.warn{fill:#fbbf24}.estimate{fill:#c084fc}.manual{fill:#60a5fa}.blocked{fill:#fb7185}.h1{font-size:26px;font-weight:600}.h2{font-size:16px;font-weight:600}.body{font-size:14px}.small{font-size:12px}.num{font-size:22px;font-weight:600}
+  </style></defs>
+  <rect class="bg" width="1440" height="900"/><rect class="side" width="264" height="900"/>
+  <text class="text h2" x="24" y="34">EVE Production Tool</text><text class="muted small" x="24" y="55">Produktionsplanung für EVE Online</text>
+  <text class="muted body" x="48" y="108">Übersicht</text><text class="muted body" x="48" y="154">Planetare Industrie</text><text class="muted body" x="48" y="200">PI-Zielplaner</text>
+  <rect class="surface2" x="12" y="220" width="240" height="42" rx="8"/><circle class="accent" cx="32" cy="241" r="5"/><text class="text body" x="48" y="246">Produktionsprojekte</text>
+  <text class="muted body" x="48" y="292">Blueprints</text><text class="muted body" x="48" y="338">Inventar &amp; Logistik</text><text class="muted body" x="48" y="384">Markt &amp; Kalkulation</text><text class="muted body" x="48" y="430">Einstellungen &amp; Charaktere</text>
+  <line class="line" x1="264" y1="72" x2="1440" y2="72"/><text class="muted body" x="294" y="43">Projekte / 10 × Caracal</text><circle class="good" cx="1148" cy="36" r="5"/><text class="muted small" x="1160" y="40">Gespeichert</text><rect class="accent" x="1260" y="18" width="148" height="36" rx="8"/><text class="side body" x="1290" y="41">Plan starten</text>
+
+  <text class="text h1" x="294" y="120">10 × Caracal</text><text class="muted body" x="294" y="146">Main-Char · Industry-Structure-A · Jita-Profile</text>
+  <rect class="surface2" x="1198" y="98" width="210" height="44" rx="8"/><text class="good body" x="1220" y="125">Machbar · 18,4 Mio. ISK</text>
+
+  <g aria-label="Projekttabs"><text class="accent body" x="294" y="190">Übersicht</text><text class="muted body" x="394" y="190">Materialien</text><text class="muted body" x="504" y="190">Plan</text><text class="muted body" x="566" y="190">Kosten</text><text class="muted body" x="644" y="190">Logistik</text><text class="muted body" x="734" y="190">Änderungen</text><line x1="294" y1="202" x2="362" y2="202" stroke="#38bdf8" stroke-width="3"/></g>
+
+  <rect x="294" y="222" width="1114" height="54" rx="8" fill="#322b16"/><circle class="warn" cx="318" cy="249" r="6"/><text class="text body" x="336" y="246">Marktdaten sind 48 Minuten alt.</text><text class="muted small" x="336" y="264">Plan bleibt sichtbar, Gewinn erhält Status „Veraltet“.</text><text class="accent small" x="1310" y="254">Aktualisieren</text>
+
+  <rect class="surface" x="294" y="294" width="714" height="344" rx="10"/><text class="text h2" x="318" y="326">Materialbedarf und Bezugsweg</text>
+  <text class="muted small" x="318" y="358">MATERIAL</text><text class="muted small" x="610" y="358">BEDARF</text><text class="muted small" x="712" y="358">DECKUNG</text><text class="muted small" x="888" y="358">STATUS</text><line class="line" x1="318" y1="370" x2="984" y2="370"/>
+  <text class="text body" x="318" y="404">Tritanium</text><text class="text body" x="610" y="404">3.986.400</text><text class="text body" x="712" y="404">Bestand + Kaufen</text><circle class="good" cx="896" cy="399" r="5"/><text class="muted small" x="908" y="404">Aktuell</text>
+  <line class="line" x1="318" y1="422" x2="984" y2="422"/><text class="text body" x="318" y="456">Pyerite</text><text class="text body" x="610" y="456">817.300</text><text class="text body" x="712" y="456">Kaufen</text><circle class="good" cx="896" cy="451" r="5"/><text class="muted small" x="908" y="456">Aktuell</text>
+  <line class="line" x1="318" y1="474" x2="984" y2="474"/><text class="text body" x="318" y="508">Mexallon</text><text class="text body" x="610" y="508">301.900</text><text class="text body" x="712" y="508">Transport</text><circle class="manual" cx="896" cy="503" r="5"/><text class="muted small" x="908" y="508">Manuell</text>
+  <line class="line" x1="318" y1="526" x2="984" y2="526"/><text class="text body" x="318" y="560">Isogen</text><text class="text body" x="610" y="560">74.500</text><text class="text body" x="712" y="560">Kaufen</text><circle class="warn" cx="896" cy="555" r="5"/><text class="muted small" x="908" y="560">Veraltet</text>
+  <line class="line" x1="318" y1="578" x2="984" y2="578"/><text class="accent body" x="318" y="612">Alle Materialien anzeigen →</text><text class="muted small" x="712" y="612">Bezugsweg direkt änderbar</text>
+
+  <rect class="surface" x="1026" y="294" width="382" height="344" rx="10"/><text class="text h2" x="1050" y="326">Kostenbrücke</text>
+  <text class="muted body" x="1050" y="370">Materialwert</text><text class="text body" x="1280" y="370">162,0 Mio.</text>
+  <text class="muted body" x="1050" y="410">Jobkosten</text><text class="text body" x="1280" y="410">4,6 Mio.</text>
+  <text class="muted body" x="1050" y="450">Logistik</text><text class="manual body" x="1280" y="450">2,1 Mio.</text>
+  <text class="muted body" x="1050" y="490">Marktgebühren</text><text class="text body" x="1280" y="490">14,9 Mio.</text>
+  <line class="line" x1="1050" y1="514" x2="1384" y2="514"/><text class="muted body" x="1050" y="548">Nettoerlös</text><text class="text body" x="1280" y="548">202,0 Mio.</text>
+  <text class="text h2" x="1050" y="594">Nettogewinn</text><text class="good num" x="1244" y="594">18,4 Mio.</text><text class="warn small" x="1050" y="618">Veraltet · Jita Orders vor 48 Min.</text>
+
+  <rect class="surface" x="294" y="656" width="1114" height="190" rx="10"/><text class="text h2" x="318" y="688">Kritischer Pfad</text><text class="muted small" x="318" y="714">Material kaufen</text><text class="muted small" x="585" y="714">Transport</text><text class="muted small" x="814" y="714">Manufacturing</text><text class="muted small" x="1158" y="714">Verkauf</text>
+  <line x1="332" y1="760" x2="1364" y2="760" stroke="#31445f" stroke-width="8" stroke-linecap="round"/>
+  <line x1="332" y1="760" x2="544" y2="760" stroke="#38bdf8" stroke-width="8" stroke-linecap="round"/><circle class="accent" cx="332" cy="760" r="10"/><circle class="manual" cx="585" cy="760" r="10"/><circle class="estimate" cx="814" cy="760" r="10"/><circle class="good" cx="1158" cy="760" r="10"/><circle class="muted" cx="1364" cy="760" r="10"/>
+  <text class="text body" x="318" y="808">Heute 18:00</text><text class="text body" x="772" y="808">Job: 10 h 34 min</text><text class="text body" x="1250" y="808">Morgen 21:40</text>
+</svg>
