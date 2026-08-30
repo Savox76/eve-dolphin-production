@@ -47,6 +47,16 @@ def test_access_token_signature_and_character_claims_are_validated() -> None:
     )
 
 
+def test_identity_only_access_token_without_scope_claim_is_validated() -> None:
+    private_key, jwks = _signing_material()
+    token = _encode_token(private_key, include_scope_claim=False)
+
+    character = EveAccessTokenValidator(JwksTransport(jwks)).validate(token, _metadata(), CLIENT_ID)
+
+    assert character.character_id == 2112345678
+    assert character.granted_scopes == ()
+
+
 def test_access_token_for_another_client_is_rejected() -> None:
     private_key, jwks = _signing_material()
     token = _encode_token(private_key, audiences=["different-client", "EVE Online"])
@@ -90,19 +100,23 @@ def _encode_token(
     private_key: rsa.RSAPrivateKey,
     audiences: list[str] | None = None,
     key_id: str = KEY_ID,
+    *,
+    include_scope_claim: bool = True,
 ) -> str:
     now = datetime.now(UTC)
+    claims: dict[str, object] = {
+        "iss": "https://login.eveonline.com/",
+        "aud": audiences or [CLIENT_ID, "EVE Online"],
+        "sub": "CHARACTER:EVE:2112345678",
+        "name": "Industrial Pilot",
+        "owner": "owner-hash",
+        "iat": now,
+        "exp": now + timedelta(minutes=20),
+    }
+    if include_scope_claim:
+        claims["scp"] = ["esi-assets.read_assets.v1", "esi-planets.manage_planets.v1"]
     return jwt.encode(
-        {
-            "iss": "https://login.eveonline.com/",
-            "aud": audiences or [CLIENT_ID, "EVE Online"],
-            "sub": "CHARACTER:EVE:2112345678",
-            "name": "Industrial Pilot",
-            "owner": "owner-hash",
-            "scp": ["esi-assets.read_assets.v1", "esi-planets.manage_planets.v1"],
-            "iat": now,
-            "exp": now + timedelta(minutes=20),
-        },
+        claims,
         private_key,
         algorithm="RS256",
         headers={"kid": key_id},

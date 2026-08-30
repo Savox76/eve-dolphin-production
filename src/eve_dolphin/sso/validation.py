@@ -67,7 +67,7 @@ class EveAccessTokenValidator:
                 algorithms=[ALLOWED_ALGORITHM],
                 audience=EXPECTED_EVE_AUDIENCE,
                 issuer=ACCEPTED_ISSUERS,
-                options={"require": ["exp", "iss", "aud", "sub", "name", "scp"]},
+                options={"require": ["exp", "iss", "aud", "sub", "name"]},
             )
             return _validated_character(cast(dict[str, object], claims), client_id)
         except AccessTokenValidationError:
@@ -110,7 +110,10 @@ def _validated_character(claims: dict[str, object], client_id: str) -> Validated
     character_name = claims.get("name")
     if not isinstance(character_name, str) or not character_name.strip():
         raise AccessTokenValidationError("access token has no character name")
-    scopes = _string_sequence(claims.get("scp"), "scp")
+    # Identity-only SSO tokens may not carry an ``scp`` claim. Treating a
+    # missing claim as no permissions is the conservative interpretation: ESI
+    # access remains unavailable until the player explicitly grants scopes.
+    scopes = _string_sequence(claims.get("scp", ()), "scp")
     owner = claims.get("owner")
     if owner is not None and not isinstance(owner, str):
         raise AccessTokenValidationError("access token has an invalid owner claim")

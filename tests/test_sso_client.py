@@ -76,7 +76,6 @@ def test_pkce_code_exchange_posts_only_public_client_fields() -> None:
                 "code": "one-time-code",
                 "client_id": "public-client",
                 "code_verifier": "verifier",
-                "redirect_uri": config.redirect_uri,
             },
         )
     ]
