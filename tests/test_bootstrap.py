@@ -6,6 +6,7 @@ import pytest
 
 from eve_dolphin.app.bootstrap import build_context, main, run_self_check
 from eve_dolphin.app.paths import AppPaths
+from eve_dolphin.database.migrations import LATEST_SCHEMA_VERSION
 
 
 def test_context_initializes_local_database(tmp_path: Path) -> None:
@@ -26,7 +27,7 @@ def test_self_check_reports_version_and_schema(
 
     captured = capsys.readouterr()
     assert exit_code == 0
-    assert "OK (schema 1)" in captured.out
+    assert f"OK (schema {LATEST_SCHEMA_VERSION})" in captured.out
 
 
 def test_cli_self_check_uses_temporary_profile(capsys: pytest.CaptureFixture[str]) -> None:

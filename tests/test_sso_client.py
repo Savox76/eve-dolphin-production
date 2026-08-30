@@ -81,3 +81,25 @@ def test_pkce_code_exchange_posts_only_public_client_fields() -> None:
         )
     ]
     assert "client_secret" not in transport.posts[0][1]
+
+
+def test_refresh_posts_rotatable_token_without_client_secret() -> None:
+    transport = FakeTransport()
+    client = EveSsoClient(transport)
+    metadata = SsoMetadata.from_mapping(transport.get_json(METADATA_URL))
+    config = SsoConfig(client_id="public-client")
+
+    response = client.refresh_access_token(metadata, config, "current-refresh-token")
+
+    assert response.refresh_token == "private-refresh-token"
+    assert transport.posts == [
+        (
+            metadata.token_endpoint,
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": "current-refresh-token",
+                "client_id": "public-client",
+            },
+        )
+    ]
+    assert "client_secret" not in transport.posts[0][1]

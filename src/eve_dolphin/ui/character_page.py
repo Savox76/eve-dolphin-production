@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from eve_dolphin.characters import (
+    AuthorizationStatus,
     BrowserLaunchError,
     CharacterLinkService,
     CharacterRepository,
@@ -40,6 +41,7 @@ from eve_dolphin.sso.callback import (
 )
 from eve_dolphin.sso.client import EveSsoClient
 from eve_dolphin.sso.config import SsoConfig, SsoConfigurationError
+from eve_dolphin.sso.transport import OAuthTokenRequestError
 from eve_dolphin.sso.validation import AccessTokenValidationError, EveAccessTokenValidator
 
 LOGGER = logging.getLogger(__name__)
@@ -89,6 +91,8 @@ class CharacterSsoWorker(QThread):
             self.failed.emit("sso_invalid_response")
         except (httpx.HTTPError, OSError):
             self.failed.emit("sso_network_failed")
+        except OAuthTokenRequestError:
+            self.failed.emit("sso_invalid_response")
         except KeyringError:
             self.failed.emit("sso_keyring_failed")
         except Exception:
@@ -118,7 +122,7 @@ class CharacterPage(QWidget):
         self._unlink_character = unlink_character or self._unlink_local_character
         self._worker: CharacterSsoWorker | None = None
 
-        self.table = QTableWidget(0, 3)
+        self.table = QTableWidget(0, 4)
         self.table.setObjectName("characterTable")
         self.connect_button = QPushButton(self._translator.text("connect_character"))
         self.connect_button.setObjectName("connectCharacterButton")
@@ -157,6 +161,7 @@ class CharacterPage(QWidget):
             (
                 self._translator.text("character_name"),
                 self._translator.text("scope_count"),
+                self._translator.text("authorization_status"),
                 self._translator.text("linked_at"),
             )
         )
@@ -168,6 +173,7 @@ class CharacterPage(QWidget):
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
 
         actions = QHBoxLayout()
         actions.addWidget(self.connect_button)
@@ -190,12 +196,20 @@ class CharacterPage(QWidget):
             name = QTableWidgetItem(character.character_name)
             name.setData(Qt.ItemDataRole.UserRole, character.character_id)
             scope_count = QTableWidgetItem(str(len(character.granted_scopes)))
+            authorization_status = QTableWidgetItem(
+                self._translator.text(
+                    "authorization_active"
+                    if character.authorization_status is AuthorizationStatus.ACTIVE
+                    else "authorization_required"
+                )
+            )
             linked_at = QTableWidgetItem(
                 character.linked_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
             )
             self.table.setItem(row, 0, name)
             self.table.setItem(row, 1, scope_count)
-            self.table.setItem(row, 2, linked_at)
+            self.table.setItem(row, 2, authorization_status)
+            self.table.setItem(row, 3, linked_at)
         self.table.clearSelection()
         self.unlink_button.setEnabled(False)
         self.status_label.setText(

@@ -34,11 +34,23 @@ Phase 2 verbindet den lokalen Client sicher mit EVE Online und baut die belastba
 - [x] Übersichtsseite zeigt die tatsächliche Anzahl lokal verbundener Charaktere
 - [x] Authorization-Code-Austausch sendet Client-ID, PKCE-Verifier und die registrierte Redirect-URL, aber kein Client Secret
 
+## Dritter Baustein: Token-Erneuerung und Berechtigungspakete
+
+- [x] Refresh-Anfragen verwenden den form-codierten PKCE-Public-Client-Flow ohne Client Secret
+- [x] jedes von EVE zurückgegebene Refresh Token ersetzt vor weiteren Metadaten-Schreibvorgängen den vorherigen Wert
+- [x] parallele Refresh-Versuche desselben Charakters werden innerhalb des gemeinsamen Dienstes serialisiert
+- [x] `invalid_grant` entfernt das ungültige Token und stoppt weitere automatische Versuche
+- [x] temporäre OAuth- und Rate-Limit-Fehler entfernen kein weiterhin nutzbares Refresh Token
+- [x] erneuerte Access Tokens werden erneut kryptografisch validiert und dem gespeicherten Charakter zugeordnet
+- [x] fehlende Tokens und Identitätsabweichungen verlangen eine erneute ausdrückliche Autorisierung
+- [x] der lokale Anmeldestatus ist migriert, persistent und in der Charaktertabelle sichtbar
+- [x] getrennte Minimalpakete für Identität, Industrie und Planetare Industrie sind im Code festgelegt
+- [x] Portalwerte, Scope-Liste, PowerShell-Konfiguration und Sicherheitsgrenzen sind in `docs/EVE_DEVELOPER_APPLICATION.md` dokumentiert
+
 ## Noch offen bis zur Phase-2-Abnahme
 
 - [ ] EVE-Developer-Anwendung mit öffentlicher Client ID und exaktem Callback registrieren
-- [ ] Refresh-Flow, Widerrufserkennung und erneute Autorisierung
-- [ ] progressive Scope-Pakete für Assets, Blueprints, Jobs und PI
+- [ ] Modulaktivierung fordert fehlende Industrie-/PI-Scopes sichtbar über eine erneute Autorisierung an
 - [ ] SDE-Download, Prüfung, Versionierung und atomarer Import
 - [ ] ESI-Client mit Kompatibilitätsdatum, Cache, ETag, Retry und Fehlerlimit-Schutz
 - [ ] erste Asset-, Blueprint-, Job- und Planetensynchronisation

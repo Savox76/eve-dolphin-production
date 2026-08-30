@@ -20,6 +20,9 @@ Ein Desktop-Release darf kein EVE Client Secret enthalten. Die öffentliche Clie
 - Der lokale Callback bindet ausschließlich an `127.0.0.1`, prüft Pfad und kryptografisches `state` exakt und protokolliert keine Callback-Parameter.
 - Access Tokens werden vor jeder Charakterverknüpfung anhand der offiziellen JWKS-Signatur, eines fest erlaubten RSA-Algorithmus, Issuer, Ablauf, Charakter-Subject und beider Audience-Werte validiert.
 - Refresh Tokens werden charakterbezogen im sicheren Anmeldedatenspeicher des Betriebssystems abgelegt.
+- Beim Erneuern wird ein von EVE rotiertes Refresh Token sofort im sicheren Anmeldedatenspeicher ersetzt.
+- `invalid_grant`, ein fehlendes lokales Token oder eine abweichende Charakteridentität stoppt weitere automatische Refresh-Versuche und verlangt eine neue Autorisierung.
+- Temporäre SSO- und Rate-Limit-Fehler löschen keine weiterhin gültige Freigabe.
 - Access Tokens verbleiben nur so lange wie erforderlich im Arbeitsspeicher.
 - Tokens werden niemals in SQLite, Logs, Backups oder Exporte geschrieben.
 - Ein Charakter kann jederzeit getrennt und seine Daten können gelöscht werden.

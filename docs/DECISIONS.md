@@ -177,3 +177,13 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Berechtigungen:** Die erste Anmeldung bestätigt nur die Charakteridentität. Fachliche Scopes werden später progressiv mit dem jeweiligen Modul angefordert.
 - **Konfiguration:** Entwicklungsstände lesen die öffentliche Client-ID aus `EVE_SSO_CLIENT_ID`; der exakte registrierte Callback ist `http://127.0.0.1:38636/callback`. Ein Client Secret wird nicht verwendet.
 - **Begründung:** Mehrere Charaktere müssen sicher verbunden werden können, ohne dass Netzwerk- oder Browserwartezeiten das Desktop-Fenster blockieren.
+
+### D-021 – Rotierende Refresh Tokens und Berechtigungszustand
+
+- **Status:** beschlossen am 30.08.2026
+- **Rotation:** Jede erfolgreiche Erneuerung validiert das neue Access Token und ersetzt anschließend das von EVE zurückgegebene Refresh Token im OS-Anmeldedatenspeicher. Eine nachfolgende SQLite-Aktualisierung darf diesen neuen Wert bei einem Fehler nicht auf das möglicherweise bereits ungültige Vorgängertoken zurücksetzen.
+- **Parallelität:** Der gemeinsame Token-Dienst serialisiert Refresh-Versuche je Charakter, damit eine Rotation nicht durch eine zweite gleichzeitige Anfrage fälschlich als Widerruf behandelt wird.
+- **Widerruf:** `invalid_grant`, ein fehlendes lokales Token oder eine sichere Charakter-/Owner-Abweichung setzt den persistenten Status `reauthorization_required`. Ungültige Tokens werden entfernt; weitere automatische Versuche bleiben bis zur neuen Browser-Autorisierung aus.
+- **Temporäre Fehler:** Netzwerk-, Rate-Limit- und sonstige vorübergehende OAuth-Fehler verändern Token und Berechtigungsstatus nicht.
+- **Scopes:** Identität fordert keine Fachberechtigung. Industrie und PI besitzen getrennte Minimalpakete, die erst bei Aktivierung des jeweiligen Moduls angefordert werden.
+- **Begründung:** EVE kann Refresh Tokens rotieren und Spieler können den Zugriff widerrufen. Der Client muss beide Fälle sicher unterscheiden, ohne gültige Tokens bei vorübergehenden Störungen zu zerstören oder ungültige Tokens wiederholt an EVE zu senden.
