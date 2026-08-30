@@ -115,3 +115,15 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Verteilung:** Jeder Spieler installiert eine unabhängige Kopie und verbindet ausschließlich seine eigenen Charaktere. Zugangshandel und zentrale Monetarisierung sind kein Projektziel.
 - **Ersetzt:** D-005, D-006 und D-007. Die Desktop-Struktur aus D-012 bleibt fachliche Grundlage; die mobile PWA gehört nicht mehr zu Version 1.0.
 - **Begründung:** Das Tool soll ohne laufende Hostingkosten und Serverwartung persönlich nutzbar und als eigenständiger Client an andere Spieler weitergebbar sein.
+
+### D-015 – Technische Basis des lokalen Clients
+
+- **Status:** beschlossen am 30.08.2026
+- **Python:** Python 3.12 ist die Entwicklungs- und Paketierungsbasis von Version 1.0.
+- **Oberfläche:** PySide6 `6.11.2`.
+- **Lokale Integration:** `platformdirs` `4.11.5` für Betriebssystempfade und `keyring` `25.7.0` für den Anmeldedatenspeicher.
+- **Datenbank:** Standardbibliothek `sqlite3` mit eigenen geordneten, transaktionalen Migrationen; vor einer Migration einer bestehenden Datenbank wird eine lokale Sicherung erstellt.
+- **Qualität:** pytest `9.1.1`, Ruff `0.16.5` und mypy `2.3.1`.
+- **Paketierung:** PyInstaller `6.22.2`; Windows-Pakete werden auf einem Windows-Runner gebaut und durch einen paketierten Selbsttest geprüft.
+- **Reproduzierbarkeit:** Direkte und transitive Python-Abhängigkeiten werden in `uv.lock` festgeschrieben.
+- **Begründung:** Der Client erhält eine kleine, lokal wartbare Laufzeit ohne externen Datenbank- oder Serverdienst und kann trotzdem als eigenständiges Windows-Paket ausgeliefert werden.

@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling==1.32.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "eve-production-tool"
+version = "0.1.0"
+description = "Local production planning desktop client for EVE Online"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "keyring==25.7.0",
+  "platformdirs==4.11.5",
+  "PySide6==6.11.2",
+]
+
+[project.scripts]
+eve-production-tool = "eve_production_tool.app.bootstrap:main"
+
+[dependency-groups]
+dev = [
+  "mypy==2.3.1",
+  "pyinstaller==6.22.2",
+  "pytest==9.1.1",
+  "ruff==0.16.5",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eve_production_tool"]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "RUF", "SIM", "UP"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src", "tests"]
+warn_unreachable = true

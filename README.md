@@ -27,13 +27,36 @@ Das Tool soll aus Blueprints, Kolonien, Assets, Marktpreisen und laufenden Jobs 
 - lokale SQLite-Datenbank ohne Hoster oder separaten Datenbankdienst
 - eigenständige Installation für jeden Spieler
 
-Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md), die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md), der [Formel- und Bewertungskatalog](docs/FORMULA_CATALOG.md), die [Seitenstruktur und Wireframes](docs/UX_STRUCTURE.md) sowie die [Abnahme von Phase 0](docs/PHASE_0_ACCEPTANCE.md).
+Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md), die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md), der [Formel- und Bewertungskatalog](docs/FORMULA_CATALOG.md), die [Seitenstruktur und Wireframes](docs/UX_STRUCTURE.md), die [Abnahme von Phase 0](docs/PHASE_0_ACCEPTANCE.md) sowie der [Arbeitsstand von Phase 1](docs/PHASE_1_STATUS.md).
 
 ## Projektstatus
 
 **Gesamtfortschritt: 5 %**
 
 Nächster Meilenstein: **Phase 1 – Technisches Fundament**
+
+Phase 1 ist in Umsetzung. Das erste technische Paket enthält den lokalen Python-Client, die SQLite-Migrationsbasis, sichere Token-Speichergrenzen, automatisierte Qualitätsprüfungen und einen validierten Windows-Paketbuild. Der gewichtete Fortschritt steigt erst nach vollständiger Abnahme der Phase.
+
+## Entwicklung und lokaler Start
+
+Voraussetzungen für die Entwicklung sind Python 3.12 und `uv`. Endnutzer benötigen diese Werkzeuge später nicht.
+
+```bash
+uv sync --locked --all-groups
+uv run eve-production-tool --self-check
+uv run eve-production-tool
+```
+
+Qualitätsprüfungen:
+
+```bash
+uv run ruff format --check .
+uv run ruff check .
+uv run mypy
+uv run pytest
+```
+
+Der Client legt veränderliche Daten im Anwendungsdatenverzeichnis des jeweiligen Betriebssystemnutzers ab. Ein explizites Testprofil kann mit `--data-dir <pfad>` gewählt werden. Build-Artefakte aus Pull Requests sind technische Testpakete und noch keine öffentlich signierten Releases.
 
 ## Entwicklungsgrundsätze
 
