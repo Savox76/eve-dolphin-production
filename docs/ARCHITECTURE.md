@@ -163,6 +163,26 @@ Anfragen, statt den Server bis zur Sperre weiter zu belasten. Die folgende
 Seitensynchronisation baut auf dem bereits zurückgegebenen `X-Pages`-Wert auf und
 prüft die von CCP geforderte gemeinsame `Last-Modified`-Version aller Seiten.
 
+## Charakterbezogene Industrie-Snapshots
+
+Assets und persönliche Blueprints werden als ein gemeinsamer, unveränderlicher
+Snapshot pro Charakter behandelt. EVE Dolphin erneuert dafür einmalig das Access
+Token, prüft die beiden ausdrücklich benötigten Scopes und lädt anschließend alle
+Seiten beider Ressourcen. `X-Pages` darf sich während eines Abrufs nicht ändern und
+alle Seiten einer Ressource müssen denselben `Last-Modified`-Stand besitzen.
+
+Erst nach erfolgreicher Payload-Prüfung schreibt eine einzelne SQLite-Transaktion
+den Snapshot, alle Asset-/Blueprint-Zeilen, die aktive Snapshotreferenz, den
+erfolgreichen Synchronisationslauf und `last_sync_at`. Der bisherige Snapshot wird
+innerhalb derselben Transaktion erst nach dem Wechsel entfernt. Bei Netzwerk-,
+Berechtigungs-, Seiten-, Validierungs- oder Datenbankfehlern bleibt er vollständig
+aktiv. Ein Fehler eines Charakters verändert niemals den Snapshot eines anderen.
+
+Die ESI-Routen besitzen aktuell eine Client-Cachezeit von einer Stunde. Der
+Zeitpunkt des aktiven Snapshots liegt in SQLite, sodass ein Neustart diese Grenze
+nicht umgeht. Dieser erste Snapshot enthält bewusst noch keine Asset-Namen,
+Industry Jobs oder Planeten; diese Ressourcen folgen in getrennten Bausteinen.
+
 ## SDE-Import
 
 1. Aktuelle Build-Metadaten mit HTTP-Caching prüfen.

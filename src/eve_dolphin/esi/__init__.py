@@ -9,12 +9,14 @@ from eve_dolphin.esi.errors import (
     EsiTransportError,
 )
 from eve_dolphin.esi.models import EsiCacheEntry, EsiResponse
+from eve_dolphin.esi.pagination import EsiPaginator
 
 __all__ = [
     "ESI_COMPATIBILITY_DATE",
     "EsiCacheEntry",
     "EsiError",
     "EsiHttpError",
+    "EsiPaginator",
     "EsiProtocolError",
     "EsiRateLimitError",
     "EsiResponse",

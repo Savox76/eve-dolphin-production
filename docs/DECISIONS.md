@@ -207,3 +207,13 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Wiederholungen:** Netzwerkfehler und temporäre `420`, `429`, `502`, `503` und `504` erhalten höchstens zwei begrenzte Wiederholungen. Authentifizierungs- und fachliche 4xx-Antworten werden nicht wiederholt.
 - **Limits:** Der Client respektiert `Retry-After`, das globale ESI-Fehlerbudget und die neuen gruppenbezogenen Rate-Limit-Buckets. Ein niedriges Restbudget sperrt weitere Anfragen vorübergehend lokal.
 - **Grenze:** Dieser Baustein stellt den gemeinsamen Transport bereit. Konsistente Mehrseiten-Snapshots und ihre dauerhafte SQLite-Speicherung gehören zu den folgenden ressourcenspezifischen Synchronisierern.
+
+### D-024 – Gemeinsamer Asset- und Blueprint-Snapshot
+
+- **Status:** beschlossen am 30.08.2026
+- **Einheit:** Assets und persönliche Blueprints bilden pro Charakter einen gemeinsamen Produktionssnapshot, damit Bestands- und Blueprintplanung niemals Daten aus unterschiedlich erfolgreichen Abrufen kombiniert.
+- **Mehrseitenkonsistenz:** `X-Pages` muss während des Abrufs stabil bleiben und alle Seiten einer Ressource müssen denselben `Last-Modified`-Stand tragen. Abweichungen verwerfen den vollständigen neuen Abruf.
+- **Aktivierung:** Snapshot, normalisierte Datensätze, aktive Referenz, Synchronisationslauf und `last_sync_at` wechseln in einer einzelnen SQLite-Transaktion. Erst danach wird der vorherige Snapshot entfernt.
+- **Isolation:** Jeder Snapshot gehört genau einem Charakter. Fehler, fehlende Scopes oder widerrufene Tokens eines Charakters verändern weder dessen bisher gültige Daten noch Daten anderer Charaktere.
+- **Persistenter Cache:** Der aktive Snapshot verhindert für die offizielle einstündige Cachezeit auch über einen Programmneustart hinweg unnötige ESI- und Tokenanfragen.
+- **Scopes:** Dieser Abruf benötigt ausschließlich `esi-assets.read_assets.v1` und `esi-characters.read_blueprints.v1`. Der Industry-Job-Scope wird erst mit dem Job-Synchronisierer verwendet.

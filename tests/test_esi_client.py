@@ -15,6 +15,7 @@ from eve_dolphin.esi import (
     EsiTransportError,
     EveEsiClient,
 )
+from eve_dolphin.esi.pagination import EsiPaginator
 
 NOW = datetime(2026, 8, 30, 13, 0, tzinfo=UTC)
 
@@ -190,6 +191,45 @@ def test_invalid_pages_and_private_request_boundaries_are_rejected() -> None:
         client.get_json("https://attacker.invalid/")
     with pytest.raises(ValueError):
         client.get_json("/characters/7/assets/", access_token="token")
+
+
+def test_paginator_collects_consistent_pages() -> None:
+    requested_pages: list[int] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        page = int(request.url.params["page"])
+        requested_pages.append(page)
+        return httpx.Response(
+            200,
+            json=[{"item_id": page}],
+            headers={"X-Pages": "2", "Last-Modified": "Sun, 30 Aug 2026 12:00:00 GMT"},
+        )
+
+    records, last_modified = EsiPaginator(_client(handler)).get_list(
+        "/characters/7/assets/", access_token="token", character_id=7
+    )
+
+    assert records == ({"item_id": 1}, {"item_id": 2})
+    assert last_modified == "Sun, 30 Aug 2026 12:00:00 GMT"
+    assert requested_pages == [1, 2]
+
+
+def test_paginator_rejects_pages_from_different_resource_versions() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        page = int(request.url.params["page"])
+        return httpx.Response(
+            200,
+            json=[],
+            headers={
+                "X-Pages": "2",
+                "Last-Modified": f"Sun, 30 Aug 2026 1{page}:00:00 GMT",
+            },
+        )
+
+    with pytest.raises(EsiProtocolError, match="inconsistent"):
+        EsiPaginator(_client(handler)).get_list(
+            "/characters/7/assets/", access_token="token", character_id=7
+        )
 
 
 def _client(

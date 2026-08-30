@@ -13,6 +13,7 @@ class EsiCacheEntry:
     last_modified: str | None
     expires_at: datetime | None
     received_at: datetime
+    pages: int | None = None
 
     def __post_init__(self) -> None:
         if self.received_at.tzinfo is None:
@@ -29,3 +30,5 @@ class EsiResponse:
     from_cache: bool
     not_modified: bool
     pages: int | None
+    etag: str | None
+    last_modified: str | None
