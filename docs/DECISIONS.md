@@ -156,7 +156,9 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Scope-Schutz:** Version 1.0 bleibt unverändert auf PI und Manufacturing begrenzt. Die Umbenennung erhöht weder die Abnahmekriterien noch den Fortschrittswert.
 - **Technik:** Projektkennung, Python-Paket, Startkommando, lokale App-Pfade und Release-Pakete werden vor dem ersten öffentlichen Release auf `eve-dolphin`, `eve_dolphin` und `EVE-Dolphin` umgestellt. Es existieren noch keine produktiven Nutzerdaten oder gespeicherten Live-Tokens, die migriert werden müssten.
 - **Branding:** Die Anwendung bleibt klar als unabhängige Drittanbieter-Anwendung gekennzeichnet. Offizielle EVE-Logos werden nicht so mit dem eigenen Erscheinungsbild kombiniert, dass eine Unterstützung durch CCP suggeriert wird.
-- **Veröffentlichung:** Eine gemeinsame private Python-Codebasis erzeugt getrennte Pakete je Betriebssystem. Später kann ein separates öffentliches Repository ausschließlich Binärpakete, Prüfsummen und Changelog bereitstellen.
+- **Veröffentlichung:** Die private Python-Codebasis liegt in `Savox76/eve-dolphin-production`.
+  Das öffentliche `Savox76/eve-dolphin-releases` enthält ausschließlich geprüfte
+  Binärpakete, Prüfsummen und Changelogs.
 
 ### D-019 – Mining und PVE nach Version 1.0
 
@@ -170,7 +172,7 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 
 ### D-020 – Nicht blockierende Charakterverknüpfung
 
-- **Status:** beschlossen am 30.08.2026
+- **Status:** beschlossen am 30.08.2026; Berechtigungsablauf durch D-026 ersetzt
 - **Oberfläche:** Unter „Einstellungen & Charaktere“ werden lokal verbundene Charaktere sichtbar aufgelistet, einzeln verbunden und nach Bestätigung getrennt.
 - **Thread-Grenze:** Metadatenabruf, lokaler Callback, Token-Austausch, JWT-Prüfung und Keyring-Zugriff laufen außerhalb des UI-Threads.
 - **Browser:** Der Callback-Port wird gebunden, bevor der Systembrowser geöffnet wird. EVE Dolphin zeigt oder verarbeitet keine EVE-Passwörter.
@@ -185,7 +187,8 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Parallelität:** Der gemeinsame Token-Dienst serialisiert Refresh-Versuche je Charakter, damit eine Rotation nicht durch eine zweite gleichzeitige Anfrage fälschlich als Widerruf behandelt wird.
 - **Widerruf:** `invalid_grant`, ein fehlendes lokales Token oder eine sichere Charakter-/Owner-Abweichung setzt den persistenten Status `reauthorization_required`. Ungültige Tokens werden entfernt; weitere automatische Versuche bleiben bis zur neuen Browser-Autorisierung aus.
 - **Temporäre Fehler:** Netzwerk-, Rate-Limit- und sonstige vorübergehende OAuth-Fehler verändern Token und Berechtigungsstatus nicht.
-- **Scopes:** Identität fordert keine Fachberechtigung. Industrie und PI besitzen getrennte Minimalpakete, die erst bei Aktivierung des jeweiligen Moduls angefordert werden.
+- **Scopes:** Die getrennten Minimalpakete bleiben technisch erhalten. Ihr erstmaliger
+  Anforderungszeitpunkt für Industrie und PI wird durch D-026 gemeinsam festgelegt.
 - **Begründung:** EVE kann Refresh Tokens rotieren und Spieler können den Zugriff widerrufen. Der Client muss beide Fälle sicher unterscheiden, ohne gültige Tokens bei vorübergehenden Störungen zu zerstören oder ungültige Tokens wiederholt an EVE zu senden.
 
 ### D-022 – Buildbasierter und atomarer SDE-Import
@@ -226,3 +229,38 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 - **Genauigkeit:** Kosten und Erfolgswahrscheinlichkeiten werden beim JSON-Einlesen direkt als `Decimal` übernommen und als Dezimaltext gespeichert.
 - **Aktivierung:** Validierte Jobs, aktive Referenz, erfolgreicher Lauf und `last_sync_at` werden atomar geschrieben. Bei jedem Fehler bleiben der bisherige Snapshot und die Daten anderer Charaktere unverändert.
 - **Berechtigung:** Ausschließlich dieser Baustein benötigt `esi-industry.read_character_jobs.v1`; fehlt der Scope, erfolgt keine Job-Datenanfrage.
+
+### D-026 – Gemeinsame Erstfreigabe und Fünf-Minuten-Synchronisation
+
+- **Status:** beschlossen am 30.08.2026
+- **Erstverbindung:** Ein neuer Charakter fordert die vier derzeit von Version 1.0 genutzten
+  Industrie-/PI-Scopes in einem einzigen PKCE-SSO-Durchlauf an.
+- **Sofortabruf:** Nach erfolgreicher, validierter Verbindung startet der vollständige
+  SDE-, Asset-, Blueprint-, Job- und PI-Abruf automatisch im Hintergrund.
+- **Laufzeit:** Solange EVE Dolphin geöffnet ist, wird der Gesamtabruf alle fünf Minuten
+  angestoßen. Bereits laufende Abrufe werden nicht überlappt.
+- **Cachegrenzen:** Der Takt erzwingt keine häufigeren CCP-Abfragen. Jobs besitzen fünf
+  Minuten, PI zehn Minuten und Assets/Blueprints eine Stunde persistenten Cache.
+- **Zukünftige Module:** Mining-, PVE- und Corporation-Scopes bleiben außerhalb dieser
+  Erstfreigabe und werden erst mit dem jeweiligen Modul angefordert.
+- **Begründung:** Die aktuelle Industrie-/PI-Anwendung ist nach einem Login vollständig
+  nutzbar, ohne zwei weitere Freigabedialoge oder manuelle Synchronisation.
+
+### D-027 – Getrennte und manuell ausgelöste Updateverteilung
+
+- **Status:** beschlossen am 30.08.2026
+- **Trennung:** `eve-dolphin-production` bleibt privat; `eve-dolphin-releases` ist öffentlich
+  und enthält nur Windows-Pakete, Prüfsummen und Release Notes.
+- **Prüfung:** Der Client liest Releases anonym über HTTPS und akzeptiert nur den festen
+  Repositorypfad, erwartete Dateinamen, begrenzte Größen und den von GitHub gelieferten
+  SHA-256-Digest.
+- **Bedienung:** Die installierte Version bleibt sichtbar. Ein neues Release öffnet ein
+  Informationsfenster; erst „Update starten“ lädt und installiert das Paket.
+- **Ersetzung:** Das neue, bereits geprüfte Paket startet außerhalb des laufenden
+  Installationsordners, wartet auf das Programmende, ersetzt die alte Version und führt den
+  paketierten Selbsttest aus.
+- **Rollback:** Schlägt Kopieren oder Selbsttest fehl, wird die vorherige Installation
+  wiederhergestellt und gestartet. Lokale Daten, Backups und OS-Tokens liegen außerhalb des
+  Installationsordners und werden nicht ersetzt.
+- **Geheimnisse:** Kein GitHub-Token liegt im Client. Das eingeschränkte Veröffentlichungs-
+  Token existiert ausschließlich als Secret des privaten GitHub-Actions-Workflows.

@@ -16,7 +16,11 @@ from eve_dolphin.database import Database
 from eve_dolphin.i18n import Translator
 from eve_dolphin.sso.scopes import ScopePackage, scopes_for_packages
 from eve_dolphin.sync.coordinator import CharacterSyncBatch, CharacterSyncOutcome
-from eve_dolphin.ui.character_page import CharacterPage, CharacterSsoWorker
+from eve_dolphin.ui.character_page import (
+    AUTOMATIC_SYNC_INTERVAL_MS,
+    CharacterPage,
+    CharacterSsoWorker,
+)
 from eve_dolphin.ui.main_window import SECTIONS, MainWindow
 
 
@@ -203,6 +207,66 @@ def test_settings_page_runs_multi_character_sync_in_background(
 
     assert page.sync_button.isEnabled()
     assert page.status_label.text() == "EVE data for 1 character(s) is current."
+    page.close()
+
+
+def test_new_character_login_requests_every_supported_data_scope(
+    qt_application: QApplication,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = CharacterPage(_repository(tmp_path), Translator("de"))
+    requested: list[tuple[tuple[str, ...], int | None]] = []
+
+    def capture(scopes: tuple[str, ...], character_id: int | None) -> None:
+        requested.append((scopes, character_id))
+
+    monkeypatch.setattr(page, "_start_authorization", capture)
+
+    page.connect_button.click()
+
+    assert requested == [
+        (
+            scopes_for_packages(ScopePackage.INDUSTRY, ScopePackage.PLANETARY_INDUSTRY),
+            None,
+        )
+    ]
+    page.close()
+
+
+def test_automatic_sync_starts_immediately_and_repeats_every_five_minutes(
+    qt_application: QApplication, tmp_path: Path
+) -> None:
+    repository = _repository(tmp_path)
+    repository.upsert(
+        EveCharacter(
+            1001,
+            "Industrial Pilot",
+            None,
+            scopes_for_packages(ScopePackage.INDUSTRY, ScopePackage.PLANETARY_INDUSTRY),
+            datetime(2026, 8, 30, 12, 0, tzinfo=UTC),
+        )
+    )
+    calls: list[bool] = []
+
+    def synchronize() -> CharacterSyncBatch:
+        calls.append(True)
+        return CharacterSyncBatch(
+            (CharacterSyncOutcome(1001, ("industry", "industry_jobs", "planetary"), ()),)
+        )
+
+    page = CharacterPage(repository, Translator("de"), sync_characters=synchronize)
+    page.start_automatic_sync()
+    for _attempt in range(100):
+        qt_application.processEvents()
+        if calls and page.sync_button.isEnabled():
+            break
+        QThread.msleep(10)
+
+    assert calls == [True]
+    assert page._sync_timer.interval() == AUTOMATIC_SYNC_INTERVAL_MS
+    assert "Nächste Prüfung in 5 Minuten" in page.status_label.text()
+    page.stop_automatic_sync()
     page.close()
 
 

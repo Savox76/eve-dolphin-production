@@ -18,6 +18,13 @@ from eve_dolphin.database import Database
 from eve_dolphin.i18n import Translator
 from eve_dolphin.sso.pkce import generate_pkce_pair
 from eve_dolphin.sync.runtime import PhaseTwoSyncRunner
+from eve_dolphin.updates import (
+    GitHubReleaseClient,
+    UpdateInstaller,
+    apply_staged_update,
+    launch_staged_update,
+)
+from eve_dolphin.updates.installer import current_installation_dir
 
 LOGGER = logging.getLogger(__name__)
 
@@ -67,11 +74,34 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     parser.add_argument("--self-check", action="store_true")
     parser.add_argument("--data-dir", type=Path)
     parser.add_argument("--language", choices=("de", "en"), default="de")
+    parser.add_argument("--apply-update", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--update-source", type=Path, help=argparse.SUPPRESS)
+    parser.add_argument("--update-target", type=Path, help=argparse.SUPPRESS)
+    parser.add_argument("--wait-pid", type=int, help=argparse.SUPPRESS)
+    parser.add_argument("--restart", action="store_true", help=argparse.SUPPRESS)
     return parser.parse_args(arguments)
 
 
 def main(arguments: list[str] | None = None) -> int:
     options = parse_arguments(sys.argv[1:] if arguments is None else arguments)
+
+    if options.apply_update:
+        if (
+            options.update_source is None
+            or options.update_target is None
+            or options.wait_pid is None
+        ):
+            return 2
+        try:
+            return apply_staged_update(
+                options.update_source,
+                options.update_target,
+                wait_pid=options.wait_pid,
+                restart=options.restart,
+            )
+        except Exception:
+            LOGGER.exception("Packaged update application failed")
+            return 1
 
     if options.self_check and options.data_dir is None:
         with TemporaryDirectory(prefix="eve-dolphin-check-") as temporary_dir:
@@ -102,6 +132,8 @@ def main(arguments: list[str] | None = None) -> int:
     application.setApplicationVersion(__version__)
     apply_theme(application)
 
+    installation_dir = current_installation_dir()
+    update_installer = UpdateInstaller(context.paths.update_dir)
     window = MainWindow(
         context.database,
         context.translator,
@@ -109,6 +141,15 @@ def main(arguments: list[str] | None = None) -> int:
         sync_characters=PhaseTwoSyncRunner(
             context.database, context.characters, context.paths.sde_dir
         ).sync_all,
+        current_version=__version__,
+        check_for_update=GitHubReleaseClient().check,
+        stage_update=update_installer.stage,
+        launch_update=(
+            (lambda staged: launch_staged_update(staged, installation_dir))
+            if installation_dir is not None
+            else None
+        ),
     )
     window.show()
+    window.start_background_services()
     return application.exec()

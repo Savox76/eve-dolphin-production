@@ -1,4 +1,4 @@
-# Phase 2 – EVE-Datenbasis (in Arbeit)
+# Phase 2 – EVE-Datenbasis (Live-Datenabnahme offen)
 
 ## Ziel
 
@@ -32,7 +32,8 @@ Phase 2 verbindet den lokalen Client sicher mit EVE Online und baut die belastba
 - [x] ausstehende Callback-Anmeldung wird beim Schließen der Anwendung beendet
 - [x] Charaktere können erst nach ausdrücklicher Bestätigung getrennt werden
 - [x] Übersichtsseite zeigt die tatsächliche Anzahl lokal verbundener Charaktere
-- [x] Authorization-Code-Austausch sendet Client-ID, PKCE-Verifier und die registrierte Redirect-URL, aber kein Client Secret
+- [x] Authorization-Code-Austausch sendet Code, Client-ID und PKCE-Verifier, aber weder
+  Redirect-URL noch Client Secret im Tokenpayload
 
 ## Dritter Baustein: Token-Erneuerung und Berechtigungspakete
 
@@ -118,10 +119,21 @@ Phase 2 verbindet den lokalen Client sicher mit EVE Online und baut die belastba
 - [x] „Industrie freigeben“ und „PI freigeben“ fordern nur die fehlenden Scope-Pakete über erneute Browserautorisierung an
 - [x] bei einer Scope-Erweiterung wird ausschließlich der zuvor ausgewählte Charakter akzeptiert
 
+## Zehnter Baustein: gemeinsame Freigabe und automatische Aktualisierung
+
+- [x] die erste Charakterverbindung fordert alle vier aktuellen Industrie-/PI-Scopes an
+- [x] der erste vollständige Datenabruf startet unmittelbar nach erfolgreicher Verbindung
+- [x] bestehende Charaktere werden beim Programmstart im Hintergrund synchronisiert
+- [x] weitere Gesamtabrufe starten während der Laufzeit alle fünf Minuten
+- [x] ein noch laufender Abruf wird nicht überlappt
+- [x] persistente Fünf-, Zehn- und Sechzig-Minuten-Caches verhindern unnötige ESI-Anfragen
+- [x] getrennte Industrie-/PI-Schaltflächen bleiben als Reparaturweg für ältere oder
+  unvollständig freigegebene Charaktere verfügbar
+
 ## Noch offen bis zur Phase-2-Abnahme
 
 - [x] öffentliche EVE-Client-ID im distributionsfähigen Desktop-Client konfigurieren
-- [ ] exakte Callback-Registrierung der Developer-Anwendung im Live-SSO bestätigen
+- [x] exakte Callback-Registrierung der Developer-Anwendung im Live-SSO bestätigen
 - [x] Modulaktivierung fordert fehlende Industrie-/PI-Scopes sichtbar über eine erneute Autorisierung an
 - [x] SDE-Download, Prüfung, Versionierung und atomarer Import
 - [x] ESI-Client mit Kompatibilitätsdatum, Cache, ETag, Retry und Fehlerlimit-Schutz
@@ -129,12 +141,15 @@ Phase 2 verbindet den lokalen Client sicher mit EVE Online und baut die belastba
 - [x] parallele, voneinander isolierte Synchronisation von mindestens zwei Charakteren
 - [x] sichtbare SDE-Version sowie korrekte Kennzeichnung veralteter und fehlgeschlagener Daten
 - [x] vollständiger automatisierter Windows-Pakettest
-- [ ] Live-SSO-Abnahmetest mit registrierter öffentlicher Client ID und echten Charakterfreigaben
+- [x] Live-SSO-Identitätstest mit registrierter öffentlicher Client-ID und echtem Charakter
+- [ ] vollständigen Live-Datenabruf mit den gemeinsam erteilten Industrie-/PI-Scopes bestätigen
+- [ ] zweiten echten Charakter verbinden und den parallelen Live-Abruf bestätigen
 
 ## Fortschritt
 
 Die Implementierung von Phase 2 ist technisch vollständig und automatisiert geprüft. Der
-gewichtete Gesamtfortschritt bleibt bis zu den beiden betreiberabhängigen Schritten –
-Callback-Bestätigung und Live-SSO-Abnahme – bei `15 %`. Nach dieser manuellen Abnahme steigt
-er gemäß Masterplan auf `30 %`. Die genaue Abnahme steht in
+gewichtete Gesamtfortschritt bleibt bis zum vollständigen Live-Datenabruf und echten
+Zwei-Charakter-Test bei `15 %`. Callback und erster Charakterlogin sind bereits bestätigt.
+Nach der verbleibenden manuellen Abnahme steigt er gemäß Masterplan auf `30 %`. Die genaue
+Abnahme steht in
 [`PHASE_2_ACCEPTANCE.md`](PHASE_2_ACCEPTANCE.md).

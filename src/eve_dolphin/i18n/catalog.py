@@ -19,6 +19,30 @@ CATALOG: dict[str, dict[str, str]] = {
         "market": "Markt & Kalkulation",
         "settings": "Einstellungen & Charaktere",
         "local_data": "Lokale Datenbank bereit",
+        "app_version": "Version v{version}",
+        "updates_title": "EVE-Dolphin-Updates",
+        "check_for_updates": "Nach Updates suchen",
+        "checking_for_updates": "Updateprüfung läuft …",
+        "update_button_available": "Update v{version} verfügbar",
+        "update_available_title": "Neue Version verfügbar",
+        "update_versions": "Installiert: v{current}  ·  Neu: v{new}",
+        "update_metadata": "Veröffentlicht: {date}  ·  Download: {size}",
+        "update_contents": "Inhalt des Updates",
+        "update_no_notes": "Für dieses Update wurden keine zusätzlichen Hinweise hinterlegt.",
+        "update_start": "Update starten",
+        "update_later": "Später",
+        "update_downloading": (
+            "Das geprüfte Update wird heruntergeladen. EVE Dolphin startet danach neu."
+        ),
+        "update_failed": (
+            "Das Update konnte nicht sicher vorbereitet werden. Die installierte Version "
+            "bleibt unverändert."
+        ),
+        "update_install_unavailable": (
+            "Updates lassen sich nur aus der installierten Windows-Version starten."
+        ),
+        "update_current": "EVE Dolphin ist bereits auf dem neuesten verfügbaren Stand.",
+        "update_check_failed": ("Die Updateinformationen konnten gerade nicht abgerufen werden."),
         "no_characters": "Noch keine EVE-Charaktere verbunden",
         "phase2_note": "Verbinde den ersten Charakter unter Einstellungen & Charaktere.",
         "foundation_ready": "Python- und SQLite-Fundament aktiv",
@@ -40,7 +64,7 @@ CATALOG: dict[str, dict[str, str]] = {
         "linked_at": "Verbunden am",
         "character_count": "Verbundene EVE-Charaktere: {count}",
         "characters_ready": (
-            "Die verbundenen Charaktere stehen für spätere Synchronisationen bereit."
+            "Die verbundenen Charaktere werden während der Laufzeit automatisch aktuell gehalten."
         ),
         "confirm_unlink": (
             "Soll {name} wirklich von dieser Installation getrennt werden? "
@@ -76,6 +100,13 @@ CATALOG: dict[str, dict[str, str]] = {
         "sso_failed": "Der EVE-Charakter konnte nicht verbunden werden.",
         "sync_running": "Assets, Blueprints, Jobs und PI-Kolonien werden synchronisiert …",
         "sync_complete": "Die EVE-Daten von {count} Charakter(en) sind aktuell.",
+        "sync_complete_auto": (
+            "Die EVE-Daten von {count} Charakter(en) sind aktuell. Nächste Prüfung in 5 Minuten."
+        ),
+        "automatic_sync_waiting": (
+            "Automatische Synchronisation aktiv. Nach dem Verbinden werden alle Daten sofort "
+            "geladen und anschließend alle 5 Minuten geprüft."
+        ),
         "sync_partial": (
             "{succeeded} von {count} Charakter(en) wurden vollständig synchronisiert. "
             "Fehlerhafte Datenstände sind in der Übersicht markiert."
@@ -116,6 +147,29 @@ CATALOG: dict[str, dict[str, str]] = {
         "market": "Market & Calculation",
         "settings": "Settings & Characters",
         "local_data": "Local database ready",
+        "app_version": "Version v{version}",
+        "updates_title": "EVE Dolphin updates",
+        "check_for_updates": "Check for updates",
+        "checking_for_updates": "Checking for updates …",
+        "update_button_available": "Update v{version} available",
+        "update_available_title": "New version available",
+        "update_versions": "Installed: v{current}  ·  New: v{new}",
+        "update_metadata": "Published: {date}  ·  Download: {size}",
+        "update_contents": "What's included",
+        "update_no_notes": "No additional notes were provided for this update.",
+        "update_start": "Start update",
+        "update_later": "Later",
+        "update_downloading": (
+            "The verified update is downloading. EVE Dolphin will restart afterwards."
+        ),
+        "update_failed": (
+            "The update could not be prepared safely. The installed version remains unchanged."
+        ),
+        "update_install_unavailable": (
+            "Updates can only be started from the installed Windows version."
+        ),
+        "update_current": "EVE Dolphin is already on the newest available version.",
+        "update_check_failed": "Update information is currently unavailable.",
         "no_characters": "No EVE characters connected yet",
         "phase2_note": "Connect the first character under Settings & Characters.",
         "foundation_ready": "Python and SQLite foundation active",
@@ -136,7 +190,9 @@ CATALOG: dict[str, dict[str, str]] = {
         "authorization_required": "Reconnect",
         "linked_at": "Connected at",
         "character_count": "Connected EVE characters: {count}",
-        "characters_ready": "Connected characters are ready for later synchronization.",
+        "characters_ready": (
+            "Connected characters are kept current automatically while the app is running."
+        ),
         "confirm_unlink": (
             "Disconnect {name} from this installation? The local refresh token will be removed."
         ),
@@ -166,6 +222,13 @@ CATALOG: dict[str, dict[str, str]] = {
         "sso_failed": "The EVE character could not be connected.",
         "sync_running": "Synchronizing assets, blueprints, jobs, and PI colonies …",
         "sync_complete": "EVE data for {count} character(s) is current.",
+        "sync_complete_auto": (
+            "EVE data for {count} character(s) is current. Next check in 5 minutes."
+        ),
+        "automatic_sync_waiting": (
+            "Automatic synchronization is active. All data is loaded immediately after "
+            "connection and checked every 5 minutes afterwards."
+        ),
         "sync_partial": (
             "{succeeded} of {count} character(s) synchronized completely. "
             "Failed data states are marked in the overview."

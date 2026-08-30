@@ -4,7 +4,8 @@
 
 - öffentliche ESI-Daten benötigen kein Charakter-Token
 - private Daten werden nur mit ausdrücklicher Freigabe des betroffenen Charakters geladen
-- Scopes werden progressiv und modulbezogen angefordert
+- die vier aktuellen Industrie-/PI-Scopes werden bei der Erstverbindung gemeinsam angefordert;
+  spätere Modul-Scopes bleiben progressiv
 - der lokale Client verwendet Authorization Code mit PKCE und speichert Refresh Tokens ausschließlich im Anmeldedatenspeicher des Betriebssystems
 - Corporation-Scopes gehören nicht zum Mindestumfang von Version 1.0
 - jede ESI-Anfrage verwendet ein geprüftes Kompatibilitätsdatum

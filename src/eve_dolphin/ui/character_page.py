@@ -8,7 +8,7 @@ from datetime import UTC
 
 import httpx
 from keyring.errors import KeyringError
-from PySide6.QtCore import Qt, QThread, Signal, Slot
+from PySide6.QtCore import Qt, QThread, QTimer, Signal, Slot
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -52,6 +52,7 @@ LOGGER = logging.getLogger(__name__)
 ConfirmUnlink = Callable[[EveCharacter], bool]
 UnlinkCharacter = Callable[[int], bool]
 SyncCharacters = Callable[[], CharacterSyncBatch]
+AUTOMATIC_SYNC_INTERVAL_MS = 5 * 60 * 1000
 
 
 class CharacterSsoWorker(QThread):
@@ -167,6 +168,11 @@ class CharacterPage(QWidget):
         self._sync_characters = sync_characters
         self._worker: CharacterSsoWorker | None = None
         self._sync_worker: DataSyncWorker | None = None
+        self._sync_after_authorization = False
+        self._automatic_sync_active = False
+        self._sync_timer = QTimer(self)
+        self._sync_timer.setInterval(AUTOMATIC_SYNC_INTERVAL_MS)
+        self._sync_timer.timeout.connect(self._start_sync)
 
         self.table = QTableWidget(0, 4)
         self.table.setObjectName("characterTable")
@@ -276,7 +282,10 @@ class CharacterPage(QWidget):
 
     @Slot()
     def _start_new_character_authorization(self) -> None:
-        self._start_authorization((), None)
+        self._start_authorization(
+            scopes_for_packages(ScopePackage.INDUSTRY, ScopePackage.PLANETARY_INDUSTRY),
+            None,
+        )
 
     def _start_authorization(
         self, scopes: Sequence[str], expected_character_id: int | None
@@ -330,6 +339,7 @@ class CharacterPage(QWidget):
         self.status_label.setText(
             self._translator.text("sso_linked").format(name=character.character_name)
         )
+        self._sync_after_authorization = True
         self.characters_changed.emit()
 
     @Slot(str)
@@ -344,6 +354,9 @@ class CharacterPage(QWidget):
         if worker is not None:
             worker.deleteLater()
         self.authorization_stopped.emit()
+        if self._sync_after_authorization:
+            self._sync_after_authorization = False
+            QTimer.singleShot(0, self._start_sync)
 
     @Slot()
     def _update_selection(self) -> None:
@@ -414,7 +427,8 @@ class CharacterPage(QWidget):
                 count=len(result.outcomes),
             )
         else:
-            message = self._translator.text("sync_complete").format(count=result.succeeded_count)
+            key = "sync_complete_auto" if self._automatic_sync_active else "sync_complete"
+            message = self._translator.text(key).format(count=result.succeeded_count)
         self.refresh()
         self.status_label.setText(message)
         self.data_changed.emit()
@@ -479,6 +493,7 @@ class CharacterPage(QWidget):
         return self._repository.remove(character_id)
 
     def cancel_pending_authorization(self) -> None:
+        self.stop_automatic_sync()
         if self._worker is not None:
             self._worker.requestInterruption()
             self.status_label.setText(self._translator.text("sso_closing"))
@@ -492,3 +507,19 @@ class CharacterPage(QWidget):
     @property
     def background_work_pending(self) -> bool:
         return self._worker is not None or self._sync_worker is not None
+
+    def start_automatic_sync(self) -> None:
+        """Start the five-minute foreground schedule and refresh existing characters now."""
+
+        if self._sync_characters is None or self._automatic_sync_active:
+            return
+        self._automatic_sync_active = True
+        self._sync_timer.start()
+        if self._repository.list_all():
+            QTimer.singleShot(0, self._start_sync)
+        else:
+            self.status_label.setText(self._translator.text("automatic_sync_waiting"))
+
+    def stop_automatic_sync(self) -> None:
+        self._automatic_sync_active = False
+        self._sync_timer.stop()
