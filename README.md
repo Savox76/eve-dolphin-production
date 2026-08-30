@@ -25,7 +25,7 @@ Das Tool soll aus Blueprints, Kolonien, Assets, Marktpreisen und laufenden Jobs 
 - Markt-, Gebühren-, Gewinn- und Logistikkalkulation
 - responsive Oberfläche auf Deutsch und Englisch
 
-Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md) und die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md).
+Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md), die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md) und der [Formel- und Bewertungskatalog](docs/FORMULA_CATALOG.md).
 
 ## Projektstatus
 
