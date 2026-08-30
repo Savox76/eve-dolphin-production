@@ -27,15 +27,15 @@ Das Tool soll aus Blueprints, Kolonien, Assets, Marktpreisen und laufenden Jobs 
 - lokale SQLite-Datenbank ohne Hoster oder separaten Datenbankdienst
 - eigenständige Installation für jeden Spieler
 
-Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md), die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md), der [Formel- und Bewertungskatalog](docs/FORMULA_CATALOG.md), die [Seitenstruktur und Wireframes](docs/UX_STRUCTURE.md), die [Abnahme von Phase 0](docs/PHASE_0_ACCEPTANCE.md) sowie der [Arbeitsstand von Phase 1](docs/PHASE_1_STATUS.md).
+Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md), die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md), der [Formel- und Bewertungskatalog](docs/FORMULA_CATALOG.md), die [Seitenstruktur und Wireframes](docs/UX_STRUCTURE.md) sowie die Abnahmen von [Phase 0](docs/PHASE_0_ACCEPTANCE.md) und [Phase 1](docs/PHASE_1_ACCEPTANCE.md).
 
 ## Projektstatus
 
-**Gesamtfortschritt: 5 %**
+**Gesamtfortschritt: 15 %**
 
-Nächster Meilenstein: **Phase 1 – Technisches Fundament**
+Nächster Meilenstein: **Phase 2 – EVE-Datenbasis**
 
-Phase 1 ist in Umsetzung. Das erste technische Paket enthält den lokalen Python-Client, die SQLite-Migrationsbasis, sichere Token-Speichergrenzen, automatisierte Qualitätsprüfungen und einen validierten Windows-Paketbuild. Der gewichtete Fortschritt steigt erst nach vollständiger Abnahme der Phase.
+Phase 1 ist abgeschlossen. Das technische Fundament enthält den lokalen Python-Client, die SQLite-Migrationsbasis, sichere Token-Speichergrenzen, automatisierte Qualitätsprüfungen und einen validierten Windows-Paketbuild. Phase 2 bindet als Nächstes EVE SSO, mehrere eigene Charaktere, SDE und ESI an.
 
 ## Entwicklung und lokaler Start
 

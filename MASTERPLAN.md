@@ -8,6 +8,10 @@
 
 **Produktname:** EVE Production Tool
 
+**Gesamtfortschritt:** 15 %
+
+**Nächster Meilenstein:** Phase 2 – EVE-Datenbasis
+
 ---
 
 ## 1. Zielbild
