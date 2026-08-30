@@ -97,14 +97,15 @@ Der Client legt veränderliche Daten im Anwendungsdatenverzeichnis des jeweilige
 
 - eine gemeinsame, plattformunabhängig strukturierte Python-Codebasis
 - getrennte Installationspakete je Betriebssystem, zunächst Windows
-- privates Quellcode-Repository während der Entwicklung
-- privater Quellcode in `Savox76/eve-dolphin-production`
-- öffentliche Binärpakete, Prüfsummen und Änderungsprotokolle in
-  [`Savox76/eve-dolphin-releases`](https://github.com/Savox76/eve-dolphin-releases)
+- öffentlicher Quellcode, Tests und Buildworkflow in `Savox76/eve-dolphin-production`
+- geprüfte Binärpakete, Prüfsummen und Änderungsprotokolle als
+  [GitHub Releases](https://github.com/Savox76/eve-dolphin-production/releases) desselben
+  Repositorys
 - sichtbare Versions- und Updateprüfung; Installation beginnt nur nach dem Klick auf
   „Update starten“ und besitzt Selbsttest sowie Rollback
 
-Systemunabhängige Entwicklung bedeutet damit nicht automatisch, dass der Quellcode öffentlich sein muss.
+Der Desktop-Client benötigt für die anonyme Updateprüfung weiterhin kein GitHub-Konto und
+kein GitHub-Token.
 
 ## Entwicklungsgrundsätze
 
