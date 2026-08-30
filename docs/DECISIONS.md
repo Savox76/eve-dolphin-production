@@ -26,15 +26,26 @@ Dieses Dokument hält Entscheidungen fest, die Architektur, Funktionsumfang oder
 
 ### D-004 – Produktname
 
-- **Status:** offen
-- **Vorläufig:** EVE Production Tool
+- **Status:** beschlossen am 30.08.2026
+- **Entscheidung:** Der Produktname lautet **EVE Production Tool**.
+- **Beschreibung:** Die deutsche Funktionsbeschreibung lautet „Produktionsplanung für EVE Online“.
+- **Branding:** Das Produkt wird deutlich als unabhängige Drittanbieter-Anwendung gekennzeichnet und verwendet den von CCP geforderten Schutzvermerk.
 
 ### D-005 – Betriebsart
 
-- **Status:** offen
-- **Optionen:** privat gehostete Web-App oder ausschließlich lokale Installation
+- **Status:** beschlossen am 30.08.2026
+- **Entscheidung:** Die erste nutzbare Version wird als privat online erreichbare Web-App betrieben.
+- **Zugriff:** Öffentliche Selbstregistrierung bleibt zunächst deaktiviert; nur freigegebene Nutzer erhalten Zugang.
+- **Zielgeräte:** Desktop- und Mobilbrowser; die Oberfläche wird als installierbare PWA vorbereitet.
 
 ### D-006 – Technologiestack
 
 - **Status:** offen
 - **Tendenz:** möglichst kompakter TypeScript-Stack mit PostgreSQL und Docker Compose
+
+### D-007 – Mehrbenutzerfähigkeit
+
+- **Status:** beschlossen am 30.08.2026
+- **Entscheidung:** Benutzer-, Charakter-, Token- und Produktionsdaten werden von Anfang an mandantengetrennt modelliert.
+- **Begründung:** Das private Tool kann später für weitere Spieler geöffnet werden, ohne die Sicherheits- und Datenarchitektur neu aufzubauen.
+- **Einschränkung:** Mehrbenutzerfähigkeit bedeutet in Version 1.0 keine öffentliche Registrierung oder Bezahlfunktion.
