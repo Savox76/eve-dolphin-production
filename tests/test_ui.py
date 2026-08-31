@@ -26,6 +26,7 @@ from eve_dolphin.pi import (
 )
 from eve_dolphin.sso.scopes import ScopePackage, scopes_for_packages
 from eve_dolphin.sync.coordinator import CharacterSyncBatch, CharacterSyncOutcome
+from eve_dolphin.ui.blueprint_page import BlueprintPage
 from eve_dolphin.ui.character_page import (
     AUTOMATIC_SYNC_INTERVAL_MS,
     CharacterPage,
@@ -62,6 +63,8 @@ def test_main_window_contains_all_planned_sections(
     assert window.planetary_page.property("viewId") == "pi-colonies"
     assert isinstance(window.pi_planner_page, PiPlannerPage)
     assert window.pi_planner_page.property("viewId") == "pi-planner"
+    assert isinstance(window.blueprint_page, BlueprintPage)
+    assert window.blueprint_page.property("viewId") == "blueprints"
 
     window.close()
 

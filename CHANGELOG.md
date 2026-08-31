@@ -1,5 +1,12 @@
 # Änderungsprotokoll
 
+## Unveröffentlicht
+
+- persönliche BPO-/BPC-Übersicht mit Produkt, Besitzer, Standort, ME, TE und Runs
+- Manufacturing-Kalkulation für Zielmenge, Ausgabe, Überschuss, Materialien und Dauer
+- getrennte Anzeige von Bestand am Blueprint-Ort und Gesamtbestand aller Charaktere
+- sichtbare Blocker für fehlende BPC-Runs und lokale Materialfehlmengen
+
 ## v0.3.1 – Updater-Korrektur
 
 - Windows-Installationsordner wird vor dem Austausch zuverlässig freigegeben

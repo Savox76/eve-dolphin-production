@@ -52,8 +52,8 @@ EVE Dolphin ist ein Analyse-, Planungs- und Überwachungssystem. Es führt keine
 - eine gemeinsame Python-Codebasis für alle unterstützten Desktop-Systeme
 - betriebssystemspezifische Pakete, weil Installation, Signierung und sichere Tokenablage je System unterschiedlich sind
 - Windows als erste Release-Plattform; weitere Systeme erst nach eigener Abnahme
-- privates Entwicklungs-Repository
-- später ein separates öffentliches Release-Repository mit Binärpaketen, Prüfsummen und Changelog, ohne Verpflichtung zur Veröffentlichung des Quellcodes
+- öffentlicher Quellcode und öffentliche Entwicklungsnachweise im Projekt-Repository
+- geprüfte Binärpakete, Prüfsummen und Changelog als Releases desselben Repositorys
 
 ## Branding und Unabhängigkeit
 
@@ -77,4 +77,4 @@ Maßgeblich bleibt die jeweils aktuelle [CCP Developer License Agreement](https:
 | Datenspeicher | SQLite lokal; Tokens im Anmeldedatenspeicher des Betriebssystems |
 | Hoster und Registrierung | nicht erforderlich |
 | Monetarisierung | nicht Bestandteil von Version 1.0 |
-| Quellcode | private Entwicklung; öffentliche Binär-Releases später getrennt möglich |
+| Quellcode | öffentlich; geprüfte Binär-Releases im selben Repository |
