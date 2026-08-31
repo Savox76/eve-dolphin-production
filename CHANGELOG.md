@@ -2,6 +2,16 @@
 
 ## Unveröffentlicht
 
+## v0.4.2 – PI-Ressourcenbudget und Zykluskorrektur
+
+- maximale PI-Planbarkeit nach Command-Center-Upgrades-Stufe sowie CPU und Energie
+- getrennte Gebäudezählung für Launchpads, Lager, ECUs, Extraktorköpfe und Fabriktypen
+- einstellbare Infrastrukturreserve für entfernungsabhängige Links und Wege
+- sichtbare maximale Zahl vollständiger Produktionsketten und Endfabriken
+- klare Trennung zwischen Soll-Zyklen und nach vorhandenen Beständen noch nötigen Zyklen
+- korrigierte Launchpad-Automatik: ausschließlich vollständige, garantiert passende Chargen
+- gespeicherte Ressourcenparameter und Datenbankschema 10
+
 ## v0.4.1 – Automatische Launchpad-Zielplanung
 
 - neue Berechnungsart „Launchpad automatisch füllen“ mit editierbarer Kapazität

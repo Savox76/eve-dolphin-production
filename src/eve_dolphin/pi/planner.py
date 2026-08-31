@@ -16,6 +16,7 @@ from eve_dolphin.pi.models import (
     PiCatalog,
     PiCommodity,
     PiGoalMode,
+    PiInfrastructureBudget,
     PiLaunchpadFill,
     PiLayoutStage,
     PiOperationMode,
@@ -34,6 +35,27 @@ PI_TAXABLE_VALUE = {
     PiTier.REFINED: Decimal("7200"),
     PiTier.SPECIALIZED: Decimal("60000"),
     PiTier.ADVANCED: Decimal("1200000"),
+}
+
+COMMAND_CENTER_BUDGETS = {
+    0: (1_675, 6_000),
+    1: (7_057, 9_000),
+    2: (12_136, 12_000),
+    3: (17_215, 15_000),
+    4: (21_315, 17_000),
+    5: (25_415, 19_000),
+}
+
+# CPU (tf), powergrid (MW). Links are distance-dependent and therefore covered by
+# the user-selected infrastructure reserve instead of a misleading fixed value.
+PI_BUILDING_RESOURCES = {
+    "launchpad": (3_600, 700),
+    "storage": (500, 700),
+    "ecu": (400, 2_600),
+    "extractor_head": (110, 550),
+    "basic_factory": (200, 800),
+    "advanced_factory": (500, 700),
+    "high_tech_factory": (1_100, 400),
 }
 
 
@@ -77,7 +99,9 @@ class PiPlannerService:
 
         available, factory_capacity = self._planning_state(catalog, now, planning_window)
         demand: Counter[int] = Counter({target.type_id: request.target_quantity})
-        line_data: dict[int, tuple[int, int, int, int, int, int, int, int, int, int, int, int]] = {}
+        line_data: dict[
+            int, tuple[int, int, int, int, int, int, int, int, int, int, int, int, int]
+        ] = {}
         source_tier = (
             request.source_tier if request.source_tier is not None else profile.supply_tier
         )
@@ -98,6 +122,7 @@ class PiPlannerService:
             excess = max(0, available[type_id] - required)
             recipe = catalog.recipe_for_output(type_id)
             planned_output = 0
+            gross_cycles = _ceil_div(required, recipe.output.quantity) if recipe else 0
             cycles = 0
             imported = 0
             unresolved = 0
@@ -140,6 +165,7 @@ class PiPlannerService:
                 required,
                 used_available,
                 planned_output,
+                gross_cycles,
                 cycles,
                 available_cycles,
                 capacity_shortfall,
@@ -163,15 +189,16 @@ class PiPlannerService:
                 available_at_deadline=available[type_id],
                 used_from_available=values[1],
                 planned_output=values[2],
-                cycles=values[3],
-                available_factory_cycles=values[4],
-                factory_shortfall_cycles=values[5],
-                additional_factories=values[6],
-                import_quantity=values[7],
-                unresolved_quantity=values[8],
-                excess_quantity=values[9],
-                source_quantity=values[10],
-                recommended_factories=values[11],
+                gross_cycles=values[3],
+                cycles=values[4],
+                available_factory_cycles=values[5],
+                factory_shortfall_cycles=values[6],
+                additional_factories=values[7],
+                import_quantity=values[8],
+                unresolved_quantity=values[9],
+                excess_quantity=values[10],
+                source_quantity=values[11],
+                recommended_factories=values[12],
             )
             for type_id, values in sorted(
                 line_data.items(),
@@ -181,13 +208,15 @@ class PiPlannerService:
                 ),
             )
         )
+        layout = _layout(request, catalog, lines, planning_window)
         return _cost_result(
             request,
             profile,
             target,
             lines,
-            _layout(request, catalog, lines, planning_window),
+            layout,
             catalog,
+            _infrastructure_budget(request, lines, layout),
         )
 
     def _planning_state(
@@ -233,6 +262,7 @@ def _cost_result(
     lines: tuple[PiPlanLine, ...],
     layout: tuple[PiLayoutStage, ...],
     catalog: PiCatalog,
+    infrastructure_budget: PiInfrastructureBudget,
 ) -> PiPlanResult:
     imports = tuple(line for line in lines if line.import_quantity > 0)
     import_volume = sum(
@@ -269,6 +299,10 @@ def _cost_result(
         blocked.append("raw_material_shortfall")
     if any(line.factory_shortfall_cycles for line in lines):
         blocked.append("factory_capacity_shortfall")
+    if infrastructure_budget.remaining_cpu < 0:
+        blocked.append("planet_cpu_shortfall")
+    if infrastructure_budget.remaining_power < 0:
+        blocked.append("planet_power_shortfall")
     launchpad_fill = _launchpad_fill(request, target, lines, catalog)
     return PiPlanResult(
         request=request,
@@ -286,6 +320,7 @@ def _cost_result(
         blocked_reasons=tuple(blocked),
         layout=layout,
         launchpad_fill=launchpad_fill,
+        infrastructure_budget=infrastructure_budget,
     )
 
 
@@ -296,13 +331,16 @@ def _resolve_launchpad_request(
 ) -> PiPlanRequest:
     if request.goal_mode is PiGoalMode.MANUAL:
         return request
-    quantity = int(request.launchpad_capacity_m3 // target.volume_m3)
-    if quantity <= 0:
+    capacity_units = int(request.launchpad_capacity_m3 // target.volume_m3)
+    if capacity_units <= 0:
         raise ValueError("Selected product does not fit into the launchpad capacity")
     recipe = catalog.recipe_for_output(target.type_id)
     if recipe is None:
         raise ValueError("PI planning target has no production recipe")
-    cycles = _ceil_div(quantity, recipe.output.quantity)
+    cycles = capacity_units // recipe.output.quantity
+    if cycles <= 0:
+        raise ValueError("A complete production batch does not fit into the launchpad capacity")
+    quantity = cycles * recipe.output.quantity
     batches = _ceil_div(cycles, request.final_factories)
     seconds = max(1, batches * recipe.cycle_time_seconds)
     days = max(1, _ceil_div(seconds, 86400))
@@ -386,6 +424,98 @@ def _layout(
             )
         )
     return tuple(sorted(result, key=lambda stage: int(stage.commodity.tier)))
+
+
+def _infrastructure_budget(
+    request: PiPlanRequest,
+    lines: tuple[PiPlanLine, ...],
+    layout: tuple[PiLayoutStage, ...],
+) -> PiInfrastructureBudget:
+    total_cpu, total_power = COMMAND_CENTER_BUDGETS[request.command_center_level]
+    reserve_ratio = request.infrastructure_reserve_percent / Decimal(100)
+    reserved_cpu = int(
+        (Decimal(total_cpu) * reserve_ratio).to_integral_value(rounding=ROUND_CEILING)
+    )
+    reserved_power = int(
+        (Decimal(total_power) * reserve_ratio).to_integral_value(rounding=ROUND_CEILING)
+    )
+
+    basic_factories = sum(
+        stage.factories for stage in layout if stage.commodity.tier is PiTier.BASIC
+    )
+    advanced_factories = sum(
+        stage.factories
+        for stage in layout
+        if stage.commodity.tier in {PiTier.REFINED, PiTier.SPECIALIZED}
+    )
+    high_tech_factories = sum(
+        stage.factories for stage in layout if stage.commodity.tier is PiTier.ADVANCED
+    )
+    storage_facilities = len({stage.commodity.tier for stage in layout if stage.buffer_storage})
+    raw_sources = sum(
+        1 for line in lines if line.commodity.tier is PiTier.RAW and line.source_quantity > 0
+    )
+    extractor_control_units = (
+        raw_sources if request.operation_mode is PiOperationMode.EXTRACTOR else 0
+    )
+    extractor_heads = extractor_control_units * request.extractor_heads_per_ecu
+
+    fixed_cpu, fixed_power = _resource_sum((("launchpad", 1), ("storage", storage_facilities)))
+    variable_cpu, variable_power = _resource_sum(
+        (
+            ("ecu", extractor_control_units),
+            ("extractor_head", extractor_heads),
+            ("basic_factory", basic_factories),
+            ("advanced_factory", advanced_factories),
+            ("high_tech_factory", high_tech_factories),
+        )
+    )
+    used_cpu = fixed_cpu + variable_cpu
+    used_power = fixed_power + variable_power
+    usable_cpu = total_cpu - reserved_cpu
+    usable_power = total_power - reserved_power
+    if variable_cpu <= 0 and variable_power <= 0:
+        maximum_layout_copies = 0
+    else:
+        cpu_copies = (
+            max(0, usable_cpu - fixed_cpu) // variable_cpu if variable_cpu > 0 else 2_000_000_000
+        )
+        power_copies = (
+            max(0, usable_power - fixed_power) // variable_power
+            if variable_power > 0
+            else 2_000_000_000
+        )
+        maximum_layout_copies = min(cpu_copies, power_copies)
+    target_factories = next(
+        (stage.factories for stage in layout if stage.commodity.type_id == request.target_type_id),
+        0,
+    )
+    return PiInfrastructureBudget(
+        command_center_level=request.command_center_level,
+        total_cpu=total_cpu,
+        total_power=total_power,
+        reserved_cpu=reserved_cpu,
+        reserved_power=reserved_power,
+        used_cpu=used_cpu,
+        used_power=used_power,
+        remaining_cpu=usable_cpu - used_cpu,
+        remaining_power=usable_power - used_power,
+        launchpads=1,
+        storage_facilities=storage_facilities,
+        extractor_control_units=extractor_control_units,
+        extractor_heads=extractor_heads,
+        basic_factories=basic_factories,
+        advanced_factories=advanced_factories,
+        high_tech_factories=high_tech_factories,
+        maximum_layout_copies=maximum_layout_copies,
+        maximum_final_factories=maximum_layout_copies * target_factories,
+    )
+
+
+def _resource_sum(items: tuple[tuple[str, int], ...]) -> tuple[int, int]:
+    cpu = sum(PI_BUILDING_RESOURCES[kind][0] * count for kind, count in items)
+    power = sum(PI_BUILDING_RESOURCES[kind][1] * count for kind, count in items)
+    return cpu, power
 
 
 def _ceil_div(value: int, divisor: int) -> int:

@@ -109,6 +109,10 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_days": "Zeitraum (Tage)",
         "pi_launchpad_capacity": "Launchpad-Kapazität",
         "pi_final_factories": "Fabriken für das Endprodukt",
+        "pi_command_center_level": "Command Center Upgrades",
+        "pi_command_center_level_value": "Stufe {level}",
+        "pi_infrastructure_reserve": "Reserve für Links und Wege",
+        "pi_extractor_heads": "Extraktorköpfe je ECU",
         "pi_profile": "Logistikprofil",
         "pi_operation_mode": "Versorgungsart",
         "pi_source_tier": "Zukauf bis Stufe",
@@ -142,13 +146,17 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_block_factory_capacity_shortfall": (
             "vorhandene Fabrikkapazität reicht im gewählten Zeitraum nicht aus"
         ),
+        "pi_block_planet_cpu_shortfall": "CPU-Budget des Planeten wird überschritten",
+        "pi_block_planet_power_shortfall": "Energie-Budget des Planeten wird überschritten",
         "pi_plan_product": "Produkt",
         "pi_plan_tier": "Stufe",
         "pi_plan_required": "Bedarf",
         "pi_plan_per_day": "pro Tag",
         "pi_plan_available": "Prognose",
         "pi_plan_output": "Produktion",
-        "pi_plan_cycles": "Zyklen",
+        "pi_plan_target_cycles": "Soll-Zyklen",
+        "pi_plan_cycles": "noch nötige Zyklen",
+        "pi_layout_cycles": "Produktionszyklen",
         "pi_plan_capacity": "freie Zyklen",
         "pi_plan_additional_factories": "zusätzl. Fabriken",
         "pi_plan_import": "Extraktion / Zukauf",
@@ -158,6 +166,16 @@ CATALOG: dict[str, dict[str, str]] = {
             "Import {import_volume} m³ · Export {export_volume} m³ · {trips} Frachtrouten · "
             "Importsteuer {import_tax} ISK · Exportsteuer {export_tax} ISK · "
             "Transport {transport} ISK · Risiko {risk} ISK · Summe {total} ISK"
+        ),
+        "pi_resource_budget_result": (
+            "Command Center Upgrades {level} · CPU {used_cpu} / {usable_cpu} tf nutzbar "
+            "({total_cpu} gesamt, Rest {remaining_cpu}) · Energie {used_power} / "
+            "{usable_power} MW nutzbar ({total_power} gesamt, Rest {remaining_power}) · "
+            "{reserve} % Reserve für Links/Wege\n"
+            "Gebäude: {launchpads} Launchpad, {storage} Lager, {ecus} ECU mit {heads} Köpfen, "
+            "{basic} Basis-, {advanced} fortschrittliche und {high_tech} High-Tech-Fabriken · "
+            "Maximal {copies} vollständige Produktionsketten bzw. {final_factories} "
+            "Endfabriken im gewählten Aufbau."
         ),
         "pi_optimal_layout": "Empfohlener Planetenaufbau",
         "pi_graphical_layout": "Grafischer Materialfluss",
@@ -474,6 +492,10 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_days": "Timeframe (days)",
         "pi_launchpad_capacity": "Launchpad capacity",
         "pi_final_factories": "Factories for final product",
+        "pi_command_center_level": "Command Center Upgrades",
+        "pi_command_center_level_value": "Level {level}",
+        "pi_infrastructure_reserve": "Reserve for links and routes",
+        "pi_extractor_heads": "Extractor heads per ECU",
         "pi_profile": "Logistics profile",
         "pi_operation_mode": "Supply mode",
         "pi_source_tier": "Purchase through tier",
@@ -507,13 +529,17 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_block_factory_capacity_shortfall": (
             "existing factory capacity is insufficient for the selected timeframe"
         ),
+        "pi_block_planet_cpu_shortfall": "planet CPU budget is exceeded",
+        "pi_block_planet_power_shortfall": "planet powergrid budget is exceeded",
         "pi_plan_product": "Product",
         "pi_plan_tier": "Tier",
         "pi_plan_required": "Required",
         "pi_plan_per_day": "per day",
         "pi_plan_available": "Forecast",
         "pi_plan_output": "Production",
-        "pi_plan_cycles": "Cycles",
+        "pi_plan_target_cycles": "Target cycles",
+        "pi_plan_cycles": "remaining cycles",
+        "pi_layout_cycles": "Production cycles",
         "pi_plan_capacity": "free cycles",
         "pi_plan_additional_factories": "additional factories",
         "pi_plan_import": "Extraction / purchase",
@@ -523,6 +549,16 @@ CATALOG: dict[str, dict[str, str]] = {
             "Import {import_volume} m³ · export {export_volume} m³ · {trips} cargo trips · "
             "import tax {import_tax} ISK · export tax {export_tax} ISK · "
             "transport {transport} ISK · risk {risk} ISK · total {total} ISK"
+        ),
+        "pi_resource_budget_result": (
+            "Command Center Upgrades {level} · CPU {used_cpu} / {usable_cpu} tf usable "
+            "({total_cpu} total, {remaining_cpu} remaining) · powergrid {used_power} / "
+            "{usable_power} MW usable ({total_power} total, {remaining_power} remaining) · "
+            "{reserve}% reserve for links/routes\n"
+            "Buildings: {launchpads} launchpad, {storage} storage, {ecus} ECU with {heads} heads, "
+            "{basic} basic, {advanced} advanced and {high_tech} high-tech factories · "
+            "Maximum {copies} complete production chains or {final_factories} final factories "
+            "for the selected layout."
         ),
         "pi_optimal_layout": "Recommended planetary layout",
         "pi_graphical_layout": "Graphical material flow",

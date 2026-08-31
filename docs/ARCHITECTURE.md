@@ -226,10 +226,20 @@ blockiert normale Importe, statt eine nicht ausführbare Kette als vollständig 
 
 Neben der manuellen Zielmenge unterstützt der Planer ein volumengesteuertes Launchpad-Ziel.
 Er teilt die gewählte Kapazität durch das SDE-Volumen des Zielprodukts, rundet auf ganze
-Einheiten ab und berechnet die Füllzeit aus SDE-Zykluszeit und Endfabrikzahl. Dasselbe exakte
-Zeitfenster dimensioniert die vorgelagerten Fabrikstufen. Die Qt-Oberfläche rendert das
-Ergebnis sowohl tabellarisch als auch als abgeleiteten Materialfluss; die Grafik enthält
+vollständige Schematic-Chargen ab und berechnet die Füllzeit aus SDE-Zykluszeit und
+Endfabrikzahl. So kann die letzte Charge das Launchpad nicht überfüllen. Dasselbe exakte
+Zeitfenster dimensioniert die vorgelagerten Fabrikstufen. Die Qt-Oberfläche trennt den
+Bruttobedarf in Soll-Zyklen von den nach Bestandsanrechnung noch nötigen Zyklen und rendert
+das Ergebnis sowohl tabellarisch als auch als abgeleiteten Materialfluss; die Grafik enthält
 keine eigene, von der Kalkulation abweichende Planungslogik.
+
+Für hypothetische Planetenaufbauten wählt der Nutzer seine Stufe in `Command Center
+Upgrades`. Der Planer bewertet Launchpad, optionale Pufferlager, ECUs, Extraktorköpfe sowie
+Basic-, Advanced- und High-Tech-Fabriken gegen das CPU-/Energiebudget dieser Stufe. Da
+Linkkosten von Planetenradius, Pins und tatsächlichen Entfernungen abhängen, werden sie nicht
+mit Scheingenauigkeit fest codiert, sondern durch eine sichtbare, editierbare Reserve
+abgebildet. Neben Überziehungen wird die maximale Zahl vollständiger Kopien des gewählten
+Produktionsaufbaus ausgewiesen.
 
 ## SDE-Import
 

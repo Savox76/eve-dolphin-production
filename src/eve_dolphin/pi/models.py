@@ -152,6 +152,9 @@ class PiPlanRequest:
     goal_mode: PiGoalMode = PiGoalMode.MANUAL
     launchpad_capacity_m3: Decimal = Decimal("10000")
     final_factories: int = 1
+    command_center_level: int = 5
+    infrastructure_reserve_percent: Decimal = Decimal("10")
+    extractor_heads_per_ecu: int = 5
 
     def __post_init__(self) -> None:
         if self.target_type_id <= 0 or self.target_quantity <= 0:
@@ -166,6 +169,12 @@ class PiPlanRequest:
             raise ValueError("PI launchpad capacity must be positive")
         if not 1 <= self.final_factories <= 100:
             raise ValueError("PI final factory count must be between 1 and 100")
+        if not 0 <= self.command_center_level <= 5:
+            raise ValueError("command center level must be between 0 and 5")
+        if not Decimal(0) <= self.infrastructure_reserve_percent <= Decimal(50):
+            raise ValueError("PI infrastructure reserve must be between 0 and 50 percent")
+        if not 1 <= self.extractor_heads_per_ecu <= 10:
+            raise ValueError("extractor heads per ECU must be between 1 and 10")
 
 
 @dataclass(frozen=True, slots=True)
@@ -176,6 +185,7 @@ class PiPlanLine:
     available_at_deadline: int
     used_from_available: int
     planned_output: int
+    gross_cycles: int
     cycles: int
     available_factory_cycles: int
     factory_shortfall_cycles: int
@@ -208,6 +218,32 @@ class PiLaunchpadFill:
 
 
 @dataclass(frozen=True, slots=True)
+class PiInfrastructureBudget:
+    command_center_level: int
+    total_cpu: int
+    total_power: int
+    reserved_cpu: int
+    reserved_power: int
+    used_cpu: int
+    used_power: int
+    remaining_cpu: int
+    remaining_power: int
+    launchpads: int
+    storage_facilities: int
+    extractor_control_units: int
+    extractor_heads: int
+    basic_factories: int
+    advanced_factories: int
+    high_tech_factories: int
+    maximum_layout_copies: int
+    maximum_final_factories: int
+
+    @property
+    def is_feasible(self) -> bool:
+        return self.remaining_cpu >= 0 and self.remaining_power >= 0
+
+
+@dataclass(frozen=True, slots=True)
 class PiPlanResult:
     request: PiPlanRequest
     profile: PiProfile
@@ -224,6 +260,7 @@ class PiPlanResult:
     blocked_reasons: tuple[str, ...]
     layout: tuple[PiLayoutStage, ...]
     launchpad_fill: PiLaunchpadFill | None = None
+    infrastructure_budget: PiInfrastructureBudget | None = None
 
     @property
     def is_feasible(self) -> bool:

@@ -42,6 +42,12 @@ ausgeliefert wird, bleibt der formale Gesamtfortschritt bis zur manuellen Live-A
 - [x] Eigenextraktion und Zukauf bis zu einer wählbaren PI-Stufe unterscheiden
 - [x] empfohlenen Aufbau mit direkten Routen oder Pufferlagern ausweisen
 - [x] den empfohlenen Materialfluss zusätzlich als kompakten grafischen Aufbau darstellen
+- [x] Launchpad-Ziele auf vollständige, ohne Überfüllung passende Schematic-Chargen begrenzen
+- [x] Soll-Zyklen und nach Bestandsanrechnung noch nötige Zyklen getrennt ausweisen
+- [x] CPU-/Energiebudget nach Command-Center-Upgrades-Stufe und Gebäudeart berechnen
+- [x] ECUs und wählbare Extraktorköpfe für Extraktorpläne berücksichtigen
+- [x] Link-/Wegekosten über eine sichtbare editierbare Infrastrukturreserve abbilden
+- [x] maximale vollständige Produktionsketten und Endfabriken ausweisen
 - [x] Zielplanungen lokal speichern, laden, ändern und löschen
 
 ## Daten- und Sicherheitsgrenzen

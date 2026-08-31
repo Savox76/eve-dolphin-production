@@ -160,6 +160,60 @@ outputPerDay = factoryCount * outputPerCycle
 
 Das ist nur eine Kapazitätsuntergrenze. Fehlende Inputs, Routen, Lagerraum oder unterschiedlich verfügbare Fabriken verlängern die reale Zeit und werden separat simuliert.
 
+#### 5.2.1 Automatisches Launchpad-Ziel
+
+Das Ziel darf nur aus vollständigen Schematic-Chargen bestehen:
+
+```text
+capacityUnits = floor(launchpadCapacityM3 / productVolumeM3)
+cycles = floor(capacityUnits / outputPerCycle)
+targetQuantity = cycles * outputPerCycle
+unusedVolumeM3 = launchpadCapacityM3 - targetQuantity * productVolumeM3
+```
+
+Insbesondere darf `cycles` hier nicht aufgerundet werden, weil die letzte Charge das
+Launchpad sonst überfüllen könnte. Für die Erklärung werden zwei Zykluswerte getrennt:
+
+```text
+targetCycles = ceil(requiredQuantity / outputPerCycle)
+remainingCycles = ceil(max(0, requiredQuantity - availableQuantity) / outputPerCycle)
+```
+
+#### 5.2.2 CPU- und Energiebudget eines Planeten
+
+Die verfügbare Kapazität folgt der gewählten Stufe in `Command Center Upgrades`:
+
+| Stufe | CPU | Energie |
+|---:|---:|---:|
+| 0 | 1.675 tf | 6.000 MW |
+| 1 | 7.057 tf | 9.000 MW |
+| 2 | 12.136 tf | 12.000 MW |
+| 3 | 17.215 tf | 15.000 MW |
+| 4 | 21.315 tf | 17.000 MW |
+| 5 | 25.415 tf | 19.000 MW |
+
+Der Planer verwendet folgende Gebäudegrundwerte:
+
+| Gebäude | CPU | Energie |
+|---|---:|---:|
+| Launchpad | 3.600 tf | 700 MW |
+| Lager | 500 tf | 700 MW |
+| ECU | 400 tf | 2.600 MW |
+| Extraktorkopf | 110 tf | 550 MW |
+| Basic Industry Facility | 200 tf | 800 MW |
+| Advanced Industry Facility | 500 tf | 700 MW |
+| High-Tech Production Plant | 1.100 tf | 400 MW |
+
+```text
+usableResource = totalResource - ceil(totalResource * infrastructureReservePercent / 100)
+remainingResource = usableResource - sum(buildingCount_i * buildingResource_i)
+```
+
+Ein Plan ist auf dem gewählten Planetenbudget nur ausführbar, wenn CPU und Energie jeweils
+nicht negativ sind. Exakte Linkkosten hängen von Planetenradius, Pin-Position und Entfernung
+ab. Sie werden daher über die sichtbare Infrastrukturreserve angenähert und nicht als
+vermeintlich exakter Festwert behandelt.
+
 ### 5.3 Extractor-Prognose
 
 Version 1.0 verwendet eine bewusst sichtbare Schätzung auf Basis des ESI-Snapshots:
