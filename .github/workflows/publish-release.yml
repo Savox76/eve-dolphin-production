@@ -42,6 +42,7 @@ jobs:
       - name: Verify requested version
         shell: pwsh
         env:
+          GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
           $Version = (uv run python -c "from eve_dolphin import __version__; print(__version__)").Trim()
