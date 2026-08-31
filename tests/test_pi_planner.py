@@ -4,12 +4,15 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+
 from eve_dolphin.characters import CharacterRepository, EveCharacter
 from eve_dolphin.database import Database
 from eve_dolphin.pi import (
     PiCatalog,
     PiCatalogRepository,
     PiCommodity,
+    PiGoalMode,
     PiOperationMode,
     PiPlanLine,
     PiPlannerService,
@@ -176,6 +179,58 @@ def test_planner_distinguishes_extraction_from_purchased_inputs(tmp_path: Path) 
     assert not any(stage.buffer_storage for stage in purchased.layout)
 
 
+def test_launchpad_goal_derives_quantity_and_exact_fill_time(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+
+    result = PiPlannerService(database, clock=lambda: NOW).plan(
+        PiPlanRequest(
+            21,
+            1,
+            1,
+            profile.profile_id,
+            goal_mode=PiGoalMode.LAUNCHPAD,
+            launchpad_capacity_m3=Decimal("10"),
+            final_factories=2,
+        ),
+        "en",
+    )
+
+    assert result.request.target_quantity == 6
+    assert result.launchpad_fill is not None
+    assert result.launchpad_fill.product_quantity == 6
+    assert result.launchpad_fill.product_volume_m3 == Decimal("9.0")
+    assert result.launchpad_fill.unused_volume_m3 == Decimal("1.0")
+    assert result.launchpad_fill.fill_time == timedelta(hours=1)
+    assert result.launchpad_fill.final_factories == 2
+    assert next(stage for stage in result.layout if stage.commodity.type_id == 21).factories == 2
+    assert all(
+        stage.factories == 2 for stage in result.layout if stage.commodity.type_id in {11, 12}
+    )
+
+
+def test_launchpad_goal_rejects_product_larger_than_capacity(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+
+    with pytest.raises(ValueError, match="does not fit"):
+        PiPlannerService(database, clock=lambda: NOW).plan(
+            PiPlanRequest(
+                41,
+                1,
+                1,
+                profile.profile_id,
+                goal_mode=PiGoalMode.LAUNCHPAD,
+                launchpad_capacity_m3=Decimal("10"),
+            ),
+            "en",
+        )
+
+
 def test_saved_pi_plans_can_be_created_edited_and_deleted(tmp_path: Path) -> None:
     database = _database(tmp_path)
     profile = PiProfileRepository(database).list_all()[0]
@@ -189,11 +244,17 @@ def test_saved_pi_plans_can_be_created_edited_and_deleted(tmp_path: Path) -> Non
         PiOperationMode.IMPORT,
         PiTier.BASIC,
         PiStorageStrategy.BUFFERED,
+        PiGoalMode.LAUNCHPAD,
+        Decimal("10000"),
+        3,
     )
 
     stored = repository.save(SavedPiPlan(None, "P2 Fabrikplanet", request))
     assert stored.plan_id is not None
     assert repository.list_all() == (stored,)
+    assert stored.request.goal_mode is PiGoalMode.LAUNCHPAD
+    assert stored.request.launchpad_capacity_m3 == Decimal("10000")
+    assert stored.request.final_factories == 3
 
     edited = repository.save(SavedPiPlan(stored.plan_id, "P2 Woche", request))
     assert edited.name == "P2 Woche"

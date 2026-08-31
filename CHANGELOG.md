@@ -2,6 +2,17 @@
 
 ## Unveröffentlicht
 
+## v0.4.1 – Automatische Launchpad-Zielplanung
+
+- neue Berechnungsart „Launchpad automatisch füllen“ mit editierbarer Kapazität
+- automatische Stückzahl aus SDE-Produktvolumen und freiem Launchpad-Volumen
+- exakte Füllzeit aus SDE-Zykluszeit und gewählter Zahl der Endfabriken
+- zeitlich ausbalancierte Empfehlungen für alle vorgelagerten Fabrikstufen
+- kompakter grafischer Materialfluss von Extraktion oder Zukauf bis zum Launchpad
+- gespeicherter Launchpad-Modus einschließlich Kapazität und Endfabrikzahl
+- Datenbankschema 9 für die neuen Planungsparameter
+- automatische Windows-Veröffentlichung nach erfolgreichem `main`-CI-Lauf und neuer Version
+
 ## v0.4.0 – PI-Betriebsplanung und Manufacturing-Grundlage
 
 - persönliche BPO-/BPC-Übersicht mit Produkt, Besitzer, Standort, ME, TE und Runs

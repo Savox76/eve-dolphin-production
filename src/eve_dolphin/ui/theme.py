@@ -82,6 +82,12 @@ QTableWidget#piLayoutTable {
     selection-color: #ffffff;
 }
 
+QGraphicsView#piLayoutDiagram {
+    background-color: #0d1622;
+    border: 1px solid #233246;
+    border-radius: 6px;
+}
+
 QTableWidget#characterTable QHeaderView::section,
 QTableWidget#planetaryColonyTable QHeaderView::section,
 QTableWidget#piPlanTable QHeaderView::section,

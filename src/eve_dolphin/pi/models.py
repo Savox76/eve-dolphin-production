@@ -33,6 +33,11 @@ class PiStorageStrategy(StrEnum):
     BUFFERED = "buffered"
 
 
+class PiGoalMode(StrEnum):
+    MANUAL = "manual"
+    LAUNCHPAD = "launchpad"
+
+
 @dataclass(frozen=True, slots=True)
 class PiCommodity:
     type_id: int
@@ -144,6 +149,9 @@ class PiPlanRequest:
     operation_mode: PiOperationMode = PiOperationMode.IMPORT
     source_tier: PiTier | None = None
     storage_strategy: PiStorageStrategy = PiStorageStrategy.DIRECT
+    goal_mode: PiGoalMode = PiGoalMode.MANUAL
+    launchpad_capacity_m3: Decimal = Decimal("10000")
+    final_factories: int = 1
 
     def __post_init__(self) -> None:
         if self.target_type_id <= 0 or self.target_quantity <= 0:
@@ -154,6 +162,10 @@ class PiPlanRequest:
             raise ValueError("PI planning profile ID must be positive")
         if self.source_tier is not None and self.source_tier is PiTier.ADVANCED:
             raise ValueError("P4 cannot be used as a PI input tier")
+        if self.launchpad_capacity_m3 <= 0:
+            raise ValueError("PI launchpad capacity must be positive")
+        if not 1 <= self.final_factories <= 100:
+            raise ValueError("PI final factory count must be between 1 and 100")
 
 
 @dataclass(frozen=True, slots=True)
@@ -186,6 +198,16 @@ class PiLayoutStage:
 
 
 @dataclass(frozen=True, slots=True)
+class PiLaunchpadFill:
+    capacity_m3: Decimal
+    product_quantity: int
+    product_volume_m3: Decimal
+    unused_volume_m3: Decimal
+    fill_time: timedelta
+    final_factories: int
+
+
+@dataclass(frozen=True, slots=True)
 class PiPlanResult:
     request: PiPlanRequest
     profile: PiProfile
@@ -201,6 +223,7 @@ class PiPlanResult:
     total_logistics_isk: Decimal
     blocked_reasons: tuple[str, ...]
     layout: tuple[PiLayoutStage, ...]
+    launchpad_fill: PiLaunchpadFill | None = None
 
     @property
     def is_feasible(self) -> bool:

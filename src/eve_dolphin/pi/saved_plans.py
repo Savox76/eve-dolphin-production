@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import sqlite3
 from datetime import UTC, datetime
+from decimal import Decimal
 
 from eve_dolphin.database import Database
 from eve_dolphin.pi.models import (
+    PiGoalMode,
     PiOperationMode,
     PiPlanRequest,
     PiStorageStrategy,
@@ -47,6 +49,9 @@ class SavedPiPlanRepository:
             request.operation_mode.value,
             int(request.source_tier) if request.source_tier is not None else None,
             request.storage_strategy.value,
+            request.goal_mode.value,
+            str(request.launchpad_capacity_m3),
+            request.final_factories,
             now,
         )
         with self._database.connect() as connection, connection:
@@ -55,8 +60,9 @@ class SavedPiPlanRepository:
                     """
                     INSERT INTO pi_saved_plans(
                         name, target_type_id, target_quantity, days, profile_id,
-                        operation_mode, source_tier, storage_strategy, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        operation_mode, source_tier, storage_strategy, goal_mode,
+                        launchpad_capacity_m3_decimal, final_factories, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     values,
                 )
@@ -69,7 +75,8 @@ class SavedPiPlanRepository:
                     UPDATE pi_saved_plans
                     SET name = ?, target_type_id = ?, target_quantity = ?, days = ?,
                         profile_id = ?, operation_mode = ?, source_tier = ?,
-                        storage_strategy = ?, updated_at = ?
+                        storage_strategy = ?, goal_mode = ?,
+                        launchpad_capacity_m3_decimal = ?, final_factories = ?, updated_at = ?
                     WHERE id = ?
                     """,
                     (*values, plan.plan_id),
@@ -102,5 +109,8 @@ def _plan(row: sqlite3.Row) -> SavedPiPlan:
             operation_mode=PiOperationMode(str(row["operation_mode"])),
             source_tier=PiTier(int(source_value)) if source_value is not None else None,
             storage_strategy=PiStorageStrategy(str(row["storage_strategy"])),
+            goal_mode=PiGoalMode(str(row["goal_mode"])),
+            launchpad_capacity_m3=Decimal(str(row["launchpad_capacity_m3_decimal"])),
+            final_factories=int(row["final_factories"]),
         ),
     )
