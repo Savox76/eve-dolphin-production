@@ -114,15 +114,21 @@ Kompaktes Desktop-Fenster:
 Schrittfolge in einer Seite:
 
 1. Zielprodukt und Berechnungsart: manuelle Menge/Termin oder automatisches Launchpad-Ziel
-2. verfügbare Charaktere/Planeten und Bestände
-3. Ergebnis mit Machbarkeit, Zyklen und Fehlmengen
-4. Entscheidung je Vorstufe: PI, Bestand, Kaufen oder manuell
-5. tabellarischen und kompakten grafischen Materialfluss prüfen
-6. Projekt speichern
+2. Command-Center-Upgrades-Stufe, Linkreserve und bei Extraktion Köpfe je ECU
+3. verfügbare Charaktere/Planeten und Bestände
+4. Ergebnis mit Machbarkeit, Soll-/Restzyklen, CPU, Energie und Fehlmengen
+5. Entscheidung je Vorstufe: PI, Bestand, Kaufen oder manuell
+6. tabellarischen und kompakten grafischen Materialfluss prüfen
+7. Projekt speichern
 
 Im Launchpad-Modus werden Zielmenge und Zeitraum nicht als Eingaben verlangt. Der Nutzer
 wählt Kapazität und Zahl der Endfabriken; Stückzahl, Restvolumen und Füllzeit werden aus den
 aktiven SDE-Volumen und Zykluszeiten berechnet.
+
+Das Ressourcenfeld zeigt belegte, nutzbare und verbleibende CPU/Energie, die zugrunde
+gelegten Gebäude sowie die maximale Zahl vollständiger Produktionsketten. Eine Überschreitung
+erscheint zusätzlich als Planblocker. Die Linkreserve bleibt sichtbar, weil ein exakter Wert
+erst mit einem konkreten Planetenlayout und dessen Entfernungen möglich ist.
 
 Bei ausreichender Breite stehen Eingaben links und Ergebnisse rechts. Im kompakten Fenster werden die Blöcke in derselben Reihenfolge gestapelt; das Ergebnis bleibt nach einer Neuberechnung im sichtbaren Bereich.
 

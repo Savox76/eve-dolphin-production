@@ -73,6 +73,9 @@ class PiPlannerPage(QWidget):
         self.days_spin = QSpinBox()
         self.launchpad_capacity_spin = _decimal_spin(1, 1_000_000, 2)
         self.final_factories_spin = QSpinBox()
+        self.command_center_combo = QComboBox()
+        self.infrastructure_reserve_spin = _decimal_spin(0, 50, 1)
+        self.extractor_heads_spin = QSpinBox()
         self.profile_combo = QComboBox()
         self.operation_combo = QComboBox()
         self.source_tier_combo = QComboBox()
@@ -85,13 +88,15 @@ class PiPlannerPage(QWidget):
         self.calculate_button = QPushButton(self._translator.text("pi_calculate"))
         self.result_label = QLabel(self._translator.text("pi_no_plan"))
         self.cost_label = QLabel()
-        self.plan_table = QTableWidget(0, 12)
+        self.resource_label = QLabel()
+        self.plan_table = QTableWidget(0, 13)
         self.layout_table = QTableWidget(0, 6)
         self.layout_diagram = PiLayoutDiagram()
         self.quantity_label = QLabel(self._translator.text("pi_quantity"))
         self.days_label = QLabel(self._translator.text("pi_days"))
         self.launchpad_capacity_label = QLabel(self._translator.text("pi_launchpad_capacity"))
         self.final_factories_label = QLabel(self._translator.text("pi_final_factories"))
+        self.extractor_heads_label = QLabel(self._translator.text("pi_extractor_heads"))
 
         self.profile_name = QLineEdit()
         self.space_combo = QComboBox()
@@ -129,6 +134,15 @@ class PiPlannerPage(QWidget):
         self.launchpad_capacity_spin.setSuffix(" m³")
         self.final_factories_spin.setRange(1, 100)
         self.final_factories_spin.setValue(1)
+        for level in range(6):
+            self.command_center_combo.addItem(
+                self._translator.text("pi_command_center_level_value").format(level=level), level
+            )
+        self.command_center_combo.setCurrentIndex(5)
+        self.infrastructure_reserve_spin.setValue(10)
+        self.infrastructure_reserve_spin.setSuffix(" %")
+        self.extractor_heads_spin.setRange(1, 10)
+        self.extractor_heads_spin.setValue(5)
 
         for goal_mode in PiGoalMode:
             self.goal_combo.addItem(
@@ -151,6 +165,8 @@ class PiPlannerPage(QWidget):
         self.result_label.setObjectName("muted")
         self.cost_label.setWordWrap(True)
         self.cost_label.setObjectName("muted")
+        self.resource_label.setWordWrap(True)
+        self.resource_label.setObjectName("muted")
         self.profile_status.setWordWrap(True)
         self.profile_status.setObjectName("muted")
 
@@ -163,6 +179,7 @@ class PiPlannerPage(QWidget):
                 self._translator.text("pi_plan_per_day"),
                 self._translator.text("pi_plan_available"),
                 self._translator.text("pi_plan_output"),
+                self._translator.text("pi_plan_target_cycles"),
                 self._translator.text("pi_plan_cycles"),
                 self._translator.text("pi_plan_capacity"),
                 self._translator.text("pi_plan_additional_factories"),
@@ -183,7 +200,7 @@ class PiPlannerPage(QWidget):
             (
                 self._translator.text("pi_layout_stage"),
                 self._translator.text("pi_layout_factories"),
-                self._translator.text("pi_plan_cycles"),
+                self._translator.text("pi_layout_cycles"),
                 self._translator.text("pi_layout_input_day"),
                 self._translator.text("pi_layout_output_day"),
                 self._translator.text("pi_layout_buffer"),
@@ -239,6 +256,12 @@ class PiPlannerPage(QWidget):
         form.addRow(self._translator.text("pi_profile"), self.profile_combo)
         form.addRow(self._translator.text("pi_operation_mode"), self.operation_combo)
         form.addRow(self._translator.text("pi_source_tier"), self.source_tier_combo)
+        form.addRow(self._translator.text("pi_command_center_level"), self.command_center_combo)
+        form.addRow(
+            self._translator.text("pi_infrastructure_reserve"),
+            self.infrastructure_reserve_spin,
+        )
+        form.addRow(self.extractor_heads_label, self.extractor_heads_spin)
         form.addRow(self._translator.text("pi_storage_strategy"), self.storage_strategy_combo)
         actions = QWidget()
         action_layout = QHBoxLayout(actions)
@@ -256,6 +279,7 @@ class PiPlannerPage(QWidget):
         results_layout.setContentsMargins(20, 18, 20, 18)
         results_layout.setSpacing(10)
         results_layout.addWidget(self.result_label)
+        results_layout.addWidget(self.resource_label)
         results_layout.addWidget(self.plan_table, 1)
         layout_title = QLabel(self._translator.text("pi_optimal_layout"))
         layout_title.setObjectName("cardTitle")
@@ -381,6 +405,7 @@ class PiPlannerPage(QWidget):
                 _format_decimal(line.required_per_day),
                 f"{line.available_at_deadline:,}",
                 f"{line.planned_output:,}",
+                f"{line.gross_cycles:,}",
                 f"{line.cycles:,}",
                 f"{line.available_factory_cycles:,}",
                 f"{line.additional_factories:,}",
@@ -407,6 +432,33 @@ class PiPlannerPage(QWidget):
                 total=_format_isk(result.total_logistics_isk),
             )
         )
+        budget = result.infrastructure_budget
+        if budget is not None:
+            self.resource_label.setText(
+                self._translator.text("pi_resource_budget_result").format(
+                    level=budget.command_center_level,
+                    used_cpu=f"{budget.used_cpu:,}",
+                    usable_cpu=f"{budget.total_cpu - budget.reserved_cpu:,}",
+                    total_cpu=f"{budget.total_cpu:,}",
+                    remaining_cpu=f"{budget.remaining_cpu:,}",
+                    used_power=f"{budget.used_power:,}",
+                    usable_power=f"{budget.total_power - budget.reserved_power:,}",
+                    total_power=f"{budget.total_power:,}",
+                    remaining_power=f"{budget.remaining_power:,}",
+                    reserve=_format_decimal(result.request.infrastructure_reserve_percent),
+                    launchpads=budget.launchpads,
+                    storage=budget.storage_facilities,
+                    ecus=budget.extractor_control_units,
+                    heads=budget.extractor_heads,
+                    basic=budget.basic_factories,
+                    advanced=budget.advanced_factories,
+                    high_tech=budget.high_tech_factories,
+                    copies=budget.maximum_layout_copies,
+                    final_factories=budget.maximum_final_factories,
+                )
+            )
+        else:
+            self.resource_label.clear()
         self.layout_table.setRowCount(len(result.layout))
         for row, stage in enumerate(result.layout):
             layout_values = (
@@ -463,6 +515,9 @@ class PiPlannerPage(QWidget):
             goal_mode=PiGoalMode(goal),
             launchpad_capacity_m3=_spin_decimal(self.launchpad_capacity_spin),
             final_factories=self.final_factories_spin.value(),
+            command_center_level=int(self.command_center_combo.currentData()),
+            infrastructure_reserve_percent=_spin_decimal(self.infrastructure_reserve_spin),
+            extractor_heads_per_ecu=self.extractor_heads_spin.value(),
         )
 
     def _goal_changed(self) -> None:
@@ -480,6 +535,8 @@ class PiPlannerPage(QWidget):
         mode = self.operation_combo.currentData()
         is_import = mode == PiOperationMode.IMPORT.value
         self.source_tier_combo.setEnabled(is_import)
+        self.extractor_heads_label.setVisible(not is_import)
+        self.extractor_heads_spin.setVisible(not is_import)
 
     def _saved_plan_selected(self) -> None:
         plan_id = self.saved_plan_combo.currentData()
@@ -507,6 +564,9 @@ class PiPlannerPage(QWidget):
         _restore_combo(self.goal_combo, request.goal_mode.value)
         self.launchpad_capacity_spin.setValue(float(request.launchpad_capacity_m3))
         self.final_factories_spin.setValue(request.final_factories)
+        _restore_combo(self.command_center_combo, request.command_center_level)
+        self.infrastructure_reserve_spin.setValue(float(request.infrastructure_reserve_percent))
+        self.extractor_heads_spin.setValue(request.extractor_heads_per_ecu)
         self._operation_changed()
         self._goal_changed()
         self._calculate()

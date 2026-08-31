@@ -78,6 +78,7 @@ def test_planner_resolves_exact_p2_p3_and_p4_quantities(tmp_path: Path) -> None:
     p4 = planner.plan(PiPlanRequest(41, 1, 2, profile.profile_id), "en")
 
     assert _line(p2, 21).cycles == 2
+    assert _line(p2, 21).gross_cycles == 2
     assert _line(p2, 11).required == 80
     assert _line(p2, 12).required == 80
     assert _line(p2, 1).import_quantity == 12_000
@@ -198,17 +199,125 @@ def test_launchpad_goal_derives_quantity_and_exact_fill_time(tmp_path: Path) -> 
         "en",
     )
 
-    assert result.request.target_quantity == 6
+    assert result.request.target_quantity == 5
     assert result.launchpad_fill is not None
-    assert result.launchpad_fill.product_quantity == 6
-    assert result.launchpad_fill.product_volume_m3 == Decimal("9.0")
-    assert result.launchpad_fill.unused_volume_m3 == Decimal("1.0")
+    assert result.launchpad_fill.product_quantity == 5
+    assert result.launchpad_fill.product_volume_m3 == Decimal("7.5")
+    assert result.launchpad_fill.unused_volume_m3 == Decimal("2.5")
     assert result.launchpad_fill.fill_time == timedelta(hours=1)
     assert result.launchpad_fill.final_factories == 2
     assert next(stage for stage in result.layout if stage.commodity.type_id == 21).factories == 2
     assert all(
-        stage.factories == 2 for stage in result.layout if stage.commodity.type_id in {11, 12}
+        stage.factories == 1 for stage in result.layout if stage.commodity.type_id in {11, 12}
     )
+
+
+def test_launchpad_goal_never_overfills_with_partial_output_batch(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+
+    result = PiPlannerService(database, clock=lambda: NOW).plan(
+        PiPlanRequest(
+            21,
+            1,
+            1,
+            profile.profile_id,
+            goal_mode=PiGoalMode.LAUNCHPAD,
+            launchpad_capacity_m3=Decimal("10000"),
+        ),
+        "en",
+    )
+
+    assert result.request.target_quantity == 6_665
+    assert _line(result, 21).gross_cycles == 1_333
+    assert result.launchpad_fill is not None
+    assert result.launchpad_fill.product_volume_m3 == Decimal("9997.5")
+    assert result.launchpad_fill.unused_volume_m3 == Decimal("2.5")
+
+
+def test_plan_reports_command_center_cpu_and_power_budget(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+
+    result = PiPlannerService(database, clock=lambda: NOW).plan(
+        PiPlanRequest(
+            21,
+            10,
+            2,
+            profile.profile_id,
+            operation_mode=PiOperationMode.IMPORT,
+            source_tier=PiTier.BASIC,
+            command_center_level=5,
+            infrastructure_reserve_percent=Decimal("10"),
+        ),
+        "en",
+    )
+
+    budget = result.infrastructure_budget
+    assert budget is not None
+    assert (budget.total_cpu, budget.total_power) == (25_415, 19_000)
+    assert (budget.reserved_cpu, budget.reserved_power) == (2_542, 1_900)
+    assert (budget.used_cpu, budget.used_power) == (4_100, 1_400)
+    assert budget.maximum_layout_copies == 23
+    assert budget.maximum_final_factories == 23
+
+
+def test_low_command_center_level_blocks_oversized_layout(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+
+    result = PiPlannerService(database, clock=lambda: NOW).plan(
+        PiPlanRequest(
+            21,
+            10,
+            2,
+            profile.profile_id,
+            operation_mode=PiOperationMode.IMPORT,
+            source_tier=PiTier.BASIC,
+            command_center_level=0,
+        ),
+        "en",
+    )
+
+    assert result.infrastructure_budget is not None
+    assert result.infrastructure_budget.remaining_cpu < 0
+    assert "planet_cpu_shortfall" in result.blocked_reasons
+
+
+def test_extractor_plan_counts_ecus_heads_and_buffer_storage(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+
+    result = PiPlannerService(database, clock=lambda: NOW).plan(
+        PiPlanRequest(
+            21,
+            10,
+            2,
+            profile.profile_id,
+            operation_mode=PiOperationMode.EXTRACTOR,
+            storage_strategy=PiStorageStrategy.BUFFERED,
+            extractor_heads_per_ecu=5,
+        ),
+        "en",
+    )
+
+    budget = result.infrastructure_budget
+    assert budget is not None
+    assert budget.extractor_control_units == 2
+    assert budget.extractor_heads == 10
+    assert budget.storage_facilities == 1
+    assert budget.basic_factories == 2
+    assert budget.advanced_factories == 1
+    assert (budget.used_cpu, budget.used_power) == (6_900, 14_400)
+    assert budget.maximum_layout_copies == 1
 
 
 def test_launchpad_goal_rejects_product_larger_than_capacity(tmp_path: Path) -> None:
@@ -247,6 +356,9 @@ def test_saved_pi_plans_can_be_created_edited_and_deleted(tmp_path: Path) -> Non
         PiGoalMode.LAUNCHPAD,
         Decimal("10000"),
         3,
+        4,
+        Decimal("12.5"),
+        7,
     )
 
     stored = repository.save(SavedPiPlan(None, "P2 Fabrikplanet", request))
@@ -255,6 +367,9 @@ def test_saved_pi_plans_can_be_created_edited_and_deleted(tmp_path: Path) -> Non
     assert stored.request.goal_mode is PiGoalMode.LAUNCHPAD
     assert stored.request.launchpad_capacity_m3 == Decimal("10000")
     assert stored.request.final_factories == 3
+    assert stored.request.command_center_level == 4
+    assert stored.request.infrastructure_reserve_percent == Decimal("12.5")
+    assert stored.request.extractor_heads_per_ecu == 7
 
     edited = repository.save(SavedPiPlan(stored.plan_id, "P2 Woche", request))
     assert edited.name == "P2 Woche"

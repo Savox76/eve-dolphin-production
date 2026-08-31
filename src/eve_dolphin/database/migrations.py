@@ -579,6 +579,20 @@ MIGRATIONS = (
             CHECK (final_factories BETWEEN 1 AND 100);
         """,
     ),
+    Migration(
+        version=10,
+        description="PI command-center resource budgets",
+        sql="""
+        ALTER TABLE pi_saved_plans
+            ADD COLUMN command_center_level INTEGER NOT NULL DEFAULT 5
+            CHECK (command_center_level BETWEEN 0 AND 5);
+        ALTER TABLE pi_saved_plans
+            ADD COLUMN infrastructure_reserve_percent_decimal TEXT NOT NULL DEFAULT '10';
+        ALTER TABLE pi_saved_plans
+            ADD COLUMN extractor_heads_per_ecu INTEGER NOT NULL DEFAULT 5
+            CHECK (extractor_heads_per_ecu BETWEEN 1 AND 10);
+        """,
+    ),
 )
 
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1].version
