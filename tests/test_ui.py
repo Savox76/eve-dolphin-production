@@ -22,8 +22,15 @@ from eve_dolphin.pi import (
     NamedCount,
     NamedQuantity,
     PiCommodity,
+    PiGoalMode,
+    PiLayoutStage,
     PiOperationMode,
+    PiPlanRequest,
+    PiPlanResult,
+    PiProfile,
+    PiStorageStrategy,
     PiTier,
+    SpaceKind,
 )
 from eve_dolphin.sso.scopes import ScopePackage, scopes_for_packages
 from eve_dolphin.sync.coordinator import CharacterSyncBatch, CharacterSyncOutcome
@@ -34,6 +41,7 @@ from eve_dolphin.ui.character_page import (
     CharacterSsoWorker,
 )
 from eve_dolphin.ui.main_window import SECTIONS, MainWindow
+from eve_dolphin.ui.pi_layout_diagram import PiLayoutDiagram
 from eve_dolphin.ui.pi_planner_page import PiPlannerPage
 from eve_dolphin.ui.planetary_page import PlanetaryPage
 from eve_dolphin.updates import UpdateState, UpdateStateStatus
@@ -68,6 +76,88 @@ def test_main_window_contains_all_planned_sections(
     assert window.blueprint_page.property("viewId") == "blueprints"
 
     window.close()
+
+
+def test_pi_planner_switches_to_launchpad_inputs(
+    qt_application: QApplication, tmp_path: Path
+) -> None:
+    database = Database(tmp_path / "client.sqlite3", tmp_path / "backups")
+    database.initialize()
+    page = PiPlannerPage(database, Translator("de"))
+
+    page.goal_combo.setCurrentIndex(page.goal_combo.findData(PiGoalMode.LAUNCHPAD.value))
+    qt_application.processEvents()
+
+    assert page.quantity_spin.isHidden()
+    assert page.days_spin.isHidden()
+    assert not page.launchpad_capacity_spin.isHidden()
+    assert not page.final_factories_spin.isHidden()
+    assert page.launchpad_capacity_spin.value() == 10_000
+    page.close()
+
+
+def test_pi_layout_diagram_renders_source_factories_and_launchpad(
+    qt_application: QApplication,
+) -> None:
+    product = PiCommodity(21, "Testprodukt", Decimal("1.5"), PiTier.REFINED)
+    request = PiPlanRequest(
+        21,
+        6,
+        1,
+        1,
+        source_tier=PiTier.BASIC,
+        storage_strategy=PiStorageStrategy.BUFFERED,
+        goal_mode=PiGoalMode.LAUNCHPAD,
+        launchpad_capacity_m3=Decimal("10"),
+        final_factories=2,
+    )
+    profile = PiProfile(
+        1,
+        "Test",
+        SpaceKind.HIGHSEC,
+        True,
+        Decimal(0),
+        Decimal(0),
+        Decimal(0),
+        Decimal("10000"),
+        Decimal(0),
+        PiTier.BASIC,
+    )
+    result = PiPlanResult(
+        request=request,
+        profile=profile,
+        target=product,
+        lines=(),
+        import_volume_m3=Decimal(0),
+        export_volume_m3=Decimal(0),
+        cargo_trips=0,
+        import_tax_isk=Decimal(0),
+        export_tax_isk=Decimal(0),
+        transport_cost_isk=Decimal(0),
+        risk_markup_isk=Decimal(0),
+        total_logistics_isk=Decimal(0),
+        blocked_reasons=(),
+        layout=(PiLayoutStage(product, 2, 2, 240, 120, True),),
+    )
+    diagram = PiLayoutDiagram()
+    diagram.show_plan(
+        result,
+        source_label="Zukauf / Import",
+        launchpad_label="Launchpad / Ziel",
+        buffer_label="Pufferlager",
+        factory_label="Fabrik",
+        tier_labels={tier: f"P{int(tier)}" for tier in PiTier},
+    )
+    qt_application.processEvents()
+
+    texts = "\n".join(
+        item.toPlainText() for item in diagram.scene().items() if hasattr(item, "toPlainText")
+    )
+    assert "Zukauf / Import" in texts
+    assert "2 x Fabrik" in texts
+    assert "Pufferlager" in texts
+    assert "Launchpad / Ziel" in texts
+    diagram.close()
 
 
 def test_main_window_shows_successful_update_after_restart(

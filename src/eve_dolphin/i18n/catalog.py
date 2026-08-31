@@ -102,8 +102,13 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_plan_tab": "Zielplanung",
         "pi_profiles_tab": "Profile",
         "pi_target": "Zielprodukt",
+        "pi_goal_mode": "Berechnungsart",
+        "pi_goal_manual": "Zielmenge und Zeitraum vorgeben",
+        "pi_goal_launchpad": "Launchpad automatisch füllen",
         "pi_quantity": "Zielmenge",
         "pi_days": "Zeitraum (Tage)",
+        "pi_launchpad_capacity": "Launchpad-Kapazität",
+        "pi_final_factories": "Fabriken für das Endprodukt",
         "pi_profile": "Logistikprofil",
         "pi_operation_mode": "Versorgungsart",
         "pi_source_tier": "Zukauf bis Stufe",
@@ -124,6 +129,11 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_no_plan": "Wähle Ziel, Menge, Zeitraum und Profil aus.",
         "pi_plan_feasible": "Plan vollständig berechnet",
         "pi_plan_blocked": "Plan eingeschränkt: {reasons}",
+        "pi_launchpad_result": (
+            "Launchpad-Ziel: {quantity} Stück {product} belegen {used} von {capacity} m³ "
+            "({unused} m³ frei). Mit {factories} Endfabrik(en) dauert die Produktion "
+            "voraussichtlich {duration}."
+        ),
         "pi_block_imports_require_customs_office": "Import benötigt ein Zollamt (POCO)",
         "pi_block_command_center_export_requires_multiple_launches": (
             "Export ohne POCO überschreitet 500 m³ und benötigt mehrere Starts"
@@ -150,6 +160,12 @@ CATALOG: dict[str, dict[str, str]] = {
             "Transport {transport} ISK · Risiko {risk} ISK · Summe {total} ISK"
         ),
         "pi_optimal_layout": "Empfohlener Planetenaufbau",
+        "pi_graphical_layout": "Grafischer Materialfluss",
+        "pi_diagram_extractors": "Extraktoren",
+        "pi_diagram_purchase": "Zukauf / Import",
+        "pi_diagram_launchpad": "Launchpad / Ziel",
+        "pi_diagram_buffer": "Pufferlager",
+        "pi_diagram_factory": "Fabrik",
         "pi_layout_stage": "Produktionsstufe",
         "pi_layout_factories": "Fabriken",
         "pi_layout_input_day": "Eingang/Tag",
@@ -451,8 +467,13 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_plan_tab": "Target plan",
         "pi_profiles_tab": "Profiles",
         "pi_target": "Target product",
+        "pi_goal_mode": "Calculation mode",
+        "pi_goal_manual": "Set target quantity and timeframe",
+        "pi_goal_launchpad": "Fill launchpad automatically",
         "pi_quantity": "Target quantity",
         "pi_days": "Timeframe (days)",
+        "pi_launchpad_capacity": "Launchpad capacity",
+        "pi_final_factories": "Factories for final product",
         "pi_profile": "Logistics profile",
         "pi_operation_mode": "Supply mode",
         "pi_source_tier": "Purchase through tier",
@@ -473,6 +494,11 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_no_plan": "Select a target, quantity, timeframe, and profile.",
         "pi_plan_feasible": "Plan calculated completely",
         "pi_plan_blocked": "Plan constrained: {reasons}",
+        "pi_launchpad_result": (
+            "Launchpad target: {quantity} units of {product} occupy {used} of {capacity} m³ "
+            "({unused} m³ free). With {factories} final factory/factories, production "
+            "takes approximately {duration}."
+        ),
         "pi_block_imports_require_customs_office": "imports require a customs office (POCO)",
         "pi_block_command_center_export_requires_multiple_launches": (
             "export without a POCO exceeds 500 m³ and requires multiple launches"
@@ -499,6 +525,12 @@ CATALOG: dict[str, dict[str, str]] = {
             "transport {transport} ISK · risk {risk} ISK · total {total} ISK"
         ),
         "pi_optimal_layout": "Recommended planetary layout",
+        "pi_graphical_layout": "Graphical material flow",
+        "pi_diagram_extractors": "Extractors",
+        "pi_diagram_purchase": "Purchase / import",
+        "pi_diagram_launchpad": "Launchpad / target",
+        "pi_diagram_buffer": "Buffer storage",
+        "pi_diagram_factory": "Factory",
         "pi_layout_stage": "Production tier",
         "pi_layout_factories": "Factories",
         "pi_layout_input_day": "Input/day",

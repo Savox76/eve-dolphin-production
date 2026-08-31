@@ -30,6 +30,8 @@ ausgeliefert wird, bleibt der formale Gesamtfortschritt bis zur manuellen Live-A
 - [x] vollständigen Produktionsgraph aus den aktiven SDE-Schematics ableiten
 - [x] P0 bis P4 zyklusgenau und ohne fest codierte Rezepte rückwärts auflösen
 - [x] Zielprodukt, Menge und Zeitraum als Nutzereingabe unterstützen
+- [x] Zielmenge und Füllzeit alternativ automatisch aus Launchpad-Kapazität,
+  Produktvolumen, Zykluszeit und Endfabrikzahl ableiten
 - [x] aktuelle Lagerbestände und Kolonieprognosen aller Charaktere gegenrechnen
 - [x] Bedarf pro Tag, Zyklen, geplante Ausgabe, Import, Fehlmenge und Überschuss erklären
 - [x] Import-/Exportvolumen und Frachtrouten berechnen
@@ -39,6 +41,7 @@ ausgeliefert wird, bleibt der formale Gesamtfortschritt bis zur manuellen Live-A
 - [x] exakte automatisierte P2-, P3- und P4-Rückwärtsreferenzen prüfen
 - [x] Eigenextraktion und Zukauf bis zu einer wählbaren PI-Stufe unterscheiden
 - [x] empfohlenen Aufbau mit direkten Routen oder Pufferlagern ausweisen
+- [x] den empfohlenen Materialfluss zusätzlich als kompakten grafischen Aufbau darstellen
 - [x] Zielplanungen lokal speichern, laden, ändern und löschen
 
 ## Daten- und Sicherheitsgrenzen

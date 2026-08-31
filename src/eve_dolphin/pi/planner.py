@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import ROUND_CEILING, Decimal
 
@@ -14,6 +15,8 @@ from eve_dolphin.pi.forecast import forecast_colony
 from eve_dolphin.pi.models import (
     PiCatalog,
     PiCommodity,
+    PiGoalMode,
+    PiLaunchpadFill,
     PiLayoutStage,
     PiOperationMode,
     PiPlanLine,
@@ -66,14 +69,18 @@ class PiPlannerService:
         target = catalog.commodities.get(request.target_type_id)
         if target is None or request.target_type_id not in catalog.recipes_by_output:
             raise ValueError("PI planning target is not available in the active SDE")
+        request = _resolve_launchpad_request(request, catalog, target)
+        planning_window = _planning_window(request, catalog, target)
         profile = self._profiles.get(request.profile_id)
         if profile is None:
             raise ValueError("PI planning profile does not exist")
 
-        available, factory_capacity = self._planning_state(catalog, now, request.days)
+        available, factory_capacity = self._planning_state(catalog, now, planning_window)
         demand: Counter[int] = Counter({target.type_id: request.target_quantity})
         line_data: dict[int, tuple[int, int, int, int, int, int, int, int, int, int, int, int]] = {}
-        source_tier = request.source_tier or profile.supply_tier
+        source_tier = (
+            request.source_tier if request.source_tier is not None else profile.supply_tier
+        )
         pending = {target.type_id}
         while pending:
             type_id = max(
@@ -116,7 +123,9 @@ class PiPlannerService:
                 planned_output = cycles * recipe.output.quantity
                 available_cycles = factory_capacity[type_id]
                 capacity_shortfall = max(0, cycles - available_cycles)
-                cycles_per_factory = request.days * 86400 // recipe.cycle_time_seconds
+                cycles_per_factory = (
+                    int(planning_window.total_seconds()) // recipe.cycle_time_seconds
+                )
                 if capacity_shortfall and cycles_per_factory > 0:
                     additional_factories = _ceil_div(capacity_shortfall, cycles_per_factory)
                 if cycles_per_factory > 0:
@@ -146,7 +155,11 @@ class PiPlannerService:
             PiPlanLine(
                 commodity=catalog.commodities[type_id],
                 required=values[0],
-                required_per_day=Decimal(values[0]) / Decimal(request.days),
+                required_per_day=(
+                    Decimal(values[0])
+                    * Decimal(86400)
+                    / Decimal(int(planning_window.total_seconds()))
+                ),
                 available_at_deadline=available[type_id],
                 used_from_available=values[1],
                 planned_output=values[2],
@@ -168,16 +181,22 @@ class PiPlannerService:
                 ),
             )
         )
-        return _cost_result(request, profile, target, lines, _layout(request, catalog, lines))
+        return _cost_result(
+            request,
+            profile,
+            target,
+            lines,
+            _layout(request, catalog, lines, planning_window),
+            catalog,
+        )
 
     def _planning_state(
-        self, catalog: PiCatalog, now: datetime, days: int
+        self, catalog: PiCatalog, now: datetime, horizon: timedelta
     ) -> tuple[Counter[int], Counter[int]]:
         total: Counter[int] = Counter()
         capacity: Counter[int] = Counter()
         used_cycles: Counter[int] = Counter()
-        horizon = timedelta(days=days)
-        horizon_seconds = days * 86400
+        horizon_seconds = int(horizon.total_seconds())
         for character in self._characters.list_all():
             for colony in self._snapshots.current_colonies(character.character_id):
                 forecast = forecast_colony(colony, catalog, now, horizon)
@@ -213,6 +232,7 @@ def _cost_result(
     target: PiCommodity,
     lines: tuple[PiPlanLine, ...],
     layout: tuple[PiLayoutStage, ...],
+    catalog: PiCatalog,
 ) -> PiPlanResult:
     imports = tuple(line for line in lines if line.import_quantity > 0)
     import_volume = sum(
@@ -249,6 +269,7 @@ def _cost_result(
         blocked.append("raw_material_shortfall")
     if any(line.factory_shortfall_cycles for line in lines):
         blocked.append("factory_capacity_shortfall")
+    launchpad_fill = _launchpad_fill(request, target, lines, catalog)
     return PiPlanResult(
         request=request,
         profile=profile,
@@ -264,6 +285,68 @@ def _cost_result(
         total_logistics_isk=import_tax + export_tax + transport + risk,
         blocked_reasons=tuple(blocked),
         layout=layout,
+        launchpad_fill=launchpad_fill,
+    )
+
+
+def _resolve_launchpad_request(
+    request: PiPlanRequest,
+    catalog: PiCatalog,
+    target: PiCommodity,
+) -> PiPlanRequest:
+    if request.goal_mode is PiGoalMode.MANUAL:
+        return request
+    quantity = int(request.launchpad_capacity_m3 // target.volume_m3)
+    if quantity <= 0:
+        raise ValueError("Selected product does not fit into the launchpad capacity")
+    recipe = catalog.recipe_for_output(target.type_id)
+    if recipe is None:
+        raise ValueError("PI planning target has no production recipe")
+    cycles = _ceil_div(quantity, recipe.output.quantity)
+    batches = _ceil_div(cycles, request.final_factories)
+    seconds = max(1, batches * recipe.cycle_time_seconds)
+    days = max(1, _ceil_div(seconds, 86400))
+    return replace(request, target_quantity=quantity, days=min(days, 365))
+
+
+def _planning_window(
+    request: PiPlanRequest,
+    catalog: PiCatalog,
+    target: PiCommodity,
+) -> timedelta:
+    if request.goal_mode is PiGoalMode.MANUAL:
+        return timedelta(days=request.days)
+    recipe = catalog.recipe_for_output(target.type_id)
+    if recipe is None:
+        raise ValueError("PI planning target has no production recipe")
+    cycles = _ceil_div(request.target_quantity, recipe.output.quantity)
+    seconds = _ceil_div(cycles, request.final_factories) * recipe.cycle_time_seconds
+    return timedelta(seconds=max(1, seconds))
+
+
+def _launchpad_fill(
+    request: PiPlanRequest,
+    target: PiCommodity,
+    lines: tuple[PiPlanLine, ...],
+    catalog: PiCatalog,
+) -> PiLaunchpadFill | None:
+    if request.goal_mode is not PiGoalMode.LAUNCHPAD:
+        return None
+    target_line = next(line for line in lines if line.commodity.type_id == target.type_id)
+    recipe = catalog.recipe_for_output(target.type_id)
+    if recipe is None:
+        return None
+    fill_seconds = (
+        _ceil_div(target_line.cycles, request.final_factories) * recipe.cycle_time_seconds
+    )
+    product_volume = Decimal(request.target_quantity) * target.volume_m3
+    return PiLaunchpadFill(
+        capacity_m3=request.launchpad_capacity_m3,
+        product_quantity=request.target_quantity,
+        product_volume_m3=product_volume,
+        unused_volume_m3=max(Decimal(0), request.launchpad_capacity_m3 - product_volume),
+        fill_time=timedelta(seconds=fill_seconds),
+        final_factories=request.final_factories,
     )
 
 
@@ -271,20 +354,28 @@ def _layout(
     request: PiPlanRequest,
     catalog: PiCatalog,
     lines: tuple[PiPlanLine, ...],
+    planning_window: timedelta,
 ) -> tuple[PiLayoutStage, ...]:
     result: list[PiLayoutStage] = []
+    planning_seconds = int(planning_window.total_seconds())
     for line in lines:
         recipe = catalog.recipe_for_output(line.commodity.type_id)
         if recipe is None or line.cycles <= 0:
             continue
         input_per_day = sum(
-            _ceil_div(line.cycles * item.quantity, request.days) for item in recipe.inputs
+            _ceil_div(line.cycles * item.quantity * 86400, planning_seconds)
+            for item in recipe.inputs
         )
-        output_per_day = _ceil_div(line.planned_output, request.days)
+        output_per_day = _ceil_div(line.planned_output * 86400, planning_seconds)
         result.append(
             PiLayoutStage(
                 commodity=line.commodity,
-                factories=max(1, line.recommended_factories),
+                factories=(
+                    request.final_factories
+                    if request.goal_mode is PiGoalMode.LAUNCHPAD
+                    and line.commodity.type_id == request.target_type_id
+                    else max(1, line.recommended_factories)
+                ),
                 cycles=line.cycles,
                 input_units_per_day=input_per_day,
                 output_units_per_day=output_per_day,

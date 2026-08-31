@@ -224,6 +224,13 @@ Fabrikzyklen, Eingangsbedarf oder profilabhängige Importmengen. POCO-Steuern, T
 Frachtraum und Wurmlochrisiko stammen aus lokalen `pi_profiles`. Ein Profil ohne POCO
 blockiert normale Importe, statt eine nicht ausführbare Kette als vollständig darzustellen.
 
+Neben der manuellen Zielmenge unterstützt der Planer ein volumengesteuertes Launchpad-Ziel.
+Er teilt die gewählte Kapazität durch das SDE-Volumen des Zielprodukts, rundet auf ganze
+Einheiten ab und berechnet die Füllzeit aus SDE-Zykluszeit und Endfabrikzahl. Dasselbe exakte
+Zeitfenster dimensioniert die vorgelagerten Fabrikstufen. Die Qt-Oberfläche rendert das
+Ergebnis sowohl tabellarisch als auch als abgeleiteten Materialfluss; die Grafik enthält
+keine eigene, von der Kalkulation abweichende Planungslogik.
+
 ## SDE-Import
 
 1. Aktuelle Build-Metadaten mit HTTP-Caching prüfen.

@@ -565,6 +565,20 @@ MIGRATIONS = (
         );
         """,
     ),
+    Migration(
+        version=9,
+        description="launchpad-sized PI target plans",
+        sql="""
+        ALTER TABLE pi_saved_plans
+            ADD COLUMN goal_mode TEXT NOT NULL DEFAULT 'manual'
+            CHECK (goal_mode IN ('manual', 'launchpad'));
+        ALTER TABLE pi_saved_plans
+            ADD COLUMN launchpad_capacity_m3_decimal TEXT NOT NULL DEFAULT '10000';
+        ALTER TABLE pi_saved_plans
+            ADD COLUMN final_factories INTEGER NOT NULL DEFAULT 1
+            CHECK (final_factories BETWEEN 1 AND 100);
+        """,
+    ),
 )
 
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1].version

@@ -1,15 +1,22 @@
 name: Publish Windows Release
 
 on:
+  workflow_run:
+    workflows:
+      - Python Client
+    types:
+      - completed
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       tag:
         description: Exact release tag, for example v0.2.0
-        required: true
+        required: false
         type: string
       release_notes:
         description: User-facing release notes
-        required: true
+        required: false
         type: string
       prerelease:
         description: Publish as a test version
@@ -23,10 +30,20 @@ permissions:
 jobs:
   build-windows:
     name: Build verified Windows package
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: windows-latest
+    outputs:
+      release_tag: ${{ steps.version.outputs.release_tag }}
+      release_version: ${{ steps.version.outputs.release_version }}
+      release_sha: ${{ steps.version.outputs.release_sha }}
+      should_publish: ${{ steps.version.outputs.should_publish }}
     steps:
       - name: Checkout release source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Install Python
         uses: actions/setup-python@v5
@@ -39,32 +56,49 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked --all-groups
 
-      - name: Verify requested version
+      - name: Resolve and verify release version
+        id: version
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
+          REQUESTED_TAG: ${{ inputs.tag }}
+          RELEASE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
         run: |
           $Version = (uv run python -c "from eve_dolphin import __version__; print(__version__)").Trim()
-          if ("v$Version" -ne $env:RELEASE_TAG) {
-            throw "Requested tag $env:RELEASE_TAG does not match application v$Version."
+          $Tag = "v$Version"
+          if ($env:REQUESTED_TAG -and $Tag -ne $env:REQUESTED_TAG) {
+            throw "Requested tag $env:REQUESTED_TAG does not match application $Tag."
           }
           $Published = gh release list --repo "Savox76/eve-dolphin-production" --limit 100 --json tagName | ConvertFrom-Json
+          $AlreadyPublished = $false
           foreach ($Release in $Published) {
             $PublishedVersion = $Release.tagName -replace '^v', ''
-            if ($PublishedVersion -match '^\d+\.\d+\.\d+$' -and [version]$PublishedVersion -ge [version]$Version) {
-              throw "Application v$Version is not newer than published $($Release.tagName). Increase src/eve_dolphin/version.py."
+            if ($Release.tagName -eq $Tag) {
+              $AlreadyPublished = $true
+            }
+            elseif ($PublishedVersion -match '^\d+\.\d+\.\d+$' -and [version]$PublishedVersion -gt [version]$Version) {
+              throw "Application $Tag is older than published $($Release.tagName). Increase src/eve_dolphin/version.py."
             }
           }
+          if ($AlreadyPublished -and "${{ github.event_name }}" -eq "workflow_dispatch") {
+            throw "Application $Tag is already published. Increase src/eve_dolphin/version.py."
+          }
+          "release_tag=$Tag" >> $env:GITHUB_OUTPUT
+          "release_version=$Version" >> $env:GITHUB_OUTPUT
+          "release_sha=$env:RELEASE_SHA" >> $env:GITHUB_OUTPUT
+          $ShouldPublish = (!$AlreadyPublished).ToString().ToLowerInvariant()
+          "should_publish=$ShouldPublish" >> $env:GITHUB_OUTPUT
 
       - name: Build and validate Windows client
+        if: steps.version.outputs.should_publish == 'true'
         shell: pwsh
         run: ./scripts/build_windows.ps1
 
       - name: Create release archive and checksum
+        if: steps.version.outputs.should_publish == 'true'
         shell: pwsh
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
         run: |
           $Archive = "EVE-Dolphin-Windows-$env:RELEASE_TAG.zip"
           Compress-Archive -Path "dist/EVE-Dolphin" -DestinationPath $Archive -CompressionLevel Optimal
@@ -72,33 +106,69 @@ jobs:
           "$Hash  $Archive" | Set-Content -Path "$Archive.sha256" -Encoding ascii
 
       - name: Upload verified release bundle
+        if: steps.version.outputs.should_publish == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: eve-dolphin-release-${{ inputs.tag }}
+          name: eve-dolphin-release-${{ steps.version.outputs.release_tag }}
           path: |
-            EVE-Dolphin-Windows-${{ inputs.tag }}.zip
-            EVE-Dolphin-Windows-${{ inputs.tag }}.zip.sha256
+            EVE-Dolphin-Windows-${{ steps.version.outputs.release_tag }}.zip
+            EVE-Dolphin-Windows-${{ steps.version.outputs.release_tag }}.zip.sha256
           if-no-files-found: error
 
   publish:
     name: Publish verified release
     needs: build-windows
+    if: needs.build-windows.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - name: Checkout release notes
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build-windows.outputs.release_sha }}
+
       - name: Download verified release bundle
         uses: actions/download-artifact@v4
         with:
-          name: eve-dolphin-release-${{ inputs.tag }}
+          name: eve-dolphin-release-${{ needs.build-windows.outputs.release_tag }}
+
+      - name: Resolve release notes
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.build-windows.outputs.release_version }}
+          REQUESTED_NOTES: ${{ inputs.release_notes }}
+        run: |
+          if [[ -n "$REQUESTED_NOTES" ]]; then
+            printf '%s\n' "$REQUESTED_NOTES" > .release-notes.md
+          else
+            python3 - "$RELEASE_VERSION" <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          version = re.escape(sys.argv[1])
+          changelog = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8")
+          match = re.search(
+              rf"^## v{version}\b.*?\n(?P<body>.*?)(?=^## |\Z)",
+              changelog,
+              re.MULTILINE | re.DOTALL,
+          )
+          if match is None or not match.group("body").strip():
+              raise SystemExit(f"No changelog section found for v{sys.argv[1]}")
+          pathlib.Path(".release-notes.md").write_text(
+              match.group("body").strip() + "\n", encoding="utf-8"
+          )
+          PY
+          fi
 
       - name: Publish to this repository
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
-          RELEASE_NOTES: ${{ inputs.release_notes }}
-          PRERELEASE: ${{ inputs.prerelease }}
+          RELEASE_TAG: ${{ needs.build-windows.outputs.release_tag }}
+          RELEASE_SHA: ${{ needs.build-windows.outputs.release_sha }}
+          PRERELEASE: ${{ github.event_name == 'workflow_run' || inputs.prerelease }}
         run: |
           options=(
             "$RELEASE_TAG"
@@ -106,7 +176,8 @@ jobs:
             "EVE-Dolphin-Windows-$RELEASE_TAG.zip.sha256"
             --repo "Savox76/eve-dolphin-production"
             --title "EVE Dolphin $RELEASE_TAG"
-            --notes "$RELEASE_NOTES"
+            --target "$RELEASE_SHA"
+            --notes-file .release-notes.md
           )
           if [[ "$PRERELEASE" == "true" ]]; then
             options+=(--prerelease)

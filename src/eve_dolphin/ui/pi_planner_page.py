@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
 from eve_dolphin.database import Database
 from eve_dolphin.i18n import Translator
 from eve_dolphin.pi import (
+    PiGoalMode,
     PiOperationMode,
     PiPlannerService,
     PiPlanRequest,
@@ -41,6 +42,7 @@ from eve_dolphin.pi import (
     SavedPiPlanRepository,
     SpaceKind,
 )
+from eve_dolphin.ui.pi_layout_diagram import PiLayoutDiagram
 
 
 class PiPlannerPage(QWidget):
@@ -66,8 +68,11 @@ class PiPlannerPage(QWidget):
         self._saved_plan_values: dict[int, SavedPiPlan] = {}
 
         self.target_combo = QComboBox()
+        self.goal_combo = QComboBox()
         self.quantity_spin = QSpinBox()
         self.days_spin = QSpinBox()
+        self.launchpad_capacity_spin = _decimal_spin(1, 1_000_000, 2)
+        self.final_factories_spin = QSpinBox()
         self.profile_combo = QComboBox()
         self.operation_combo = QComboBox()
         self.source_tier_combo = QComboBox()
@@ -82,6 +87,11 @@ class PiPlannerPage(QWidget):
         self.cost_label = QLabel()
         self.plan_table = QTableWidget(0, 12)
         self.layout_table = QTableWidget(0, 6)
+        self.layout_diagram = PiLayoutDiagram()
+        self.quantity_label = QLabel(self._translator.text("pi_quantity"))
+        self.days_label = QLabel(self._translator.text("pi_days"))
+        self.launchpad_capacity_label = QLabel(self._translator.text("pi_launchpad_capacity"))
+        self.final_factories_label = QLabel(self._translator.text("pi_final_factories"))
 
         self.profile_name = QLineEdit()
         self.space_combo = QComboBox()
@@ -99,6 +109,7 @@ class PiPlannerPage(QWidget):
         self._configure_controls()
         self._build_layout()
         self.calculate_button.clicked.connect(self._calculate)
+        self.goal_combo.currentIndexChanged.connect(self._goal_changed)
         self.operation_combo.currentIndexChanged.connect(self._operation_changed)
         self.saved_plan_combo.currentIndexChanged.connect(self._saved_plan_selected)
         self.new_plan_button.clicked.connect(self._new_plan)
@@ -114,9 +125,20 @@ class PiPlannerPage(QWidget):
         self.quantity_spin.setValue(100)
         self.days_spin.setRange(1, 365)
         self.days_spin.setValue(7)
+        self.launchpad_capacity_spin.setValue(10_000)
+        self.launchpad_capacity_spin.setSuffix(" m³")
+        self.final_factories_spin.setRange(1, 100)
+        self.final_factories_spin.setValue(1)
 
-        for mode in PiOperationMode:
-            self.operation_combo.addItem(self._translator.text(f"pi_mode_{mode.value}"), mode.value)
+        for goal_mode in PiGoalMode:
+            self.goal_combo.addItem(
+                self._translator.text(f"pi_goal_{goal_mode.value}"), goal_mode.value
+            )
+
+        for operation_mode in PiOperationMode:
+            self.operation_combo.addItem(
+                self._translator.text(f"pi_mode_{operation_mode.value}"), operation_mode.value
+            )
         for tier in PiTier:
             if tier is not PiTier.ADVANCED:
                 self.source_tier_combo.addItem(self._tier_text(tier), int(tier))
@@ -209,8 +231,11 @@ class PiPlannerPage(QWidget):
         form.addRow(self._translator.text("pi_saved_plan"), self.saved_plan_combo)
         form.addRow(self._translator.text("pi_plan_name"), self.plan_name)
         form.addRow(self._translator.text("pi_target"), self.target_combo)
-        form.addRow(self._translator.text("pi_quantity"), self.quantity_spin)
-        form.addRow(self._translator.text("pi_days"), self.days_spin)
+        form.addRow(self._translator.text("pi_goal_mode"), self.goal_combo)
+        form.addRow(self.quantity_label, self.quantity_spin)
+        form.addRow(self.days_label, self.days_spin)
+        form.addRow(self.launchpad_capacity_label, self.launchpad_capacity_spin)
+        form.addRow(self.final_factories_label, self.final_factories_spin)
         form.addRow(self._translator.text("pi_profile"), self.profile_combo)
         form.addRow(self._translator.text("pi_operation_mode"), self.operation_combo)
         form.addRow(self._translator.text("pi_source_tier"), self.source_tier_combo)
@@ -236,6 +261,10 @@ class PiPlannerPage(QWidget):
         layout_title.setObjectName("cardTitle")
         results_layout.addWidget(layout_title)
         results_layout.addWidget(self.layout_table)
+        diagram_title = QLabel(self._translator.text("pi_graphical_layout"))
+        diagram_title.setObjectName("cardTitle")
+        results_layout.addWidget(diagram_title)
+        results_layout.addWidget(self.layout_diagram)
         results_layout.addWidget(self.cost_label)
         layout.addWidget(inputs)
         layout.addWidget(results, 1)
@@ -309,6 +338,7 @@ class PiPlannerPage(QWidget):
             self.result_label.setText(self._translator.text("pi_no_catalog"))
         self._profile_selected()
         self._operation_changed()
+        self._goal_changed()
 
     def _calculate(self) -> None:
         request = self._current_request()
@@ -324,14 +354,24 @@ class PiPlannerPage(QWidget):
 
     def _show_result(self, result: PiPlanResult) -> None:
         if result.is_feasible:
-            self.result_label.setText(self._translator.text("pi_plan_feasible"))
+            status = self._translator.text("pi_plan_feasible")
         else:
             reasons = ", ".join(
                 self._translator.text(f"pi_block_{reason}") for reason in result.blocked_reasons
             )
-            self.result_label.setText(
-                self._translator.text("pi_plan_blocked").format(reasons=reasons)
+            status = self._translator.text("pi_plan_blocked").format(reasons=reasons)
+        if result.launchpad_fill is not None:
+            fill = result.launchpad_fill
+            status = f"{status}\n" + self._translator.text("pi_launchpad_result").format(
+                quantity=f"{fill.product_quantity:,}",
+                product=result.target.name,
+                used=_format_decimal(fill.product_volume_m3),
+                capacity=_format_decimal(fill.capacity_m3),
+                unused=_format_decimal(fill.unused_volume_m3),
+                factories=fill.final_factories,
+                duration=_format_duration(fill.fill_time),
             )
+        self.result_label.setText(status)
         self.plan_table.setRowCount(len(result.lines))
         for row, line in enumerate(result.lines):
             values = (
@@ -383,6 +423,18 @@ class PiPlannerPage(QWidget):
             )
             for column, value in enumerate(layout_values):
                 self.layout_table.setItem(row, column, QTableWidgetItem(value))
+        self.layout_diagram.show_plan(
+            result,
+            source_label=self._translator.text(
+                "pi_diagram_extractors"
+                if result.request.operation_mode is PiOperationMode.EXTRACTOR
+                else "pi_diagram_purchase"
+            ),
+            launchpad_label=self._translator.text("pi_diagram_launchpad"),
+            buffer_label=self._translator.text("pi_diagram_buffer"),
+            factory_label=self._translator.text("pi_diagram_factory"),
+            tier_labels={tier: self._tier_text(tier) for tier in PiTier},
+        )
 
     def _current_request(self) -> PiPlanRequest | None:
         target_id = self.target_combo.currentData()
@@ -390,23 +442,39 @@ class PiPlannerPage(QWidget):
         mode = self.operation_combo.currentData()
         source_tier = self.source_tier_combo.currentData()
         strategy = self.storage_strategy_combo.currentData()
+        goal = self.goal_combo.currentData()
         if (
             not isinstance(target_id, int)
             or not isinstance(profile_id, int)
             or not isinstance(mode, str)
             or not isinstance(source_tier, int)
             or not isinstance(strategy, str)
+            or not isinstance(goal, str)
         ):
             return None
         return PiPlanRequest(
             target_type_id=target_id,
-            target_quantity=self.quantity_spin.value(),
-            days=self.days_spin.value(),
+            target_quantity=(self.quantity_spin.value() if goal == PiGoalMode.MANUAL.value else 1),
+            days=self.days_spin.value() if goal == PiGoalMode.MANUAL.value else 1,
             profile_id=profile_id,
             operation_mode=PiOperationMode(mode),
             source_tier=PiTier(source_tier),
             storage_strategy=PiStorageStrategy(strategy),
+            goal_mode=PiGoalMode(goal),
+            launchpad_capacity_m3=_spin_decimal(self.launchpad_capacity_spin),
+            final_factories=self.final_factories_spin.value(),
         )
+
+    def _goal_changed(self) -> None:
+        is_launchpad = self.goal_combo.currentData() == PiGoalMode.LAUNCHPAD.value
+        self.quantity_label.setVisible(not is_launchpad)
+        self.quantity_spin.setVisible(not is_launchpad)
+        self.days_label.setVisible(not is_launchpad)
+        self.days_spin.setVisible(not is_launchpad)
+        self.launchpad_capacity_label.setVisible(is_launchpad)
+        self.launchpad_capacity_spin.setVisible(is_launchpad)
+        self.final_factories_label.setVisible(is_launchpad)
+        self.final_factories_spin.setVisible(is_launchpad)
 
     def _operation_changed(self) -> None:
         mode = self.operation_combo.currentData()
@@ -436,7 +504,11 @@ class PiPlannerPage(QWidget):
             int(request.source_tier if request.source_tier is not None else PiTier.RAW),
         )
         _restore_combo(self.storage_strategy_combo, request.storage_strategy.value)
+        _restore_combo(self.goal_combo, request.goal_mode.value)
+        self.launchpad_capacity_spin.setValue(float(request.launchpad_capacity_m3))
+        self.final_factories_spin.setValue(request.final_factories)
         self._operation_changed()
+        self._goal_changed()
         self._calculate()
 
     def _new_plan(self) -> None:
@@ -451,6 +523,7 @@ class PiPlannerPage(QWidget):
         if request is None:
             return
         try:
+            request = self._planner.plan(request, self._translator.language).request
             stored = self._saved_plans.save(
                 SavedPiPlan(self._editing_plan_id, self.plan_name.text(), request)
             )
@@ -559,3 +632,20 @@ def _format_decimal(value: Decimal) -> str:
 
 def _format_isk(value: Decimal) -> str:
     return f"{value.quantize(Decimal('1')):,.0f}"
+
+
+def _format_duration(value: object) -> str:
+    from datetime import timedelta
+
+    if not isinstance(value, timedelta):
+        return "-"
+    total_minutes = max(0, int(value.total_seconds() // 60))
+    days, remainder = divmod(total_minutes, 1440)
+    hours, minutes = divmod(remainder, 60)
+    parts = []
+    if days:
+        parts.append(f"{days} d")
+    if hours or days:
+        parts.append(f"{hours} h")
+    parts.append(f"{minutes} min")
+    return " ".join(parts)
