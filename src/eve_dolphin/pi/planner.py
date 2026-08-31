@@ -14,6 +14,8 @@ from eve_dolphin.pi.forecast import forecast_colony
 from eve_dolphin.pi.models import (
     PiCatalog,
     PiCommodity,
+    PiLayoutStage,
+    PiOperationMode,
     PiPlanLine,
     PiPlanRequest,
     PiPlanResult,
@@ -70,7 +72,8 @@ class PiPlannerService:
 
         available, factory_capacity = self._planning_state(catalog, now, request.days)
         demand: Counter[int] = Counter({target.type_id: request.target_quantity})
-        line_data: dict[int, tuple[int, int, int, int, int, int, int, int, int, int]] = {}
+        line_data: dict[int, tuple[int, int, int, int, int, int, int, int, int, int, int, int]] = {}
+        source_tier = request.source_tier or profile.supply_tier
         pending = {target.type_id}
         while pending:
             type_id = max(
@@ -94,8 +97,20 @@ class PiPlannerService:
             available_cycles = 0
             capacity_shortfall = 0
             additional_factories = 0
-            if net > 0 and commodity.tier <= profile.supply_tier:
+            source_quantity = 0
+            recommended_factories = 0
+            if (
+                net > 0
+                and request.operation_mode is PiOperationMode.IMPORT
+                and commodity.tier <= source_tier
+            ):
                 imported = net
+            elif (
+                net > 0
+                and request.operation_mode is PiOperationMode.EXTRACTOR
+                and commodity.tier is PiTier.RAW
+            ):
+                source_quantity = net
             elif net > 0 and recipe is not None:
                 cycles = _ceil_div(net, recipe.output.quantity)
                 planned_output = cycles * recipe.output.quantity
@@ -104,6 +119,8 @@ class PiPlannerService:
                 cycles_per_factory = request.days * 86400 // recipe.cycle_time_seconds
                 if capacity_shortfall and cycles_per_factory > 0:
                     additional_factories = _ceil_div(capacity_shortfall, cycles_per_factory)
+                if cycles_per_factory > 0:
+                    recommended_factories = _ceil_div(cycles, cycles_per_factory)
                 excess += planned_output - net
                 for item in recipe.inputs:
                     demand[item.commodity.type_id] += cycles * item.quantity
@@ -121,6 +138,8 @@ class PiPlannerService:
                 imported,
                 unresolved,
                 excess,
+                source_quantity,
+                recommended_factories,
             )
 
         lines = tuple(
@@ -138,6 +157,8 @@ class PiPlannerService:
                 import_quantity=values[7],
                 unresolved_quantity=values[8],
                 excess_quantity=values[9],
+                source_quantity=values[10],
+                recommended_factories=values[11],
             )
             for type_id, values in sorted(
                 line_data.items(),
@@ -147,7 +168,7 @@ class PiPlannerService:
                 ),
             )
         )
-        return _cost_result(request, profile, target, lines)
+        return _cost_result(request, profile, target, lines, _layout(request, catalog, lines))
 
     def _planning_state(
         self, catalog: PiCatalog, now: datetime, days: int
@@ -191,6 +212,7 @@ def _cost_result(
     profile: PiProfile,
     target: PiCommodity,
     lines: tuple[PiPlanLine, ...],
+    layout: tuple[PiLayoutStage, ...],
 ) -> PiPlanResult:
     imports = tuple(line for line in lines if line.import_quantity > 0)
     import_volume = sum(
@@ -241,7 +263,38 @@ def _cost_result(
         risk_markup_isk=risk,
         total_logistics_isk=import_tax + export_tax + transport + risk,
         blocked_reasons=tuple(blocked),
+        layout=layout,
     )
+
+
+def _layout(
+    request: PiPlanRequest,
+    catalog: PiCatalog,
+    lines: tuple[PiPlanLine, ...],
+) -> tuple[PiLayoutStage, ...]:
+    result: list[PiLayoutStage] = []
+    for line in lines:
+        recipe = catalog.recipe_for_output(line.commodity.type_id)
+        if recipe is None or line.cycles <= 0:
+            continue
+        input_per_day = sum(
+            _ceil_div(line.cycles * item.quantity, request.days) for item in recipe.inputs
+        )
+        output_per_day = _ceil_div(line.planned_output, request.days)
+        result.append(
+            PiLayoutStage(
+                commodity=line.commodity,
+                factories=max(1, line.recommended_factories),
+                cycles=line.cycles,
+                input_units_per_day=input_per_day,
+                output_units_per_day=output_per_day,
+                buffer_storage=(
+                    request.storage_strategy.value == "buffered"
+                    and line.commodity.type_id != request.target_type_id
+                ),
+            )
+        )
+    return tuple(sorted(result, key=lambda stage: int(stage.commodity.tier)))
 
 
 def _ceil_div(value: int, divisor: int) -> int:

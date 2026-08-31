@@ -54,11 +54,13 @@ In technischer Umsetzung: **Phase 4 – Manufacturing-MVP**
 
 Phase 2 wurde mit zwei echten Charakteren live bestätigt und ist abgeschlossen. Phase 3
 liefert die charakterübergreifende Kolonieüberwachung, Planet-/Systemnamen, Datenalter,
-Warnungen, Extraktor-, Fabrik- und Lagerprognosen sowie einen vollständigen P0–P4-Zielplaner.
-POCO-, Transport- und Wurmlochprofile sind lokal editierbar. Die automatisierten P2-, P3-
-und P4-Referenzfälle sind bestanden; der formale Sprung auf `50 %` folgt nach der manuellen
-Live-Prüfung der neuen `v0.3.1`-Ansichten mit realen Kolonien. Parallel beginnt Phase 4 mit
-der persönlichen Blueprint-Ansicht und einer ME-/TE-genauen Manufacturing-Kalkulation.
+Warnungen, sekündliche Extraktor-/Versorgungs-Countdowns, grafische Lagerstände sowie einen
+vollständigen P0–P4-Zielplaner. Extraktion und Zukauf-Fabrikplaneten werden getrennt geplant;
+Aufbauvarianten mit direkten Routen oder Zwischenlagern lassen sich speichern und ändern.
+POCO-, Transport- und Wurmlochprofile sind lokal editierbar. Der formale Sprung auf `50 %`
+folgt nach der manuellen Live-Prüfung der `v0.4.0`-Ansichten mit realen Kolonien. Parallel
+läuft Phase 4 mit der persönlichen Blueprint-Ansicht und einer ME-/TE-genauen
+Manufacturing-Kalkulation.
 
 ## Entwicklung und lokaler Start
 

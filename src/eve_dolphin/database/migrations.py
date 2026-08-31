@@ -546,6 +546,25 @@ MIGRATIONS = (
         );
         """,
     ),
+    Migration(
+        version=8,
+        description="persistent editable PI target plans",
+        sql="""
+        CREATE TABLE pi_saved_plans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            target_type_id INTEGER NOT NULL CHECK (target_type_id > 0),
+            target_quantity INTEGER NOT NULL CHECK (target_quantity > 0),
+            days INTEGER NOT NULL CHECK (days BETWEEN 1 AND 365),
+            profile_id INTEGER NOT NULL,
+            operation_mode TEXT NOT NULL CHECK (operation_mode IN ('extractor', 'import')),
+            source_tier INTEGER CHECK (source_tier BETWEEN 0 AND 3),
+            storage_strategy TEXT NOT NULL CHECK (storage_strategy IN ('direct', 'buffered')),
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (profile_id) REFERENCES pi_profiles(id) ON DELETE RESTRICT
+        );
+        """,
+    ),
 )
 
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1].version

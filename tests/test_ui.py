@@ -22,6 +22,7 @@ from eve_dolphin.pi import (
     NamedCount,
     NamedQuantity,
     PiCommodity,
+    PiOperationMode,
     PiTier,
 )
 from eve_dolphin.sso.scopes import ScopePackage, scopes_for_packages
@@ -463,7 +464,10 @@ def _colony_overview() -> ColonyOverview:
         incomplete_extractors=0,
         ending_soon_extractors=1,
         next_expiry=datetime(2026, 8, 30, 14, 0, tzinfo=UTC),
+        supply_exhausted_at=None,
         next_attention=datetime(2026, 8, 30, 14, 0, tzinfo=UTC),
+        attention_remaining=timedelta(hours=2),
+        operation_mode=PiOperationMode.EXTRACTOR,
         data_age=timedelta(minutes=5),
         warning_codes=("extractors_ending_soon",),
         forecast=ColonyForecast(
@@ -485,4 +489,5 @@ def _colony_overview() -> ColonyOverview:
         pin_types=(NamedCount(2848, "Extraktorkontrolleinheit", 2),),
         extractor_products=(NamedCount(2268, "Wässrige Flüssigkeiten", 2),),
         stored_contents=(NamedQuantity(3645, "Water", 1_250),),
+        storage_nodes=(),
     )

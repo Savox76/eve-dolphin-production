@@ -19,13 +19,20 @@ arbeiten mit `contents: read`.
 ## Veröffentlichung
 
 Der Workflow `Publish Windows Release` wird nach einem grünen Merge manuell gestartet. Der
-angegebene Tag muss exakt der Anwendungsversion entsprechen. Der Workflow:
+angegebene Tag muss exakt der Anwendungsversion entsprechen und höher als jede bereits
+veröffentlichte Version sein. Die einzige Versionsquelle ist
+`src/eve_dolphin/version.py`; Paket, Anwendung, Windows-Build und Updateprüfung lesen denselben
+Wert. Der Workflow:
 
 1. baut das Windows-Paket aus dem geprüften `main`-Stand,
 2. führt den paketierten Selbsttest aus,
 3. erzeugt ZIP und SHA-256-Datei,
 4. veröffentlicht diese beiden Dateien und die Release Notes als GitHub Release im selben
    Repository.
+
+Eine bereits verwendete, gleiche oder ältere Versionsnummer beendet den Release-Build vor
+der Paketierung. Dadurch kann kein formal neues Paket erscheinen, das von installierten
+Clients wegen identischer Versionsnummer übersehen wird.
 
 Die erste updaterfähige Version ist `v0.2.0`. Sie muss noch über den bisherigen manuellen
 Download installiert werden. Ab `v0.2.0` erkennt EVE Dolphin neuere veröffentlichte Versionen

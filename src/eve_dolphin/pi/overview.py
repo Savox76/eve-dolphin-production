@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -12,7 +12,12 @@ from eve_dolphin.characters import CharacterRepository, EveCharacter
 from eve_dolphin.database import Database
 from eve_dolphin.pi.catalog import PiCatalogRepository
 from eve_dolphin.pi.forecast import forecast_colony
-from eve_dolphin.pi.models import ColonyForecast, PiCatalog, UniverseLocation
+from eve_dolphin.pi.models import (
+    ColonyForecast,
+    PiCatalog,
+    PiOperationMode,
+    UniverseLocation,
+)
 from eve_dolphin.sde import SdeRepository
 from eve_dolphin.sync.planetary_models import PlanetColony
 from eve_dolphin.sync.planetary_repository import PlanetarySnapshotRepository
@@ -30,6 +35,17 @@ class NamedQuantity:
     type_id: int
     name: str | None
     quantity: int
+
+
+@dataclass(frozen=True, slots=True)
+class StorageOverview:
+    pin_id: int
+    type_id: int
+    name: str | None
+    used_m3: Decimal
+    capacity_m3: Decimal
+    fill_percent: Decimal
+    contents: tuple[NamedQuantity, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,13 +70,17 @@ class ColonyOverview:
     incomplete_extractors: int
     ending_soon_extractors: int
     next_expiry: datetime | None
+    supply_exhausted_at: datetime | None
     next_attention: datetime | None
+    attention_remaining: timedelta | None
+    operation_mode: PiOperationMode
     data_age: timedelta
     warning_codes: tuple[str, ...]
     forecast: ColonyForecast
     pin_types: tuple[NamedCount, ...]
     extractor_products: tuple[NamedCount, ...]
     stored_contents: tuple[NamedQuantity, ...]
+    storage_nodes: tuple[StorageOverview, ...]
 
     @property
     def extractor_count(self) -> int:
@@ -172,8 +192,18 @@ def _colony_overview(
         else:
             active_extractors += 1
             future_expiries.append(pin.expiry_time)
-            ending_soon_extractors += int(pin.expiry_time <= now + timedelta(hours=24))
+            ending_soon_extractors += int(pin.expiry_time <= now + timedelta(hours=10))
     forecast = forecast_colony(colony, catalog, now, timedelta(hours=24))
+    operation_mode = (
+        PiOperationMode.EXTRACTOR
+        if active_extractors or expired_extractors or incomplete_extractors
+        else PiOperationMode.IMPORT
+    )
+    supply_exhausted_at = (
+        _supply_exhausted_at(colony, catalog, now)
+        if operation_mode is PiOperationMode.IMPORT
+        else None
+    )
     data_age = max(timedelta(0), now - snapshot_at)
     warning_codes: list[str] = []
     if data_age > timedelta(minutes=20):
@@ -182,6 +212,10 @@ def _colony_overview(
         warning_codes.append("extractors_expired")
     if ending_soon_extractors:
         warning_codes.append("extractors_ending_soon")
+    if supply_exhausted_at is not None and supply_exhausted_at <= now:
+        warning_codes.append("supply_depleted")
+    elif supply_exhausted_at is not None and supply_exhausted_at <= now + timedelta(hours=10):
+        warning_codes.append("supply_ending_soon")
     if incomplete_extractors or forecast.incomplete_factories:
         warning_codes.append("pi_data_incomplete")
     if forecast.stalled_factories:
@@ -191,8 +225,11 @@ def _colony_overview(
     if forecast.storage_fill_percent is not None and forecast.storage_fill_percent >= Decimal(90):
         warning_codes.append("storage_near_full")
     attention_candidates = [*future_expiries]
+    if supply_exhausted_at is not None:
+        attention_candidates.append(supply_exhausted_at)
     if forecast.estimated_full_at is not None:
         attention_candidates.append(forecast.estimated_full_at)
+    next_attention = min(attention_candidates, default=None)
     return ColonyOverview(
         character_id=character.character_id,
         character_name=character.character_name,
@@ -214,14 +251,82 @@ def _colony_overview(
         incomplete_extractors=incomplete_extractors,
         ending_soon_extractors=ending_soon_extractors,
         next_expiry=min(future_expiries, default=None),
-        next_attention=min(attention_candidates, default=None),
+        supply_exhausted_at=supply_exhausted_at,
+        next_attention=next_attention,
+        attention_remaining=(max(timedelta(0), next_attention - now) if next_attention else None),
+        operation_mode=operation_mode,
         data_age=data_age,
         warning_codes=tuple(warning_codes),
         forecast=forecast,
         pin_types=_named_counts(pin_types, names),
         extractor_products=_named_counts(extractor_products, names),
         stored_contents=_named_quantities(stored_contents, names),
+        storage_nodes=_storage_nodes(colony, catalog, names),
     )
+
+
+def _supply_exhausted_at(
+    colony: PlanetColony, catalog: PiCatalog, now: datetime
+) -> datetime | None:
+    inventory: Counter[int] = Counter()
+    consumption_per_hour: dict[int, Decimal] = defaultdict(Decimal)
+    for pin in colony.pins:
+        inventory.update({content.type_id: content.amount for content in pin.contents})
+        if pin.factory_schematic_id is None:
+            continue
+        recipe = catalog.recipes_by_id.get(pin.factory_schematic_id)
+        if recipe is None:
+            continue
+        for item in recipe.inputs:
+            consumption_per_hour[item.commodity.type_id] += (
+                Decimal(item.quantity) * Decimal(3600) / Decimal(recipe.cycle_time_seconds)
+            )
+    hours = tuple(
+        Decimal(inventory[type_id]) / rate
+        for type_id, rate in consumption_per_hour.items()
+        if rate > 0
+    )
+    if not hours:
+        return None
+    return now + timedelta(hours=float(min(hours)))
+
+
+def _storage_nodes(
+    colony: PlanetColony,
+    catalog: PiCatalog,
+    names: Mapping[int, str],
+) -> tuple[StorageOverview, ...]:
+    result: list[StorageOverview] = []
+    for pin in colony.pins:
+        capacity = catalog.type_capacities_m3.get(pin.type_id, Decimal(0))
+        if capacity <= 0:
+            continue
+        used = sum(
+            (
+                Decimal(content.amount) * _commodity_volume(content.type_id, catalog)
+                for content in pin.contents
+            ),
+            start=Decimal(0),
+        )
+        result.append(
+            StorageOverview(
+                pin_id=pin.pin_id,
+                type_id=pin.type_id,
+                name=names.get(pin.type_id),
+                used_m3=used,
+                capacity_m3=capacity,
+                fill_percent=min(Decimal(100), used * Decimal(100) / capacity),
+                contents=_named_quantities(
+                    Counter({content.type_id: content.amount for content in pin.contents}), names
+                ),
+            )
+        )
+    return tuple(sorted(result, key=lambda storage: storage.pin_id))
+
+
+def _commodity_volume(type_id: int, catalog: PiCatalog) -> Decimal:
+    commodity = catalog.commodities.get(type_id)
+    return commodity.volume_m3 if commodity is not None else Decimal(0)
 
 
 def _named_counts(values: Mapping[int, int], names: Mapping[int, str]) -> tuple[NamedCount, ...]:

@@ -2,10 +2,20 @@
 
 ## Unveröffentlicht
 
+## v0.4.0 – PI-Betriebsplanung und Manufacturing-Grundlage
+
 - persönliche BPO-/BPC-Übersicht mit Produkt, Besitzer, Standort, ME, TE und Runs
 - Manufacturing-Kalkulation für Zielmenge, Ausgabe, Überschuss, Materialien und Dauer
 - getrennte Anzeige von Bestand am Blueprint-Ort und Gesamtbestand aller Charaktere
 - sichtbare Blocker für fehlende BPC-Runs und lokale Materialfehlmengen
+- grafische Lager-/Launchpad-Übersicht mit Inhalt, Volumen und Füllstand
+- sekündlicher Restlaufzeit-Countdown für Extraktoren und Zukauf-Fabrikplaneten
+- rote Warnstufe bei weniger als zehn Stunden Extraktor- oder Materiallaufzeit
+- PI-Zielplanung wahlweise aus Eigenextraktion oder Zukauf bis P3
+- empfohlener Planetenaufbau mit direkten Routen oder Pufferlagern
+- speicherbare, editierbare und löschbare PI-Planungen
+- zentrale Anwendungsversion und Release-Sperre gegen gleiche oder ältere Versionsnummern
+- Datenbankschema 8 für gespeicherte PI-Planungen
 
 ## v0.3.1 – Updater-Korrektur
 

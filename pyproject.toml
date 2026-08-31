@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "eve-dolphin"
-version = "0.3.1"
+dynamic = ["version"]
 description = "Local multi-character companion desktop client for EVE Online"
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
@@ -15,6 +15,9 @@ dependencies = [
   "pyjwt[crypto]==2.13.0",
   "PySide6==6.11.2",
 ]
+
+[tool.hatch.version]
+path = "src/eve_dolphin/version.py"
 
 [project.scripts]
 eve-dolphin = "eve_dolphin.app.bootstrap:main"
