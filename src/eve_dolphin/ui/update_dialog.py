@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from datetime import UTC
 
@@ -10,6 +11,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QLabel,
+    QProgressBar,
     QPushButton,
     QTextBrowser,
     QVBoxLayout,
@@ -17,10 +19,17 @@ from PySide6.QtWidgets import (
 )
 
 from eve_dolphin.i18n import Translator
-from eve_dolphin.updates import ReleaseInfo, StagedUpdate
+from eve_dolphin.updates import (
+    ReleaseInfo,
+    StagedUpdate,
+    UpdateDownloadError,
+    UpdatePackageError,
+)
 
 CheckForUpdate = Callable[[], ReleaseInfo | None]
-StageUpdate = Callable[[ReleaseInfo], StagedUpdate]
+DownloadProgress = Callable[[int, int], None]
+StageUpdate = Callable[[ReleaseInfo, DownloadProgress], StagedUpdate]
+LOGGER = logging.getLogger(__name__)
 
 
 class UpdateCheckWorker(QThread):
@@ -42,7 +51,8 @@ class UpdateCheckWorker(QThread):
 
 class UpdateStageWorker(QThread):
     completed = Signal(object)
-    failed = Signal()
+    failed = Signal(str)
+    progress = Signal(int)
 
     def __init__(
         self,
@@ -56,11 +66,16 @@ class UpdateStageWorker(QThread):
 
     def run(self) -> None:
         try:
-            staged = self._stage(self._release)
-        except Exception:
-            self.failed.emit()
+            staged = self._stage(self._release, self._report_progress)
+        except Exception as error:
+            LOGGER.exception("Update download or staging failed")
+            self.failed.emit(_failure_code(error))
         else:
             self.completed.emit(staged)
+
+    def _report_progress(self, downloaded: int, total: int) -> None:
+        percentage = 0 if total <= 0 else min(100, max(0, int(downloaded * 100 / total)))
+        self.progress.emit(percentage)
 
 
 class UpdateDialog(QDialog):
@@ -112,6 +127,11 @@ class UpdateDialog(QDialog):
         self.status_label = QLabel("")
         self.status_label.setObjectName("muted")
         self.status_label.setWordWrap(True)
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.hide()
         self.start_button = QPushButton(translator.text("update_start"))
         self.start_button.setObjectName("startUpdateButton")
         self.start_button.setEnabled(installation_enabled)
@@ -132,18 +152,49 @@ class UpdateDialog(QDialog):
         if not installation_enabled:
             self.status_label.setText(translator.text("update_install_unavailable"))
         layout.addWidget(self.status_label)
+        layout.addWidget(self.progress_bar)
         layout.addLayout(actions)
 
     def set_installing(self) -> None:
         self.start_button.setEnabled(False)
         self.later_button.setEnabled(False)
         self.status_label.setText(self._translator.text("update_downloading"))
+        self.progress_bar.setValue(0)
+        self.progress_bar.show()
 
-    def set_failed(self) -> None:
+    def set_progress(self, percentage: int) -> None:
+        self.progress_bar.setValue(percentage)
+        if percentage >= 100:
+            self.status_label.setText(self._translator.text("update_preparing"))
+        else:
+            self.status_label.setText(
+                self._translator.text("update_download_progress").format(percentage=percentage)
+            )
+
+    def set_failed(self, reason: str) -> None:
         self.start_button.setEnabled(True)
         self.later_button.setEnabled(True)
-        self.status_label.setText(self._translator.text("update_failed"))
+        self.progress_bar.hide()
+        detail_key = {
+            "network": "update_error_network",
+            "package": "update_error_package",
+            "filesystem": "update_error_filesystem",
+            "launch": "update_error_launch",
+        }.get(reason, "update_error_unexpected")
+        self.status_label.setText(
+            self._translator.text("update_failed").format(reason=self._translator.text(detail_key))
+        )
 
 
 def _format_size(size: int) -> str:
     return f"{size / (1024 * 1024):.1f} MB"
+
+
+def _failure_code(error: BaseException) -> str:
+    if isinstance(error, UpdateDownloadError):
+        return "network"
+    if isinstance(error, UpdatePackageError):
+        return "package"
+    if isinstance(error, OSError):
+        return "filesystem"
+    return "unexpected"

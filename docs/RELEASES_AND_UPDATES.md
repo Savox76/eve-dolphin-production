@@ -30,7 +30,10 @@ angegebene Tag muss exakt der Anwendungsversion entsprechen. Der Workflow:
 Die erste updaterfähige Version ist `v0.2.0`. Sie muss noch über den bisherigen manuellen
 Download installiert werden. Ab `v0.2.0` erkennt EVE Dolphin neuere veröffentlichte Versionen
 selbst. `v0.3.0` ist die erste vollständige PI-MVP-Testversion und kann deshalb bereits über
-den in `v0.2.0` enthaltenen manuellen Updatebutton installiert werden.
+den in `v0.2.0` enthaltenen manuellen Updatebutton installiert werden. `v0.3.1` korrigiert
+den Windows-Dateiaustausch des ersten Updaters und ist auch aus `v0.2.0` oder `v0.3.0`
+installierbar, weil bereits der neue, heruntergeladene Updatehelfer den geerbten
+Installationsordner freigibt.
 
 ## Clientablauf
 
@@ -38,11 +41,17 @@ den in `v0.2.0` enthaltenen manuellen Updatebutton installiert werden.
   einen unabhängigen Fünf-Minuten-Takt.
 - Ein Updatefenster zeigt installierte/neue Version, Datum, Größe und Release Notes.
 - Nur der Button `Update starten` lädt das feste Windows-Asset.
+- Während des Downloads zeigt das Fenster den Fortschritt in Prozent. Nach dem Neustart wird
+  ein erfolgreicher Austausch oder ein sicher zurückgerollter Fehler im Client angezeigt.
 - Herkunft, Dateiname, Downloadgröße, ZIP-Struktur, Buildinfo und GitHub-SHA-256-Digest werden
   geprüft.
 - Das neue Paket ersetzt die Anwendung erst nach deren Ende und besteht vor dem Neustart den
   eingebauten Selbsttest.
 - Bei jedem Fehler wird die alte Installation wiederhergestellt.
+
+Der letzte terminale Updatestatus liegt bis zum nächsten Clientstart als kleine JSON-Datei im
+benutzerspezifischen Updateordner. Er enthält nur Version, Zeitpunkt, Ergebnis und einen
+technischen Fehlercode; keine Tokens, Charakterdaten oder GitHub-Zugangsdaten.
 
 Lokale SQLite-Daten, Datenbanksicherungen, SDE-Dateien und Refresh Tokens liegen außerhalb des
 Installationsordners und werden vom Updater nicht ersetzt.
