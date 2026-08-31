@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC
@@ -40,9 +41,15 @@ from eve_dolphin.ui.update_dialog import (
     UpdateDialog,
     UpdateStageWorker,
 )
-from eve_dolphin.updates import ReleaseInfo, StagedUpdate
+from eve_dolphin.updates import (
+    ReleaseInfo,
+    StagedUpdate,
+    UpdateState,
+    UpdateStateStatus,
+)
 
 LaunchUpdate = Callable[[StagedUpdate], None]
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,6 +83,7 @@ class MainWindow(QMainWindow):
         check_for_update: CheckForUpdate | None = None,
         stage_update: StageUpdate | None = None,
         launch_update: LaunchUpdate | None = None,
+        startup_update_result: UpdateState | None = None,
     ) -> None:
         super().__init__()
         self.translator = translator
@@ -90,6 +98,7 @@ class MainWindow(QMainWindow):
         self._check_for_update = check_for_update
         self._stage_update = stage_update
         self._launch_update = launch_update
+        self._startup_update_result = startup_update_result
         self.navigation = QListWidget()
         self.pages = QStackedWidget()
         self.character_page: CharacterPage | None = None
@@ -153,9 +162,38 @@ class MainWindow(QMainWindow):
         self.update_button.setObjectName("checkUpdateButton")
         self.update_button.setEnabled(self._check_for_update is not None)
         self.update_button.clicked.connect(self._show_or_check_update)
+        self.update_result_label = QLabel("")
+        self.update_result_label.setObjectName("productSubtitle")
+        self.update_result_label.setWordWrap(True)
+        self._show_startup_update_result()
         layout.addWidget(self.version_label)
         layout.addWidget(self.update_button)
+        layout.addWidget(self.update_result_label)
         return sidebar
+
+    def _show_startup_update_result(self) -> None:
+        result = self._startup_update_result
+        if result is None:
+            self.update_result_label.hide()
+            return
+        if result.status is UpdateStateStatus.SUCCEEDED:
+            text = self.translator.text("update_result_succeeded").format(version=result.version)
+        else:
+            detail_key = {
+                "parent-timeout": "update_apply_error_parent_timeout",
+                "self-check": "update_apply_error_self_check",
+                "backup": "update_apply_error_backup",
+                "validation": "update_apply_error_validation",
+                "filesystem": "update_apply_error_filesystem",
+                "launch": "update_apply_error_launch",
+            }.get(result.error_code or "", "update_apply_error_replacement")
+            text = self.translator.text("update_result_failed").format(
+                version=result.version,
+                reason=self.translator.text(detail_key),
+            )
+        self.update_result_label.setText(text)
+        self.update_result_label.show()
+        self.statusBar().showMessage(text, 30_000)
 
     def _build_pages(self) -> QStackedWidget:
         for index, section in enumerate(SECTIONS):
@@ -425,6 +463,7 @@ class MainWindow(QMainWindow):
         self._update_stage_worker = worker
         worker.completed.connect(self._update_staged)
         worker.failed.connect(self._update_stage_failed)
+        worker.progress.connect(self._update_stage_progress)
         worker.finished.connect(self._update_stage_finished)
         worker.start()
 
@@ -438,7 +477,8 @@ class MainWindow(QMainWindow):
         try:
             self._launch_update(result)
         except Exception:
-            self._update_stage_failed()
+            LOGGER.exception("Staged update helper could not be launched")
+            self._update_stage_failed("launch")
             return
         if self.character_page is not None:
             self.character_page.stop_automatic_sync()
@@ -446,9 +486,13 @@ class MainWindow(QMainWindow):
         if application is not None:
             application.quit()
 
-    def _update_stage_failed(self) -> None:
+    def _update_stage_progress(self, percentage: int) -> None:
         if self._update_dialog is not None:
-            self._update_dialog.set_failed()
+            self._update_dialog.set_progress(percentage)
+
+    def _update_stage_failed(self, reason: str = "unexpected") -> None:
+        if self._update_dialog is not None:
+            self._update_dialog.set_failed(reason)
 
     def _update_stage_finished(self) -> None:
         worker = self._update_stage_worker

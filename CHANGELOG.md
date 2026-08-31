@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v0.3.1 – Updater-Korrektur
+
+- Windows-Installationsordner wird vor dem Austausch zuverlässig freigegeben
+- sicherer Arbeitsordner für Updatehelfer und neu gestartete Anwendung
+- sichtbarer Downloadfortschritt bei manuellen Updates
+- persistente Erfolgs- und Fehlermeldung nach dem Neustart
+- detaillierte Fehlerklassen für Download, Paketprüfung und Windows-Dateiaustausch
+
 ## v0.3.0 – Phase-3-Testversion
 
 - vollständige charakterübergreifende PI-Kolonieübersicht mit Planet- und Systemnamen

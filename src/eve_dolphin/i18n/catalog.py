@@ -167,10 +167,29 @@ CATALOG: dict[str, dict[str, str]] = {
         "update_downloading": (
             "Das geprüfte Update wird heruntergeladen. EVE Dolphin startet danach neu."
         ),
+        "update_download_progress": "Update wird heruntergeladen und geprüft: {percentage} %",
+        "update_preparing": "Download abgeschlossen. Das Update wird geprüft und vorbereitet …",
         "update_failed": (
             "Das Update konnte nicht sicher vorbereitet werden. Die installierte Version "
-            "bleibt unverändert."
+            "bleibt unverändert. Grund: {reason}"
         ),
+        "update_error_network": "Der Download von GitHub ist fehlgeschlagen.",
+        "update_error_package": "Das heruntergeladene Paket war unvollständig oder ungültig.",
+        "update_error_filesystem": "Windows konnte die Updatedateien nicht vorbereiten.",
+        "update_error_launch": "Der ausgelagerte Updateprozess konnte nicht gestartet werden.",
+        "update_error_unexpected": "Es ist ein unerwarteter Fehler aufgetreten.",
+        "update_result_succeeded": "Update auf v{version} erfolgreich installiert.",
+        "update_result_failed": (
+            "Update auf v{version} fehlgeschlagen: {reason} Die vorherige Version wurde "
+            "wiederhergestellt."
+        ),
+        "update_apply_error_parent_timeout": "EVE Dolphin wurde nicht rechtzeitig beendet.",
+        "update_apply_error_self_check": "Die neue Version hat die Selbstprüfung nicht bestanden.",
+        "update_apply_error_backup": "Eine frühere Updatesicherung blockiert den Austausch.",
+        "update_apply_error_validation": "Quell- oder Installationsordner ist ungültig.",
+        "update_apply_error_filesystem": "Windows oder ein Virenscanner blockiert eine Datei.",
+        "update_apply_error_launch": "Der Updateprozess konnte nicht gestartet werden.",
+        "update_apply_error_replacement": "Die Programmdateien konnten nicht ersetzt werden.",
         "update_install_unavailable": (
             "Updates lassen sich nur aus der installierten Windows-Version starten."
         ),
@@ -428,9 +447,28 @@ CATALOG: dict[str, dict[str, str]] = {
         "update_downloading": (
             "The verified update is downloading. EVE Dolphin will restart afterwards."
         ),
+        "update_download_progress": "Downloading and verifying update: {percentage}%",
+        "update_preparing": "Download complete. Verifying and preparing the update …",
         "update_failed": (
-            "The update could not be prepared safely. The installed version remains unchanged."
+            "The update could not be prepared safely. The installed version remains unchanged. "
+            "Reason: {reason}"
         ),
+        "update_error_network": "The download from GitHub failed.",
+        "update_error_package": "The downloaded package was incomplete or invalid.",
+        "update_error_filesystem": "Windows could not prepare the update files.",
+        "update_error_launch": "The external update process could not be started.",
+        "update_error_unexpected": "An unexpected error occurred.",
+        "update_result_succeeded": "Update to v{version} installed successfully.",
+        "update_result_failed": (
+            "Update to v{version} failed: {reason} The previous version was restored."
+        ),
+        "update_apply_error_parent_timeout": "EVE Dolphin did not close in time.",
+        "update_apply_error_self_check": "The new version did not pass its self-check.",
+        "update_apply_error_backup": "A previous update backup is blocking replacement.",
+        "update_apply_error_validation": "The source or installation directory is invalid.",
+        "update_apply_error_filesystem": "Windows or antivirus software is blocking a file.",
+        "update_apply_error_launch": "The update process could not be started.",
+        "update_apply_error_replacement": "The application files could not be replaced.",
         "update_install_unavailable": (
             "Updates can only be started from the installed Windows version."
         ),

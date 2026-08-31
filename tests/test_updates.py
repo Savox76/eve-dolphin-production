@@ -18,8 +18,17 @@ from eve_dolphin.updates.client import (
     GitHubReleaseClient,
     ReleaseMetadataError,
 )
-from eve_dolphin.updates.installer import UpdateInstaller, UpdatePackageError
-from eve_dolphin.updates.models import AppVersion, ReleaseAsset, ReleaseInfo
+from eve_dolphin.updates.installer import (
+    UpdateInstaller,
+    UpdatePackageError,
+    launch_staged_update,
+)
+from eve_dolphin.updates.models import AppVersion, ReleaseAsset, ReleaseInfo, StagedUpdate
+from eve_dolphin.updates.status import (
+    UpdateStateStatus,
+    consume_update_result,
+    read_update_state,
+)
 
 
 def test_app_versions_follow_semver_ordering() -> None:
@@ -82,6 +91,27 @@ def test_update_archive_is_verified_and_staged(tmp_path: Path) -> None:
     assert build_info["version"] == "0.2.0"
 
 
+def test_update_archive_reports_download_progress(tmp_path: Path) -> None:
+    archive = _archive_bytes("0.2.0")
+    release = _release_info(archive)
+    transport = httpx.MockTransport(
+        lambda _request: httpx.Response(
+            200,
+            content=archive,
+            headers={"Content-Length": str(len(archive))},
+        )
+    )
+    progress: list[tuple[int, int]] = []
+
+    UpdateInstaller(
+        tmp_path / "updates",
+        httpx.Client(transport=transport, follow_redirects=True),
+    ).stage(release, lambda downloaded, total: progress.append((downloaded, total)))
+
+    assert progress[0] == (0, len(archive))
+    assert progress[-1] == (len(archive), len(archive))
+
+
 def test_update_archive_rejects_path_traversal(tmp_path: Path) -> None:
     buffer = io.BytesIO()
     with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
@@ -110,6 +140,8 @@ def test_update_applier_replaces_package_after_self_check(
 ) -> None:
     source, target = _package_directories(tmp_path)
     restarted: list[Path] = []
+    changed_directories: list[Path] = []
+    monkeypatch.setattr("eve_dolphin.updates.applier.os.chdir", changed_directories.append)
     monkeypatch.setattr(applier_module, "_wait_for_process", lambda _pid, _timeout: True)
     monkeypatch.setattr(
         subprocess,
@@ -123,7 +155,11 @@ def test_update_applier_replaces_package_after_self_check(
     assert result == 0
     assert (target / "EVE-Dolphin.exe").read_text("utf-8") == "new"
     assert restarted == [target / "EVE-Dolphin.exe"]
+    assert changed_directories == [source.parent]
     assert not tuple(tmp_path.glob(".installed-backup-*"))
+    state = read_update_state(source.parent)
+    assert state is not None
+    assert state.status is UpdateStateStatus.SUCCEEDED
 
 
 def test_update_applier_rolls_back_failed_package(
@@ -131,6 +167,7 @@ def test_update_applier_rolls_back_failed_package(
 ) -> None:
     source, target = _package_directories(tmp_path)
     restarted: list[Path] = []
+    monkeypatch.setattr("eve_dolphin.updates.applier.os.chdir", lambda _path: None)
     monkeypatch.setattr(applier_module, "_wait_for_process", lambda _pid, _timeout: True)
     monkeypatch.setattr(
         subprocess,
@@ -144,6 +181,61 @@ def test_update_applier_rolls_back_failed_package(
 
     assert (target / "EVE-Dolphin.exe").read_text("utf-8") == "old"
     assert restarted == [target / "EVE-Dolphin.exe"]
+    state = read_update_state(source.parent)
+    assert state is not None
+    assert state.status is UpdateStateStatus.FAILED
+    assert state.error_code == "self-check"
+
+
+def test_update_launcher_uses_working_directory_outside_installation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "updates" / "v0.2.0"
+    target = tmp_path / "installed"
+    source.mkdir(parents=True)
+    target.mkdir()
+    (source / "EVE-Dolphin.exe").write_bytes(b"new")
+    calls: list[tuple[list[str], dict[str, object]]] = []
+
+    def fake_popen(arguments: list[str], **kwargs: object) -> SimpleNamespace:
+        calls.append((arguments, kwargs))
+        return SimpleNamespace()
+
+    monkeypatch.setattr("eve_dolphin.updates.installer.subprocess.Popen", fake_popen)
+
+    launch_staged_update(
+        StagedUpdate(_release_info(_archive_bytes("0.2.0")), source),
+        target,
+        parent_pid=1234,
+    )
+
+    assert calls[0][1]["cwd"] == str(source.parent)
+    state = read_update_state(source.parent)
+    assert state is not None
+    assert state.status is UpdateStateStatus.APPLYING
+
+
+def test_terminal_update_result_is_consumed_once(tmp_path: Path) -> None:
+    source, _target = _package_directories(tmp_path)
+    state_path = source.parent / "update-state.json"
+    state_path.write_text(
+        json.dumps(
+            {
+                "status": "failed",
+                "version": "0.3.1",
+                "updated_at": "2026-08-31T12:00:00+00:00",
+                "error_code": "filesystem",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = consume_update_result(source.parent)
+
+    assert result is not None
+    assert result.status is UpdateStateStatus.FAILED
+    assert result.error_code == "filesystem"
+    assert consume_update_result(source.parent) is None
 
 
 def _json_client(payload: object) -> httpx.Client:

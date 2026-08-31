@@ -34,6 +34,7 @@ from eve_dolphin.ui.character_page import (
 from eve_dolphin.ui.main_window import SECTIONS, MainWindow
 from eve_dolphin.ui.pi_planner_page import PiPlannerPage
 from eve_dolphin.ui.planetary_page import PlanetaryPage
+from eve_dolphin.updates import UpdateState, UpdateStateStatus
 
 
 @pytest.fixture(scope="session")
@@ -62,6 +63,28 @@ def test_main_window_contains_all_planned_sections(
     assert isinstance(window.pi_planner_page, PiPlannerPage)
     assert window.pi_planner_page.property("viewId") == "pi-planner"
 
+    window.close()
+
+
+def test_main_window_shows_successful_update_after_restart(
+    qt_application: QApplication, tmp_path: Path
+) -> None:
+    repository = _repository(tmp_path)
+    result = UpdateState(
+        UpdateStateStatus.SUCCEEDED,
+        "0.3.1",
+        datetime(2026, 8, 31, 12, 0, tzinfo=UTC),
+    )
+
+    window = MainWindow(
+        tmp_path / "client.sqlite3",
+        Translator("de"),
+        repository,
+        startup_update_result=result,
+    )
+
+    assert window.update_result_label.isVisibleTo(window)
+    assert window.update_result_label.text() == "Update auf v0.3.1 erfolgreich installiert."
     window.close()
 
 

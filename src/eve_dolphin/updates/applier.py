@@ -12,7 +12,9 @@ from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
 
+from eve_dolphin import __version__
 from eve_dolphin.updates.installer import EXECUTABLE_NAME
+from eve_dolphin.updates.status import UpdateStateStatus, write_update_state
 
 
 class UpdateApplyError(RuntimeError):
@@ -27,7 +29,12 @@ def apply_staged_update(
     restart: bool,
 ) -> int:
     source, target = _validate_directories(source_dir, target_dir)
+    update_dir = source.parent
+    _record_state(update_dir, UpdateStateStatus.APPLYING)
     try:
+        # A v0.3.0 launcher can start this helper with the installation directory
+        # as its inherited CWD. Windows then refuses to rename that directory.
+        os.chdir(update_dir)
         if wait_pid <= 0 or wait_pid == os.getpid():
             raise UpdateApplyError("update parent PID is invalid")
         if not _wait_for_process(wait_pid, 90.0):
@@ -38,7 +45,12 @@ def apply_staged_update(
         if backup.exists():
             raise UpdateApplyError("update backup path already exists")
         target.rename(backup)
-    except Exception:
+    except Exception as error:
+        _record_state(
+            update_dir,
+            UpdateStateStatus.FAILED,
+            error_code=_error_code(error),
+        )
         if restart and (target / EXECUTABLE_NAME).is_file():
             _restart(target / EXECUTABLE_NAME)
         raise
@@ -58,6 +70,11 @@ def apply_staged_update(
         if installed and target.exists():
             shutil.rmtree(target)
         backup.rename(target)
+        _record_state(
+            update_dir,
+            UpdateStateStatus.FAILED,
+            error_code=_error_code(error),
+        )
         if restart:
             _restart(target / EXECUTABLE_NAME)
         if isinstance(error, UpdateApplyError):
@@ -68,6 +85,7 @@ def apply_staged_update(
     # antivirus scanner temporarily retains a handle in the disposable backup.
     with suppress(OSError):
         shutil.rmtree(backup)
+    _record_state(update_dir, UpdateStateStatus.SUCCEEDED)
     if restart:
         _restart(target / EXECUTABLE_NAME)
     return 0
@@ -123,6 +141,46 @@ def _wait_for_process(pid: int, timeout_seconds: float) -> bool:
 def _restart(executable: Path) -> None:
     if sys.platform == "win32":
         flags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
-        subprocess.Popen([str(executable)], close_fds=True, creationflags=flags)
+        subprocess.Popen(
+            [str(executable)],
+            close_fds=True,
+            creationflags=flags,
+            cwd=str(executable.parent),
+        )
     else:
-        subprocess.Popen([str(executable)], close_fds=True, start_new_session=True)
+        subprocess.Popen(
+            [str(executable)],
+            close_fds=True,
+            start_new_session=True,
+            cwd=str(executable.parent),
+        )
+
+
+def _record_state(
+    update_dir: Path,
+    status: UpdateStateStatus,
+    *,
+    error_code: str | None = None,
+) -> None:
+    with suppress(OSError):
+        write_update_state(
+            update_dir,
+            status,
+            __version__,
+            error_code=error_code,
+        )
+
+
+def _error_code(error: BaseException) -> str:
+    if isinstance(error, OSError):
+        return "filesystem"
+    message = str(error)
+    if "did not stop" in message:
+        return "parent-timeout"
+    if "self-check" in message:
+        return "self-check"
+    if "backup" in message:
+        return "backup"
+    if "directory" in message or "PID" in message:
+        return "validation"
+    return "replacement"

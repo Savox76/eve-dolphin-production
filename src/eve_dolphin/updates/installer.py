@@ -10,6 +10,8 @@ import stat
 import subprocess
 import sys
 import zipfile
+from collections.abc import Callable
+from contextlib import suppress
 from pathlib import Path, PurePosixPath
 from tempfile import TemporaryDirectory
 
@@ -17,15 +19,21 @@ import httpx
 
 from eve_dolphin import __version__
 from eve_dolphin.updates.models import ReleaseInfo, StagedUpdate
+from eve_dolphin.updates.status import UpdateStateStatus, write_update_state
 
 MAX_EXTRACTED_BYTES = 1_500 * 1024 * 1024
 MAX_ARCHIVE_FILES = 10_000
 EXECUTABLE_NAME = "EVE-Dolphin.exe"
 BUILD_INFO_NAME = "build-info.json"
+DownloadProgress = Callable[[int, int], None]
 
 
 class UpdatePackageError(ValueError):
     """A downloaded update package failed integrity or structure validation."""
+
+
+class UpdateDownloadError(RuntimeError):
+    """The release package could not be downloaded from GitHub."""
 
 
 class UpdateInstaller:
@@ -33,12 +41,16 @@ class UpdateInstaller:
         self._update_dir = update_dir
         self._client = client
 
-    def stage(self, release: ReleaseInfo) -> StagedUpdate:
+    def stage(
+        self,
+        release: ReleaseInfo,
+        progress: DownloadProgress | None = None,
+    ) -> StagedUpdate:
         self._update_dir.mkdir(parents=True, exist_ok=True)
         with TemporaryDirectory(prefix="download-", dir=self._update_dir) as temporary:
             temporary_dir = Path(temporary)
             archive_path = temporary_dir / release.asset.name
-            self._download(release, archive_path)
+            self._download(release, archive_path, progress)
             extracted_dir = temporary_dir / "extracted"
             extracted_dir.mkdir()
             _extract_safely(archive_path, extracted_dir)
@@ -51,7 +63,12 @@ class UpdateInstaller:
             shutil.move(str(package_dir), final_dir)
         return StagedUpdate(release, final_dir)
 
-    def _download(self, release: ReleaseInfo, destination: Path) -> None:
+    def _download(
+        self,
+        release: ReleaseInfo,
+        destination: Path,
+        progress: DownloadProgress | None,
+    ) -> None:
         owned_client = self._client is None
         client = self._client or httpx.Client(
             timeout=httpx.Timeout(120.0, connect=15.0),
@@ -71,6 +88,8 @@ class UpdateInstaller:
                         raise UpdatePackageError("update Content-Length is invalid") from error
                     if announced_size != release.asset.size:
                         raise UpdatePackageError("update size differs from release metadata")
+                if progress is not None:
+                    progress(0, release.asset.size)
                 with destination.open("wb") as target:
                     for chunk in response.iter_bytes():
                         total += len(chunk)
@@ -78,6 +97,10 @@ class UpdateInstaller:
                             raise UpdatePackageError("update download exceeds announced size")
                         digest.update(chunk)
                         target.write(chunk)
+                        if progress is not None:
+                            progress(total, release.asset.size)
+        except httpx.HTTPError as error:
+            raise UpdateDownloadError("update download failed") from error
         finally:
             if owned_client:
                 client.close()
@@ -109,11 +132,38 @@ def launch_staged_update(
         str(parent_pid or os.getpid()),
         "--restart",
     ]
-    if sys.platform == "win32":
-        creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
-        subprocess.Popen(arguments, close_fds=True, creationflags=creation_flags)
-    else:
-        subprocess.Popen(arguments, close_fds=True, start_new_session=True)
+    update_dir = source.parent
+    with suppress(OSError):
+        write_update_state(
+            update_dir,
+            UpdateStateStatus.APPLYING,
+            str(staged.release.version),
+        )
+    try:
+        if sys.platform == "win32":
+            creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+            subprocess.Popen(
+                arguments,
+                close_fds=True,
+                creationflags=creation_flags,
+                cwd=str(update_dir),
+            )
+        else:
+            subprocess.Popen(
+                arguments,
+                close_fds=True,
+                start_new_session=True,
+                cwd=str(update_dir),
+            )
+    except Exception:
+        with suppress(OSError):
+            write_update_state(
+                update_dir,
+                UpdateStateStatus.FAILED,
+                str(staged.release.version),
+                error_code="launch",
+            )
+        raise
 
 
 def current_installation_dir() -> Path | None:

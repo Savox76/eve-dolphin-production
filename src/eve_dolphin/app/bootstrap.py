@@ -22,6 +22,7 @@ from eve_dolphin.updates import (
     GitHubReleaseClient,
     UpdateInstaller,
     apply_staged_update,
+    consume_update_result,
     launch_staged_update,
 )
 from eve_dolphin.updates.installer import current_installation_dir
@@ -149,6 +150,7 @@ def main(arguments: list[str] | None = None) -> int:
             if installation_dir is not None
             else None
         ),
+        startup_update_result=consume_update_result(context.paths.update_dir),
     )
     window.show()
     window.start_background_services()
