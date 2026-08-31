@@ -148,6 +148,42 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_tier_4": "P4 Hightech-Produkt",
         "projects": "Produktionsprojekte",
         "blueprints": "Blueprints",
+        "blueprint_page_detail": (
+            "Persönliche BPOs und BPCs werden mit dem Manufacturing-Rezept des aktiven "
+            "SDE-Builds verbunden. Bestände am Blueprint-Ort und an anderen Orten bleiben "
+            "getrennt."
+        ),
+        "blueprint_search": "Produkt, Blueprint, Charakter oder Standort suchen",
+        "blueprint_product": "Produkt",
+        "blueprint_owner": "Besitzer",
+        "blueprint_kind": "Typ",
+        "blueprint_runs": "Runs",
+        "blueprint_location": "Standort-ID",
+        "blueprint_name": "Blueprint",
+        "blueprint_original": "BPO",
+        "blueprint_copy": "BPC",
+        "blueprint_unlimited": "unbegrenzt",
+        "blueprint_empty": (
+            "Noch keine nutzbaren Manufacturing-Blueprints gefunden. Synchronisiere einen "
+            "Charakter mit Blueprint-Freigabe und eine aktuelle SDE."
+        ),
+        "manufacturing_calculation": "Manufacturing-Kalkulation",
+        "manufacturing_target_quantity": "Zielmenge",
+        "manufacturing_calculate": "Neu berechnen",
+        "manufacturing_select_blueprint": "Wähle einen Blueprint für die Kalkulation aus.",
+        "manufacturing_material": "Material",
+        "manufacturing_required": "Bedarf",
+        "manufacturing_at_location": "Am BP-Ort",
+        "manufacturing_total": "Gesamt",
+        "manufacturing_missing_local": "Lokal fehlt",
+        "manufacturing_blueprint_ready": "Blueprint-Runs ausreichend",
+        "manufacturing_blueprint_shortfall": "BPC fehlen {count} Runs",
+        "manufacturing_materials_ready": "Materialien am Blueprint-Ort vollständig",
+        "manufacturing_materials_missing": "Materialien am Blueprint-Ort unvollständig",
+        "manufacturing_plan_summary": (
+            "{runs} Runs · Ausgabe {output} · Überschuss {surplus} · Dauer {duration}\n"
+            "{blueprint} · {materials}"
+        ),
         "inventory": "Inventar & Logistik",
         "market": "Markt & Kalkulation",
         "settings": "Einstellungen & Charaktere",
@@ -428,6 +464,41 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_tier_4": "P4 advanced commodity",
         "projects": "Production Projects",
         "blueprints": "Blueprints",
+        "blueprint_page_detail": (
+            "Personal BPOs and BPCs are joined with the manufacturing recipe from the active "
+            "SDE build. Assets at the blueprint location remain separate from other locations."
+        ),
+        "blueprint_search": "Search product, blueprint, character, or location",
+        "blueprint_product": "Product",
+        "blueprint_owner": "Owner",
+        "blueprint_kind": "Type",
+        "blueprint_runs": "Runs",
+        "blueprint_location": "Location ID",
+        "blueprint_name": "Blueprint",
+        "blueprint_original": "BPO",
+        "blueprint_copy": "BPC",
+        "blueprint_unlimited": "unlimited",
+        "blueprint_empty": (
+            "No usable manufacturing blueprints found yet. Synchronize a character with "
+            "blueprint permission and a current SDE."
+        ),
+        "manufacturing_calculation": "Manufacturing calculation",
+        "manufacturing_target_quantity": "Target quantity",
+        "manufacturing_calculate": "Recalculate",
+        "manufacturing_select_blueprint": "Select a blueprint to calculate.",
+        "manufacturing_material": "Material",
+        "manufacturing_required": "Required",
+        "manufacturing_at_location": "At BP location",
+        "manufacturing_total": "Total",
+        "manufacturing_missing_local": "Missing locally",
+        "manufacturing_blueprint_ready": "Blueprint runs sufficient",
+        "manufacturing_blueprint_shortfall": "BPC is short by {count} runs",
+        "manufacturing_materials_ready": "Materials complete at blueprint location",
+        "manufacturing_materials_missing": "Materials incomplete at blueprint location",
+        "manufacturing_plan_summary": (
+            "{runs} runs · Output {output} · Surplus {surplus} · Duration {duration}\n"
+            "{blueprint} · {materials}"
+        ),
         "inventory": "Inventory & Logistics",
         "market": "Market & Calculation",
         "settings": "Settings & Characters",

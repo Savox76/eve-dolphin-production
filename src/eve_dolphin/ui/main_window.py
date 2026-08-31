@@ -31,6 +31,7 @@ from eve_dolphin.database import Database
 from eve_dolphin.i18n import Translator
 from eve_dolphin.status import DataStatusRepository, ResourceDataStatus
 from eve_dolphin.sync.coordinator import CharacterSyncBatch
+from eve_dolphin.ui.blueprint_page import BlueprintPage
 from eve_dolphin.ui.character_page import CharacterPage
 from eve_dolphin.ui.pi_planner_page import PiPlannerPage
 from eve_dolphin.ui.planetary_page import PlanetaryPage
@@ -102,6 +103,7 @@ class MainWindow(QMainWindow):
         self.navigation = QListWidget()
         self.pages = QStackedWidget()
         self.character_page: CharacterPage | None = None
+        self.blueprint_page: BlueprintPage | None = None
         self.planetary_page: PlanetaryPage | None = None
         self.pi_planner_page: PiPlannerPage | None = None
         self._close_pending = False
@@ -205,6 +207,9 @@ class MainWindow(QMainWindow):
             elif section.view_id == "pi-planner":
                 self.pi_planner_page = PiPlannerPage(self.database, self.translator)
                 page = self.pi_planner_page
+            elif section.view_id == "blueprints":
+                self.blueprint_page = BlueprintPage(self.database, self.translator)
+                page = self.blueprint_page
             elif section.view_id == "settings":
                 self.character_page = CharacterPage(
                     self.character_repository,
@@ -220,6 +225,9 @@ class MainWindow(QMainWindow):
                 if self.pi_planner_page is not None:
                     self.character_page.characters_changed.connect(self.pi_planner_page.refresh)
                     self.character_page.data_changed.connect(self.pi_planner_page.refresh)
+                if self.blueprint_page is not None:
+                    self.character_page.characters_changed.connect(self.blueprint_page.refresh)
+                    self.character_page.data_changed.connect(self.blueprint_page.refresh)
                 page = self.character_page
             else:
                 page = self._build_placeholder_page(section)

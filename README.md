@@ -30,7 +30,7 @@ Die gemeinsame Charakter-, Daten-, Markt- und Inventarbasis wird später von Min
 - eigenständige Installation für jeden Spieler
 
 Der vollständige Projektumfang steht im [Masterplan](MASTERPLAN.md), die nutzerseitigen
-Änderungen im [Changelog](CHANGELOG.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md), die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md), der [Formel- und Bewertungskatalog](docs/FORMULA_CATALOG.md), die [Seitenstruktur und Wireframes](docs/UX_STRUCTURE.md), die Abnahmen von [Phase 0](docs/PHASE_0_ACCEPTANCE.md), [Phase 1](docs/PHASE_1_ACCEPTANCE.md) und [Phase 2](docs/PHASE_2_ACCEPTANCE.md) sowie der [aktuelle Stand von Phase 3](docs/PHASE_3_STATUS.md).
+Änderungen im [Changelog](CHANGELOG.md). Ergänzend gelten [Produkt und Betriebsmodell](docs/PRODUCT.md), die [technische Architektur](docs/ARCHITECTURE.md), die [ESI-/SDE-Datenmatrix](docs/DATA_SOURCES.md), die [verbindlichen Referenzabläufe](docs/REFERENCE_WORKFLOWS.md), der [Formel- und Bewertungskatalog](docs/FORMULA_CATALOG.md), die [Seitenstruktur und Wireframes](docs/UX_STRUCTURE.md), die Abnahmen von [Phase 0](docs/PHASE_0_ACCEPTANCE.md), [Phase 1](docs/PHASE_1_ACCEPTANCE.md) und [Phase 2](docs/PHASE_2_ACCEPTANCE.md) sowie der [aktuelle Stand von Phase 3](docs/PHASE_3_STATUS.md) und [Phase 4](docs/PHASE_4_STATUS.md).
 
 Die später benötigten Portalwerte, Scopes, PowerShell-Befehle und Sicherheitsregeln
 stehen gesammelt in der **[Anleitung zur EVE-Developer-Anwendung](docs/EVE_DEVELOPER_APPLICATION.md)**.
@@ -50,12 +50,15 @@ Formaler nächster Meilenstein: **Phase 3 – PI-MVP-Live-Abnahme**
 
 Technisch vollständig: **Phase 3 – PI-MVP**
 
+In technischer Umsetzung: **Phase 4 – Manufacturing-MVP**
+
 Phase 2 wurde mit zwei echten Charakteren live bestätigt und ist abgeschlossen. Phase 3
 liefert die charakterübergreifende Kolonieüberwachung, Planet-/Systemnamen, Datenalter,
 Warnungen, Extraktor-, Fabrik- und Lagerprognosen sowie einen vollständigen P0–P4-Zielplaner.
 POCO-, Transport- und Wurmlochprofile sind lokal editierbar. Die automatisierten P2-, P3-
 und P4-Referenzfälle sind bestanden; der formale Sprung auf `50 %` folgt nach der manuellen
-Live-Prüfung der neuen `v0.3.0`-Ansichten mit realen Kolonien.
+Live-Prüfung der neuen `v0.3.1`-Ansichten mit realen Kolonien. Parallel beginnt Phase 4 mit
+der persönlichen Blueprint-Ansicht und einer ME-/TE-genauen Manufacturing-Kalkulation.
 
 ## Entwicklung und lokaler Start
 
