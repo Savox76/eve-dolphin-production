@@ -23,6 +23,16 @@ class SpaceKind(StrEnum):
     WORMHOLE = "wormhole"
 
 
+class PiOperationMode(StrEnum):
+    EXTRACTOR = "extractor"
+    IMPORT = "import"
+
+
+class PiStorageStrategy(StrEnum):
+    DIRECT = "direct"
+    BUFFERED = "buffered"
+
+
 @dataclass(frozen=True, slots=True)
 class PiCommodity:
     type_id: int
@@ -131,6 +141,9 @@ class PiPlanRequest:
     target_quantity: int
     days: int
     profile_id: int
+    operation_mode: PiOperationMode = PiOperationMode.IMPORT
+    source_tier: PiTier | None = None
+    storage_strategy: PiStorageStrategy = PiStorageStrategy.DIRECT
 
     def __post_init__(self) -> None:
         if self.target_type_id <= 0 or self.target_quantity <= 0:
@@ -139,6 +152,8 @@ class PiPlanRequest:
             raise ValueError("PI planning horizon must be between 1 and 365 days")
         if self.profile_id <= 0:
             raise ValueError("PI planning profile ID must be positive")
+        if self.source_tier is not None and self.source_tier is PiTier.ADVANCED:
+            raise ValueError("P4 cannot be used as a PI input tier")
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,6 +171,18 @@ class PiPlanLine:
     import_quantity: int
     unresolved_quantity: int
     excess_quantity: int
+    source_quantity: int = 0
+    recommended_factories: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class PiLayoutStage:
+    commodity: PiCommodity
+    factories: int
+    cycles: int
+    input_units_per_day: int
+    output_units_per_day: int
+    buffer_storage: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,7 +200,21 @@ class PiPlanResult:
     risk_markup_isk: Decimal
     total_logistics_isk: Decimal
     blocked_reasons: tuple[str, ...]
+    layout: tuple[PiLayoutStage, ...]
 
     @property
     def is_feasible(self) -> bool:
         return not self.blocked_reasons and not any(line.unresolved_quantity for line in self.lines)
+
+
+@dataclass(frozen=True, slots=True)
+class SavedPiPlan:
+    plan_id: int | None
+    name: str
+    request: PiPlanRequest
+
+    def __post_init__(self) -> None:
+        if self.plan_id is not None and self.plan_id <= 0:
+            raise ValueError("saved PI plan ID must be positive")
+        if not self.name.strip():
+            raise ValueError("saved PI plan name must not be empty")

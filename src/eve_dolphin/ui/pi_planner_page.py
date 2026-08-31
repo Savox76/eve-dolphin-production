@@ -29,12 +29,16 @@ from PySide6.QtWidgets import (
 from eve_dolphin.database import Database
 from eve_dolphin.i18n import Translator
 from eve_dolphin.pi import (
+    PiOperationMode,
     PiPlannerService,
     PiPlanRequest,
     PiPlanResult,
     PiProfile,
     PiProfileRepository,
+    PiStorageStrategy,
     PiTier,
+    SavedPiPlan,
+    SavedPiPlanRepository,
     SpaceKind,
 )
 
@@ -49,22 +53,35 @@ class PiPlannerPage(QWidget):
         *,
         planner: PiPlannerService | None = None,
         profiles: PiProfileRepository | None = None,
+        saved_plans: SavedPiPlanRepository | None = None,
     ) -> None:
         super().__init__()
         self._translator = translator
         self._planner = planner or PiPlannerService(database)
         self._profiles = profiles or PiProfileRepository(database)
+        self._saved_plans = saved_plans or SavedPiPlanRepository(database)
         self._profile_values: dict[int, PiProfile] = {}
         self._editing_profile_id: int | None = None
+        self._editing_plan_id: int | None = None
+        self._saved_plan_values: dict[int, SavedPiPlan] = {}
 
         self.target_combo = QComboBox()
         self.quantity_spin = QSpinBox()
         self.days_spin = QSpinBox()
         self.profile_combo = QComboBox()
+        self.operation_combo = QComboBox()
+        self.source_tier_combo = QComboBox()
+        self.storage_strategy_combo = QComboBox()
+        self.saved_plan_combo = QComboBox()
+        self.plan_name = QLineEdit()
+        self.new_plan_button = QPushButton(self._translator.text("pi_plan_new"))
+        self.save_plan_button = QPushButton(self._translator.text("pi_plan_save"))
+        self.delete_plan_button = QPushButton(self._translator.text("pi_plan_delete"))
         self.calculate_button = QPushButton(self._translator.text("pi_calculate"))
         self.result_label = QLabel(self._translator.text("pi_no_plan"))
         self.cost_label = QLabel()
         self.plan_table = QTableWidget(0, 12)
+        self.layout_table = QTableWidget(0, 6)
 
         self.profile_name = QLineEdit()
         self.space_combo = QComboBox()
@@ -82,6 +99,11 @@ class PiPlannerPage(QWidget):
         self._configure_controls()
         self._build_layout()
         self.calculate_button.clicked.connect(self._calculate)
+        self.operation_combo.currentIndexChanged.connect(self._operation_changed)
+        self.saved_plan_combo.currentIndexChanged.connect(self._saved_plan_selected)
+        self.new_plan_button.clicked.connect(self._new_plan)
+        self.save_plan_button.clicked.connect(self._save_plan)
+        self.delete_plan_button.clicked.connect(self._delete_plan)
         self.profile_combo.currentIndexChanged.connect(self._profile_selected)
         self.new_profile_button.clicked.connect(self._new_profile)
         self.save_profile_button.clicked.connect(self._save_profile)
@@ -92,6 +114,16 @@ class PiPlannerPage(QWidget):
         self.quantity_spin.setValue(100)
         self.days_spin.setRange(1, 365)
         self.days_spin.setValue(7)
+
+        for mode in PiOperationMode:
+            self.operation_combo.addItem(self._translator.text(f"pi_mode_{mode.value}"), mode.value)
+        for tier in PiTier:
+            if tier is not PiTier.ADVANCED:
+                self.source_tier_combo.addItem(self._tier_text(tier), int(tier))
+        for strategy in PiStorageStrategy:
+            self.storage_strategy_combo.addItem(
+                self._translator.text(f"pi_storage_strategy_{strategy.value}"), strategy.value
+            )
 
         self.result_label.setWordWrap(True)
         self.result_label.setObjectName("muted")
@@ -123,6 +155,23 @@ class PiPlannerPage(QWidget):
         header = self.plan_table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+
+        self.layout_table.setObjectName("piLayoutTable")
+        self.layout_table.setHorizontalHeaderLabels(
+            (
+                self._translator.text("pi_layout_stage"),
+                self._translator.text("pi_layout_factories"),
+                self._translator.text("pi_plan_cycles"),
+                self._translator.text("pi_layout_input_day"),
+                self._translator.text("pi_layout_output_day"),
+                self._translator.text("pi_layout_buffer"),
+            )
+        )
+        self.layout_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.layout_table.verticalHeader().setVisible(False)
+        layout_header = self.layout_table.horizontalHeader()
+        layout_header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        layout_header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
 
         for kind in SpaceKind:
             self.space_combo.addItem(self._translator.text(f"pi_space_{kind.value}"), kind.value)
@@ -157,11 +206,24 @@ class PiPlannerPage(QWidget):
         inputs.setObjectName("card")
         form = QFormLayout(inputs)
         form.setContentsMargins(20, 18, 20, 18)
+        form.addRow(self._translator.text("pi_saved_plan"), self.saved_plan_combo)
+        form.addRow(self._translator.text("pi_plan_name"), self.plan_name)
         form.addRow(self._translator.text("pi_target"), self.target_combo)
         form.addRow(self._translator.text("pi_quantity"), self.quantity_spin)
         form.addRow(self._translator.text("pi_days"), self.days_spin)
         form.addRow(self._translator.text("pi_profile"), self.profile_combo)
-        form.addRow("", self.calculate_button)
+        form.addRow(self._translator.text("pi_operation_mode"), self.operation_combo)
+        form.addRow(self._translator.text("pi_source_tier"), self.source_tier_combo)
+        form.addRow(self._translator.text("pi_storage_strategy"), self.storage_strategy_combo)
+        actions = QWidget()
+        action_layout = QHBoxLayout(actions)
+        action_layout.setContentsMargins(0, 0, 0, 0)
+        action_layout.addWidget(self.calculate_button)
+        action_layout.addWidget(self.new_plan_button)
+        action_layout.addWidget(self.save_plan_button)
+        action_layout.addWidget(self.delete_plan_button)
+        action_layout.addStretch(1)
+        form.addRow("", actions)
 
         results = QFrame()
         results.setObjectName("card")
@@ -170,6 +232,10 @@ class PiPlannerPage(QWidget):
         results_layout.setSpacing(10)
         results_layout.addWidget(self.result_label)
         results_layout.addWidget(self.plan_table, 1)
+        layout_title = QLabel(self._translator.text("pi_optimal_layout"))
+        layout_title.setObjectName("cardTitle")
+        results_layout.addWidget(layout_title)
+        results_layout.addWidget(self.layout_table)
         results_layout.addWidget(self.cost_label)
         layout.addWidget(inputs)
         layout.addWidget(results, 1)
@@ -229,26 +295,28 @@ class PiPlannerPage(QWidget):
         _restore_combo(self.profile_combo, profile_id)
         self.profile_combo.blockSignals(False)
         self.calculate_button.setEnabled(bool(targets and profiles))
+        selected_plan_id = self.saved_plan_combo.currentData()
+        saved = self._saved_plans.list_all()
+        self._saved_plan_values = {plan.plan_id: plan for plan in saved if plan.plan_id is not None}
+        self.saved_plan_combo.blockSignals(True)
+        self.saved_plan_combo.clear()
+        self.saved_plan_combo.addItem(self._translator.text("pi_plan_unsaved"), None)
+        for plan in saved:
+            self.saved_plan_combo.addItem(plan.name, plan.plan_id)
+        _restore_combo(self.saved_plan_combo, selected_plan_id)
+        self.saved_plan_combo.blockSignals(False)
         if not targets:
             self.result_label.setText(self._translator.text("pi_no_catalog"))
         self._profile_selected()
+        self._operation_changed()
 
     def _calculate(self) -> None:
-        target_id = self.target_combo.currentData()
-        profile_id = self.profile_combo.currentData()
-        if not isinstance(target_id, int) or not isinstance(profile_id, int):
+        request = self._current_request()
+        if request is None:
             self.result_label.setText(self._translator.text("pi_no_catalog"))
             return
         try:
-            result = self._planner.plan(
-                PiPlanRequest(
-                    target_type_id=target_id,
-                    target_quantity=self.quantity_spin.value(),
-                    days=self.days_spin.value(),
-                    profile_id=profile_id,
-                ),
-                self._translator.language,
-            )
+            result = self._planner.plan(request, self._translator.language)
         except ValueError as error:
             self.result_label.setText(str(error))
             return
@@ -276,7 +344,7 @@ class PiPlannerPage(QWidget):
                 f"{line.cycles:,}",
                 f"{line.available_factory_cycles:,}",
                 f"{line.additional_factories:,}",
-                f"{line.import_quantity:,}",
+                f"{(line.import_quantity or line.source_quantity):,}",
                 f"{line.unresolved_quantity:,}",
                 f"{line.excess_quantity:,}",
             )
@@ -299,6 +367,110 @@ class PiPlannerPage(QWidget):
                 total=_format_isk(result.total_logistics_isk),
             )
         )
+        self.layout_table.setRowCount(len(result.layout))
+        for row, stage in enumerate(result.layout):
+            layout_values = (
+                f"{self._tier_text(stage.commodity.tier)} · {stage.commodity.name}",
+                f"{stage.factories:,}",
+                f"{stage.cycles:,}",
+                f"{stage.input_units_per_day:,}",
+                f"{stage.output_units_per_day:,}",
+                (
+                    self._translator.text("pi_layout_storage_required")
+                    if stage.buffer_storage
+                    else self._translator.text("pi_layout_direct_route")
+                ),
+            )
+            for column, value in enumerate(layout_values):
+                self.layout_table.setItem(row, column, QTableWidgetItem(value))
+
+    def _current_request(self) -> PiPlanRequest | None:
+        target_id = self.target_combo.currentData()
+        profile_id = self.profile_combo.currentData()
+        mode = self.operation_combo.currentData()
+        source_tier = self.source_tier_combo.currentData()
+        strategy = self.storage_strategy_combo.currentData()
+        if (
+            not isinstance(target_id, int)
+            or not isinstance(profile_id, int)
+            or not isinstance(mode, str)
+            or not isinstance(source_tier, int)
+            or not isinstance(strategy, str)
+        ):
+            return None
+        return PiPlanRequest(
+            target_type_id=target_id,
+            target_quantity=self.quantity_spin.value(),
+            days=self.days_spin.value(),
+            profile_id=profile_id,
+            operation_mode=PiOperationMode(mode),
+            source_tier=PiTier(source_tier),
+            storage_strategy=PiStorageStrategy(strategy),
+        )
+
+    def _operation_changed(self) -> None:
+        mode = self.operation_combo.currentData()
+        is_import = mode == PiOperationMode.IMPORT.value
+        self.source_tier_combo.setEnabled(is_import)
+
+    def _saved_plan_selected(self) -> None:
+        plan_id = self.saved_plan_combo.currentData()
+        if not isinstance(plan_id, int):
+            self._editing_plan_id = None
+            self.delete_plan_button.setEnabled(False)
+            return
+        plan = self._saved_plan_values.get(plan_id)
+        if plan is None:
+            return
+        self._editing_plan_id = plan_id
+        self.delete_plan_button.setEnabled(True)
+        self.plan_name.setText(plan.name)
+        request = plan.request
+        _restore_combo(self.target_combo, request.target_type_id)
+        self.quantity_spin.setValue(request.target_quantity)
+        self.days_spin.setValue(request.days)
+        _restore_combo(self.profile_combo, request.profile_id)
+        _restore_combo(self.operation_combo, request.operation_mode.value)
+        _restore_combo(
+            self.source_tier_combo,
+            int(request.source_tier if request.source_tier is not None else PiTier.RAW),
+        )
+        _restore_combo(self.storage_strategy_combo, request.storage_strategy.value)
+        self._operation_changed()
+        self._calculate()
+
+    def _new_plan(self) -> None:
+        self._editing_plan_id = None
+        self.saved_plan_combo.setCurrentIndex(0)
+        self.plan_name.clear()
+        self.delete_plan_button.setEnabled(False)
+        self.plan_name.setFocus()
+
+    def _save_plan(self) -> None:
+        request = self._current_request()
+        if request is None:
+            return
+        try:
+            stored = self._saved_plans.save(
+                SavedPiPlan(self._editing_plan_id, self.plan_name.text(), request)
+            )
+        except (ValueError, sqlite3.IntegrityError) as error:
+            self.result_label.setText(
+                self._translator.text("pi_plan_save_error").format(message=error)
+            )
+            return
+        self._editing_plan_id = stored.plan_id
+        self.refresh()
+        _restore_combo(self.saved_plan_combo, stored.plan_id)
+        self.result_label.setText(self._translator.text("pi_plan_saved").format(name=stored.name))
+
+    def _delete_plan(self) -> None:
+        if self._editing_plan_id is None:
+            return
+        self._saved_plans.delete(self._editing_plan_id)
+        self._new_plan()
+        self.refresh()
+        self.result_label.setText(self._translator.text("pi_plan_deleted"))
 
     def _profile_selected(self) -> None:
         profile_id = self.profile_combo.currentData()

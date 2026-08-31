@@ -6,12 +6,15 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFrame,
+    QHBoxLayout,
     QHeaderView,
     QLabel,
+    QProgressBar,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -54,9 +57,19 @@ class PlanetaryPage(QWidget):
         self.detail_label = QLabel()
         self.detail_label.setObjectName("muted")
         self.detail_label.setWordWrap(True)
+        self.operation_label = QLabel()
+        self.operation_label.setObjectName("statusBadge")
+        self.countdown_label = QLabel()
+        self.countdown_label.setObjectName("piCountdown")
+        self.storage_table = QTableWidget(0, 4)
+        self.storage_table.setObjectName("piStorageTable")
 
         self._build_layout()
         self.table.itemSelectionChanged.connect(self._update_detail)
+        self._countdown_timer = QTimer(self)
+        self._countdown_timer.setInterval(1000)
+        self._countdown_timer.timeout.connect(self._update_countdown)
+        self._countdown_timer.start()
         self.refresh()
 
     def _build_layout(self) -> None:
@@ -114,7 +127,29 @@ class PlanetaryPage(QWidget):
         detail_title = QLabel(self._translator.text("pi_colony_details"))
         detail_title.setObjectName("cardTitle")
         detail_layout.addWidget(detail_title)
+        status_row = QWidget()
+        status_layout = QHBoxLayout(status_row)
+        status_layout.setContentsMargins(0, 0, 0, 0)
+        status_layout.addWidget(self.operation_label)
+        status_layout.addWidget(self.countdown_label, 1)
+        detail_layout.addWidget(status_row)
         detail_layout.addWidget(self.detail_label)
+
+        self.storage_table.setHorizontalHeaderLabels(
+            (
+                self._translator.text("pi_storage_pin"),
+                self._translator.text("pi_storage_contents"),
+                self._translator.text("pi_storage_volume"),
+                self._translator.text("pi_storage_fill"),
+            )
+        )
+        self.storage_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.storage_table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.storage_table.verticalHeader().setVisible(False)
+        storage_header = self.storage_table.horizontalHeader()
+        storage_header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        storage_header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        detail_layout.addWidget(self.storage_table)
 
         layout.addWidget(title)
         layout.addWidget(detail)
@@ -149,6 +184,7 @@ class PlanetaryPage(QWidget):
                 if column in {1, 3, 4, 6}:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.table.setItem(row, column, item)
+            self._color_attention_row(row, colony)
 
         self._update_summary()
         if self._colonies:
@@ -176,6 +212,9 @@ class PlanetaryPage(QWidget):
             self.detail_label.setText(self._translator.text("pi_no_selection"))
             return
         colony = self._colonies[row]
+        self.operation_label.setText(
+            self._translator.text(f"pi_mode_{colony.operation_mode.value}")
+        )
         next_expiry = (
             _format_datetime(colony.next_expiry)
             if colony.next_expiry is not None
@@ -244,6 +283,61 @@ class PlanetaryPage(QWidget):
                 )
             )
         )
+        self._show_storage(colony)
+        self._update_countdown()
+
+    def _show_storage(self, colony: ColonyOverview) -> None:
+        self.storage_table.setRowCount(len(colony.storage_nodes))
+        for row, storage in enumerate(colony.storage_nodes):
+            contents = self._format_quantities(storage.contents)
+            values = (
+                f"{storage.name or storage.type_id} · #{storage.pin_id}",
+                contents,
+                f"{_format_decimal(storage.used_m3)} / {_format_decimal(storage.capacity_m3)} m³",
+            )
+            for column, value in enumerate(values):
+                self.storage_table.setItem(row, column, QTableWidgetItem(value))
+            progress = QProgressBar()
+            progress.setRange(0, 1000)
+            progress.setValue(int(storage.fill_percent * 10))
+            progress.setFormat(f"{_format_decimal(storage.fill_percent)} %")
+            if storage.fill_percent >= Decimal(90):
+                progress.setStyleSheet("QProgressBar::chunk { background-color: #ef4444; }")
+            self.storage_table.setCellWidget(row, 3, progress)
+        self.storage_table.setVisible(bool(colony.storage_nodes))
+
+    def _update_countdown(self) -> None:
+        row = self.table.currentRow()
+        if row < 0 or row >= len(self._colonies):
+            self.countdown_label.clear()
+            return
+        colony = self._colonies[row]
+        deadline = colony.next_expiry
+        key = "pi_countdown_extractor"
+        if colony.operation_mode.value == "import":
+            deadline = colony.supply_exhausted_at
+            key = "pi_countdown_supply"
+        if deadline is None:
+            self.countdown_label.setText(self._translator.text("pi_countdown_unknown"))
+            self.countdown_label.setStyleSheet("")
+            return
+        remaining = max(timedelta(0), deadline - datetime.now(deadline.tzinfo))
+        self.countdown_label.setText(
+            self._translator.text(key).format(remaining=_format_countdown(remaining))
+        )
+        urgent = remaining < timedelta(hours=10)
+        self.countdown_label.setStyleSheet(
+            "color: #ff6b6b; font-weight: 700;" if urgent else "color: #8ff0cf;"
+        )
+
+    def _color_attention_row(self, row: int, colony: ColonyOverview) -> None:
+        if colony.attention_remaining is None:
+            return
+        color = QColor("#ff6b6b" if colony.attention_remaining < timedelta(hours=10) else "#fbbf24")
+        for column in (8, 10):
+            item = self.table.item(row, column)
+            if item is not None:
+                item.setForeground(color)
 
     def _extractor_status(self, colony: ColonyOverview) -> str:
         return self._translator.text("pi_extractor_compact").format(
@@ -314,6 +408,15 @@ def _format_duration(value: timedelta) -> str:
     if seconds >= 3600:
         return f"{seconds / 3600:.1f} h"
     return f"{seconds // 60} min"
+
+
+def _format_countdown(value: timedelta) -> str:
+    seconds = max(0, int(value.total_seconds()))
+    days, remainder = divmod(seconds, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    prefix = f"{days}d " if days else ""
+    return f"{prefix}{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 
 def _format_decimal(value: Decimal) -> str:

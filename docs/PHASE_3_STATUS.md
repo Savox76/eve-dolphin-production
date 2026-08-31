@@ -21,6 +21,9 @@ ausgeliefert wird, bleibt der formale Gesamtfortschritt bis zur manuellen Live-A
 - [x] Lagerinhalte, Kapazität, Füllstand und erkennbaren Vollzeitpunkt prognostizieren
 - [x] jede Prognose als Schätzung mit Snapshot-Zeitpunkt kennzeichnen
 - [x] deutsche und englische Oberfläche mit kontrollierten Namensfallbacks
+- [x] Lager und Launchpads einzeln mit Inhalt, Volumen und Füllstand darstellen
+- [x] Extraktor- und Zukaufkolonien getrennt erkennen und ihre Restlaufzeit berechnen
+- [x] unter zehn Stunden verbleibende Laufzeit sichtbar rot markieren
 
 ## PI-Zielplaner
 
@@ -34,6 +37,9 @@ ausgeliefert wird, bleibt der formale Gesamtfortschritt bis zur manuellen Live-A
 - [x] editierbare Highsec-, Lowsec-, Nullsec- und Wurmlochprofile speichern
 - [x] Wurmlochprofile mit und ohne POCO unterscheiden und nicht ausführbare Transporte blockieren
 - [x] exakte automatisierte P2-, P3- und P4-Rückwärtsreferenzen prüfen
+- [x] Eigenextraktion und Zukauf bis zu einer wählbaren PI-Stufe unterscheiden
+- [x] empfohlenen Aufbau mit direkten Routen oder Pufferlagern ausweisen
+- [x] Zielplanungen lokal speichern, laden, ändern und löschen
 
 ## Daten- und Sicherheitsgrenzen
 

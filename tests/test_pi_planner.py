@@ -10,6 +10,7 @@ from eve_dolphin.pi import (
     PiCatalog,
     PiCatalogRepository,
     PiCommodity,
+    PiOperationMode,
     PiPlanLine,
     PiPlannerService,
     PiPlanRequest,
@@ -18,7 +19,11 @@ from eve_dolphin.pi import (
     PiProfileRepository,
     PiRecipe,
     PiRecipeItem,
+    PiStorageStrategy,
     PiTier,
+    PlanetaryOverviewService,
+    SavedPiPlan,
+    SavedPiPlanRepository,
     SpaceKind,
     forecast_colony,
 )
@@ -129,6 +134,120 @@ def test_wormhole_without_poco_blocks_required_imports(tmp_path: Path) -> None:
     assert "imports_require_customs_office" in result.blocked_reasons
     assert result.import_volume_m3 > 0
     assert not result.is_feasible
+
+
+def test_planner_distinguishes_extraction_from_purchased_inputs(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+    planner = PiPlannerService(database, clock=lambda: NOW)
+
+    extraction = planner.plan(
+        PiPlanRequest(
+            21,
+            10,
+            2,
+            profile.profile_id,
+            PiOperationMode.EXTRACTOR,
+            PiTier.RAW,
+            PiStorageStrategy.BUFFERED,
+        ),
+        "en",
+    )
+    purchased = planner.plan(
+        PiPlanRequest(
+            21,
+            10,
+            2,
+            profile.profile_id,
+            PiOperationMode.IMPORT,
+            PiTier.BASIC,
+            PiStorageStrategy.DIRECT,
+        ),
+        "en",
+    )
+
+    assert _line(extraction, 1).source_quantity == 12_000
+    assert _line(extraction, 1).import_quantity == 0
+    assert _line(purchased, 11).import_quantity == 80
+    assert all(line.commodity.tier is not PiTier.RAW for line in purchased.lines)
+    assert any(stage.buffer_storage for stage in extraction.layout)
+    assert not any(stage.buffer_storage for stage in purchased.layout)
+
+
+def test_saved_pi_plans_can_be_created_edited_and_deleted(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+    repository = SavedPiPlanRepository(database)
+    request = PiPlanRequest(
+        21,
+        500,
+        7,
+        profile.profile_id,
+        PiOperationMode.IMPORT,
+        PiTier.BASIC,
+        PiStorageStrategy.BUFFERED,
+    )
+
+    stored = repository.save(SavedPiPlan(None, "P2 Fabrikplanet", request))
+    assert stored.plan_id is not None
+    assert repository.list_all() == (stored,)
+
+    edited = repository.save(SavedPiPlan(stored.plan_id, "P2 Woche", request))
+    assert edited.name == "P2 Woche"
+    repository.delete(stored.plan_id)
+    assert repository.list_all() == ()
+
+
+def test_factory_colony_shows_storage_and_ten_hour_supply_countdown(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    character = EveCharacter(1001, "Factory Pilot", None, (), NOW)
+    CharacterRepository(database).upsert(character)
+    pins = (
+        PlanetPin(
+            1,
+            9001,
+            Decimal(0),
+            Decimal(0),
+            (PlanetPinContent(11, 80), PlanetPinContent(12, 80)),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ),
+        PlanetPin(
+            2,
+            9999,
+            Decimal(0),
+            Decimal(0),
+            (),
+            None,
+            None,
+            None,
+            None,
+            None,
+            201,
+        ),
+    )
+    colony = PlanetColony(4001, 1001, 3001, "temperate", NOW, 5, 2, None, pins, (), ())
+    snapshots = PlanetarySnapshotRepository(database)
+    run_id = snapshots.start_run(character.character_id, NOW)
+    snapshots.activate(run_id, character.character_id, NOW, (colony,), None)
+
+    result = PlanetaryOverviewService(database, clock=lambda: NOW).list_colonies("en")[0]
+
+    assert result.operation_mode is PiOperationMode.IMPORT
+    assert result.supply_exhausted_at == NOW + timedelta(hours=2)
+    assert result.attention_remaining == timedelta(hours=2)
+    assert "supply_ending_soon" in result.warning_codes
+    assert len(result.storage_nodes) == 1
+    assert result.storage_nodes[0].used_m3 == Decimal("60.80")
+    assert result.storage_nodes[0].capacity_m3 == Decimal("12000")
 
 
 def test_profiles_are_persistent_and_decimal_exact(tmp_path: Path) -> None:

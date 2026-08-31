@@ -1,5 +1,5 @@
 """EVE Dolphin package."""
 
-__all__ = ["__version__"]
+from eve_dolphin.version import __version__
 
-__version__ = "0.3.1"
+__all__ = ["__version__"]

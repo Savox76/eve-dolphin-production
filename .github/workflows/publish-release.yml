@@ -48,6 +48,13 @@ jobs:
           if ("v$Version" -ne $env:RELEASE_TAG) {
             throw "Requested tag $env:RELEASE_TAG does not match application v$Version."
           }
+          $Published = gh release list --repo "Savox76/eve-dolphin-production" --limit 100 --json tagName | ConvertFrom-Json
+          foreach ($Release in $Published) {
+            $PublishedVersion = $Release.tagName -replace '^v', ''
+            if ($PublishedVersion -match '^\d+\.\d+\.\d+$' -and [version]$PublishedVersion -ge [version]$Version) {
+              throw "Application v$Version is not newer than published $($Release.tagName). Increase src/eve_dolphin/version.py."
+            }
+          }
 
       - name: Build and validate Windows client
         shell: pwsh
