@@ -168,8 +168,8 @@ class PiPlanRequest:
             raise ValueError("P4 cannot be used as a PI input tier")
         if self.launchpad_capacity_m3 <= 0:
             raise ValueError("PI launchpad capacity must be positive")
-        if not 1 <= self.input_launchpads <= 20:
-            raise ValueError("PI input launchpad count must be between 1 and 20")
+        if not 1 <= self.input_launchpads <= 5:
+            raise ValueError("PI input launchpad count must be between 1 and 5")
         if not 1 <= self.final_factories <= 100:
             raise ValueError("PI final factory count must be between 1 and 100")
         if not 0 <= self.command_center_level <= 5:
@@ -208,6 +208,7 @@ class PiLayoutStage:
     input_units_per_day: int
     output_units_per_day: int
     buffer_storage: bool
+    input_type_ids: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

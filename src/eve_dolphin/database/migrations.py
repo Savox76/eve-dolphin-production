@@ -602,6 +602,15 @@ MIGRATIONS = (
             CHECK (input_launchpads BETWEEN 1 AND 20);
         """,
     ),
+    Migration(
+        version=12,
+        description="limit PI factory-colony input launchpads to five",
+        sql="""
+        UPDATE pi_saved_plans
+        SET input_launchpads = 5
+        WHERE input_launchpads > 5;
+        """,
+    ),
 )
 
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1].version

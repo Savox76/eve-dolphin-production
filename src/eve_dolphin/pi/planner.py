@@ -528,6 +528,7 @@ def _layout(
                     request.storage_strategy.value == "buffered"
                     and line.commodity.type_id != request.target_type_id
                 ),
+                input_type_ids=tuple(item.commodity.type_id for item in recipe.inputs),
             )
         )
     return tuple(sorted(result, key=lambda stage: int(stage.commodity.tier)))
