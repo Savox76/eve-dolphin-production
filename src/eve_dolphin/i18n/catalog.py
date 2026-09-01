@@ -9,6 +9,10 @@ SUPPORTED_LANGUAGES = ("de", "en")
 CATALOG: dict[str, dict[str, str]] = {
     "de": {
         "app.title": "EVE Dolphin",
+        "app_already_running_title": "EVE Dolphin läuft bereits",
+        "app_already_running": (
+            "EVE Dolphin ist bereits geöffnet. Eine zweite Instanz wurde nicht gestartet."
+        ),
         "app.subtitle": "Lokaler EVE-Begleiter",
         "overview": "Übersicht",
         "pi": "Planetare Industrie",
@@ -395,6 +399,9 @@ CATALOG: dict[str, dict[str, str]] = {
             "Automatische Synchronisation aktiv. Nach dem Verbinden werden alle Daten sofort "
             "geladen und anschließend alle 5 Minuten geprüft."
         ),
+        "automatic_sync_starting": (
+            "Anwendung ist bereit · die Aktualisierung der EVE-Daten startet im Hintergrund …"
+        ),
         "sync_partial": (
             "{succeeded} von {count} Charakter(en) wurden vollständig synchronisiert. "
             "Fehlerhafte Datenstände sind in der Übersicht markiert."
@@ -425,6 +432,8 @@ CATALOG: dict[str, dict[str, str]] = {
     },
     "en": {
         "app.title": "EVE Dolphin",
+        "app_already_running_title": "EVE Dolphin is already running",
+        "app_already_running": ("EVE Dolphin is already open. A second instance was not started."),
         "app.subtitle": "Local EVE companion",
         "overview": "Overview",
         "pi": "Planetary Industry",
@@ -803,6 +812,9 @@ CATALOG: dict[str, dict[str, str]] = {
         "automatic_sync_waiting": (
             "Automatic synchronization is active. All data is loaded immediately after "
             "connection and checked every 5 minutes afterwards."
+        ),
+        "automatic_sync_starting": (
+            "Application is ready · EVE data refresh will start in the background …"
         ),
         "sync_partial": (
             "{succeeded} of {count} character(s) synchronized completely. "

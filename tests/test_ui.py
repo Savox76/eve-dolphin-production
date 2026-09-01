@@ -490,7 +490,7 @@ def test_new_character_login_requests_every_supported_data_scope(
     page.close()
 
 
-def test_automatic_sync_starts_immediately_and_repeats_every_five_minutes(
+def test_automatic_sync_starts_after_first_paint_and_repeats_every_five_minutes(
     qt_application: QApplication, tmp_path: Path
 ) -> None:
     repository = _repository(tmp_path)
@@ -513,7 +513,9 @@ def test_automatic_sync_starts_immediately_and_repeats_every_five_minutes(
 
     page = CharacterPage(repository, Translator("de"), sync_characters=synchronize)
     page.start_automatic_sync()
-    for _attempt in range(100):
+    assert calls == []
+    assert "startet im Hintergrund" in page.status_label.text()
+    for _attempt in range(250):
         qt_application.processEvents()
         if calls and page.sync_button.isEnabled():
             break

@@ -28,6 +28,8 @@ from eve_dolphin.updates import (
 from eve_dolphin.updates.installer import current_installation_dir
 
 LOGGER = logging.getLogger(__name__)
+BACKGROUND_SERVICES_DELAY_MS = 500
+INSTANCE_LOCK_NAME = "eve-dolphin.instance.lock"
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,14 +118,9 @@ def main(arguments: list[str] | None = None) -> int:
     if options.self_check:
         return run_self_check(paths)
 
-    configure_logging(paths.log_dir)
-    try:
-        context = build_context(paths, options.language)
-    except sqlite3.Error:
-        LOGGER.exception("Local database initialization failed")
-        return 1
-
-    from PySide6.QtWidgets import QApplication
+    paths.ensure_directories()
+    from PySide6.QtCore import QLockFile, QTimer
+    from PySide6.QtWidgets import QApplication, QMessageBox
 
     from eve_dolphin.ui import MainWindow
     from eve_dolphin.ui.theme import apply_theme
@@ -132,6 +129,23 @@ def main(arguments: list[str] | None = None) -> int:
     application.setApplicationName("EVE Dolphin")
     application.setApplicationVersion(__version__)
     apply_theme(application)
+
+    instance_lock = QLockFile(str(paths.data_dir / INSTANCE_LOCK_NAME))
+    if not instance_lock.tryLock(0):
+        translator = Translator(options.language)
+        QMessageBox.information(
+            None,
+            translator.text("app_already_running_title"),
+            translator.text("app_already_running"),
+        )
+        return 0
+
+    configure_logging(paths.log_dir)
+    try:
+        context = build_context(paths, options.language)
+    except sqlite3.Error:
+        LOGGER.exception("Local database initialization failed")
+        return 1
 
     installation_dir = current_installation_dir()
     update_installer = UpdateInstaller(context.paths.update_dir)
@@ -153,5 +167,5 @@ def main(arguments: list[str] | None = None) -> int:
         startup_update_result=consume_update_result(context.paths.update_dir),
     )
     window.show()
-    window.start_background_services()
+    QTimer.singleShot(BACKGROUND_SERVICES_DELAY_MS, window.start_background_services)
     return application.exec()
