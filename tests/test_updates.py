@@ -162,6 +162,29 @@ def test_update_applier_replaces_package_after_self_check(
     assert state.status is UpdateStateStatus.SUCCEEDED
 
 
+def test_update_applier_allows_legacy_client_time_to_finish(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source, target = _package_directories(tmp_path)
+    observed_timeouts: list[float] = []
+
+    def record_timeout(_pid: int, timeout: float) -> bool:
+        observed_timeouts.append(timeout)
+        return True
+
+    monkeypatch.setattr("eve_dolphin.updates.applier.os.chdir", lambda _path: None)
+    monkeypatch.setattr(applier_module, "_wait_for_process", record_timeout)
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=0),
+    )
+
+    apply_staged_update(source, target, wait_pid=1234, restart=False)
+
+    assert observed_timeouts == [10 * 60.0]
+
+
 def test_update_applier_rolls_back_failed_package(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

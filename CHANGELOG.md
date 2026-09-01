@@ -2,6 +2,17 @@
 
 ## Unveröffentlicht
 
+## v0.4.7 – Zuverlässiger Windows-Updater
+
+- Update-Helfer startet erst, nachdem laufende EVE-Datensynchronisationen kontrolliert
+  beendet wurden; dadurch kann der alte Prozess den Installationsordner nicht mehr blockieren
+- der bereits von v0.4.4 gestartete neue Update-Helfer wartet bei laufender Synchronisation
+  bis zu zehn Minuten und kann damit auch bestehende Installationen zuverlässig aktualisieren
+- Anwendung beendet sich nach dem Download selbstständig, ersetzt die vollständige Installation
+  und startet anschließend die neue Version
+- Windows-CI prüft den echten Austausch eines laufenden Installationsordners einschließlich
+  Entfernung alter Dateien und Selbsttest der aktualisierten EXE
+
 ## v0.4.6 – Verzweigte PI-Koloniegrafik
 
 - Eingangs-Launchpads verbindlich auf ein bis fünf erweitert und alle gültigen

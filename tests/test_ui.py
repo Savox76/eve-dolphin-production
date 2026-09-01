@@ -44,7 +44,14 @@ from eve_dolphin.ui.main_window import SECTIONS, MainWindow
 from eve_dolphin.ui.pi_layout_diagram import PiLayoutDiagram
 from eve_dolphin.ui.pi_planner_page import PiPlannerPage
 from eve_dolphin.ui.planetary_page import PlanetaryPage
-from eve_dolphin.updates import UpdateState, UpdateStateStatus
+from eve_dolphin.updates import (
+    ReleaseAsset,
+    ReleaseInfo,
+    StagedUpdate,
+    UpdateState,
+    UpdateStateStatus,
+)
+from eve_dolphin.updates.models import AppVersion
 
 
 @pytest.fixture(scope="session")
@@ -194,18 +201,61 @@ def test_main_window_shows_successful_update_after_restart(
     window.close()
 
 
+def _release_info() -> ReleaseInfo:
+    return ReleaseInfo(
+        AppVersion.parse("0.3.1"),
+        "v0.3.1",
+        "EVE Dolphin v0.3.1",
+        "Changes",
+        "https://github.com/Savox76/eve-dolphin-production/releases/tag/v0.3.1",
+        datetime(2026, 8, 31, 12, 0, tzinfo=UTC),
+        True,
+        ReleaseAsset("EVE-Dolphin-Windows-v0.3.1.zip", "https://example.invalid", 1, "0" * 64),
+    )
+
+
 def test_update_shutdown_closes_only_after_stage_worker_finishes(
     qt_application: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     repository = _repository(tmp_path)
     window = MainWindow(tmp_path / "client.sqlite3", Translator("de"), repository)
     closed: list[bool] = []
+    launched: list[StagedUpdate] = []
     monkeypatch.setattr(window, "close", lambda: closed.append(True))
 
+    staged = StagedUpdate(_release_info(), tmp_path / "v0.3.1")
+    window._launch_update = launched.append
+    window._pending_staged_update = staged
     window._update_shutdown_pending = True
     window._update_stage_finished()
 
     assert closed == [True]
+    assert launched == [staged]
+
+
+def test_update_waits_for_character_work_before_launching(
+    qt_application: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository = _repository(tmp_path)
+    window = MainWindow(tmp_path / "client.sqlite3", Translator("de"), repository)
+    staged = StagedUpdate(_release_info(), tmp_path / "v0.3.1")
+    launched: list[StagedUpdate] = []
+    closed: list[bool] = []
+    monkeypatch.setattr(window, "close", lambda: closed.append(True))
+    window._launch_update = launched.append
+    window._pending_staged_update = staged
+    window._update_shutdown_pending = True
+
+    assert window.character_page is not None
+    monkeypatch.setattr(
+        type(window.character_page),
+        "background_work_pending",
+        property(lambda _page: True),
+    )
+    window._continue_update_shutdown()
+
+    assert launched == []
+    assert closed == []
 
 
 def test_planetary_page_shows_colony_status_and_sde_names(

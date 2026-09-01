@@ -16,6 +16,8 @@ from eve_dolphin import __version__
 from eve_dolphin.updates.installer import EXECUTABLE_NAME
 from eve_dolphin.updates.status import UpdateStateStatus, write_update_state
 
+PARENT_EXIT_TIMEOUT_SECONDS = 10 * 60.0
+
 
 class UpdateApplyError(RuntimeError):
     """The staged package could not safely replace the active installation."""
@@ -37,7 +39,11 @@ def apply_staged_update(
         os.chdir(update_dir)
         if wait_pid <= 0 or wait_pid == os.getpid():
             raise UpdateApplyError("update parent PID is invalid")
-        if not _wait_for_process(wait_pid, 90.0):
+        # Older clients can still have an EVE synchronization in progress after
+        # staging. The downloaded helper is already the new version, so give
+        # that legacy client enough time to finish cleanly instead of restoring
+        # and relaunching the old installation after only 90 seconds.
+        if not _wait_for_process(wait_pid, PARENT_EXIT_TIMEOUT_SECONDS):
             raise UpdateApplyError("running application did not stop in time")
 
         timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
