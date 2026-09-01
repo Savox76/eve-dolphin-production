@@ -97,6 +97,10 @@ def test_pi_planner_switches_to_launchpad_inputs(
     assert page.input_launchpads_spin.value() == 1
     assert page.plan_table.columnCount() == 7
     assert page.layout_table.columnCount() == 4
+    assert page.input_cargo_table.columnCount() == 6
+    assert page.input_cargo_table.minimumWidth() == 900
+    assert page.output_launchpad_table.columnCount() == 6
+    assert page.output_launchpad_table.minimumWidth() == 900
     assert isinstance(page.tabs.widget(0), QScrollArea)
     assert isinstance(page.tabs.widget(1), QScrollArea)
     assert page.plan_table.minimumWidth() == 1_020

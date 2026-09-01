@@ -211,6 +211,14 @@ class PiLayoutStage:
 
 
 @dataclass(frozen=True, slots=True)
+class PiLaunchpadCargo:
+    launchpad_index: int
+    commodity: PiCommodity
+    quantity: int
+    volume_m3: Decimal
+
+
+@dataclass(frozen=True, slots=True)
 class PiLaunchpadFill:
     capacity_m3: Decimal
     product_quantity: int
@@ -220,6 +228,7 @@ class PiLaunchpadFill:
     input_capacity_m3: Decimal
     input_volume_m3: Decimal
     input_quantities: tuple[tuple[PiCommodity, int], ...]
+    input_cargo: tuple[PiLaunchpadCargo, ...]
     fill_time: timedelta
     final_factories: int
 

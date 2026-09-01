@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -328,6 +329,106 @@ def test_p4_launchpad_goal_uses_selected_purchase_tier_for_initial_load(
         (21, 3320),
         (22, 3320),
     )
+
+
+@pytest.mark.parametrize(
+    ("target_type_id", "source_tier", "input_launchpads"),
+    [
+        (target_type_id, PiTier(source_tier), input_launchpads)
+        for target_type_id, target_tier in ((11, 1), (21, 2), (31, 3), (41, 4))
+        for source_tier in range(target_tier)
+        for input_launchpads in (1, 2, 3)
+    ],
+)
+def test_every_launchpad_target_and_source_tier_combination_is_volume_exact(
+    tmp_path: Path,
+    target_type_id: int,
+    source_tier: PiTier,
+    input_launchpads: int,
+) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+    planner = PiPlannerService(database, clock=lambda: NOW)
+    request = PiPlanRequest(
+        target_type_id,
+        1,
+        1,
+        profile.profile_id,
+        operation_mode=PiOperationMode.IMPORT,
+        source_tier=source_tier,
+        goal_mode=PiGoalMode.LAUNCHPAD,
+        launchpad_capacity_m3=Decimal("10000"),
+        input_launchpads=input_launchpads,
+    )
+
+    result = planner.plan(request, "en")
+    fill = result.launchpad_fill
+    assert fill is not None
+    recipe = PiCatalogRepository(database).load("en").recipes_by_output[target_type_id]
+    cycles = result.request.target_quantity // recipe.output.quantity
+    assert result.request.target_quantity == cycles * recipe.output.quantity
+    assert fill.product_volume_m3 <= fill.capacity_m3
+    assert fill.input_volume_m3 <= fill.input_capacity_m3
+    assert all(item.tier <= source_tier for item, _quantity in fill.input_quantities)
+
+    cargo_quantities: Counter[int] = Counter()
+    cargo_volumes: dict[int, Decimal] = {}
+    for cargo in fill.input_cargo:
+        cargo_quantities[cargo.commodity.type_id] += cargo.quantity
+        cargo_volumes[cargo.launchpad_index] = (
+            cargo_volumes.get(cargo.launchpad_index, Decimal(0)) + cargo.volume_m3
+        )
+    assert cargo_quantities == Counter(
+        {item.type_id: quantity for item, quantity in fill.input_quantities}
+    )
+    assert all(volume <= fill.capacity_m3 for volume in cargo_volumes.values())
+
+    next_quantity = (cycles + 1) * recipe.output.quantity
+    next_result = planner.plan(
+        PiPlanRequest(
+            target_type_id,
+            next_quantity,
+            365,
+            profile.profile_id,
+            operation_mode=PiOperationMode.IMPORT,
+            source_tier=source_tier,
+        ),
+        "en",
+    )
+    next_input_volume = sum(
+        Decimal(line.import_quantity) * line.commodity.volume_m3 for line in next_result.lines
+    )
+    next_output_volume = Decimal(next_quantity) * result.target.volume_m3
+    assert next_input_volume > fill.input_capacity_m3 or next_output_volume > fill.capacity_m3
+
+
+def test_one_input_launchpad_can_hold_multiple_starting_products(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+
+    result = PiPlannerService(database, clock=lambda: NOW).plan(
+        PiPlanRequest(
+            21,
+            1,
+            1,
+            profile.profile_id,
+            source_tier=PiTier.BASIC,
+            goal_mode=PiGoalMode.LAUNCHPAD,
+            input_launchpads=1,
+        ),
+        "en",
+    )
+
+    fill = result.launchpad_fill
+    assert fill is not None
+    first_launchpad_products = {
+        cargo.commodity.type_id for cargo in fill.input_cargo if cargo.launchpad_index == 1
+    }
+    assert first_launchpad_products == {11, 12}
 
 
 def test_low_command_center_level_blocks_oversized_layout(tmp_path: Path) -> None:
