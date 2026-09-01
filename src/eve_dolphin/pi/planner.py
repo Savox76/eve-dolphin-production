@@ -17,6 +17,7 @@ from eve_dolphin.pi.models import (
     PiCommodity,
     PiGoalMode,
     PiInfrastructureBudget,
+    PiLaunchpadCargo,
     PiLaunchpadFill,
     PiLayoutStage,
     PiOperationMode,
@@ -408,6 +409,11 @@ def _launchpad_fill(
         (Decimal(quantity) * commodity.volume_m3 for commodity, quantity in input_quantities),
         start=Decimal(0),
     )
+    input_cargo = _allocate_launchpad_cargo(
+        input_quantities,
+        request.input_launchpads,
+        request.launchpad_capacity_m3,
+    )
     return PiLaunchpadFill(
         capacity_m3=request.launchpad_capacity_m3,
         product_quantity=request.target_quantity,
@@ -417,9 +423,38 @@ def _launchpad_fill(
         input_capacity_m3=request.launchpad_capacity_m3 * request.input_launchpads,
         input_volume_m3=input_volume,
         input_quantities=input_quantities,
+        input_cargo=input_cargo,
         fill_time=timedelta(seconds=fill_seconds),
         final_factories=request.final_factories,
     )
+
+
+def _allocate_launchpad_cargo(
+    inputs: tuple[tuple[PiCommodity, int], ...],
+    launchpad_count: int,
+    capacity_m3: Decimal,
+) -> tuple[PiLaunchpadCargo, ...]:
+    remaining_capacity = [capacity_m3 for _index in range(launchpad_count)]
+    result: list[PiLaunchpadCargo] = []
+    for commodity, quantity in sorted(
+        inputs,
+        key=lambda item: (-item[0].volume_m3, item[0].name.casefold()),
+    ):
+        remaining_quantity = quantity
+        for index in range(launchpad_count):
+            if remaining_quantity <= 0:
+                break
+            fitting = int(remaining_capacity[index] // commodity.volume_m3)
+            allocated = min(remaining_quantity, fitting)
+            if allocated <= 0:
+                continue
+            volume = Decimal(allocated) * commodity.volume_m3
+            result.append(PiLaunchpadCargo(index + 1, commodity, allocated, volume))
+            remaining_capacity[index] -= volume
+            remaining_quantity -= allocated
+        if remaining_quantity:
+            raise ValueError("PI input goods cannot be distributed across the launchpads")
+    return tuple(result)
 
 
 def _launchpad_inputs(

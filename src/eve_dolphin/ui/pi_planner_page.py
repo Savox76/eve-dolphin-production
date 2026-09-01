@@ -91,7 +91,12 @@ class PiPlannerPage(QWidget):
         self.result_label = QLabel(self._translator.text("pi_no_plan"))
         self.cost_label = QLabel()
         self.resource_label = QLabel()
+        self.input_cargo_title = QLabel(self._translator.text("pi_input_cargo_title"))
+        self.input_cargo_table = QTableWidget(0, 6)
+        self.production_path_title = QLabel(self._translator.text("pi_production_path_title"))
         self.plan_table = QTableWidget(0, 7)
+        self.output_launchpad_title = QLabel(self._translator.text("pi_output_launchpad_title"))
+        self.output_launchpad_table = QTableWidget(0, 6)
         self.layout_table = QTableWidget(0, 4)
         self.layout_diagram = PiLayoutDiagram()
         self.tabs = QTabWidget()
@@ -175,6 +180,51 @@ class PiPlannerPage(QWidget):
         self.resource_label.setObjectName("muted")
         self.profile_status.setWordWrap(True)
         self.profile_status.setObjectName("muted")
+
+        self.input_cargo_title.setObjectName("cardTitle")
+        self.input_cargo_table.setObjectName("piInputCargoTable")
+        self.input_cargo_table.setHorizontalHeaderLabels(
+            (
+                self._translator.text("pi_input_launchpad_column"),
+                self._translator.text("pi_input_product_column"),
+                self._translator.text("pi_plan_tier"),
+                self._translator.text("pi_input_quantity_column"),
+                self._translator.text("pi_input_volume_column"),
+                self._translator.text("pi_input_fill_column"),
+            )
+        )
+        self.input_cargo_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.input_cargo_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.input_cargo_table.verticalHeader().setVisible(False)
+        self.input_cargo_table.setMinimumWidth(900)
+        cargo_header = self.input_cargo_table.horizontalHeader()
+        cargo_header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        cargo_header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.input_cargo_title.hide()
+        self.input_cargo_table.hide()
+
+        self.production_path_title.setObjectName("cardTitle")
+
+        self.output_launchpad_title.setObjectName("cardTitle")
+        self.output_launchpad_table.setObjectName("piOutputLaunchpadTable")
+        self.output_launchpad_table.setHorizontalHeaderLabels(
+            (
+                self._translator.text("pi_output_launchpad_column"),
+                self._translator.text("pi_plan_product"),
+                self._translator.text("pi_input_quantity_column"),
+                self._translator.text("pi_input_volume_column"),
+                self._translator.text("pi_output_free_column"),
+                self._translator.text("pi_output_duration_column"),
+            )
+        )
+        self.output_launchpad_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.output_launchpad_table.verticalHeader().setVisible(False)
+        self.output_launchpad_table.setMinimumSize(900, 120)
+        output_header = self.output_launchpad_table.horizontalHeader()
+        output_header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        output_header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.output_launchpad_title.hide()
+        self.output_launchpad_table.hide()
 
         self.plan_table.setObjectName("piPlanTable")
         self.plan_table.setHorizontalHeaderLabels(
@@ -296,7 +346,12 @@ class PiPlannerPage(QWidget):
         results_layout.setSpacing(10)
         results_layout.addWidget(self.result_label)
         results_layout.addWidget(self.resource_label)
+        results_layout.addWidget(self.input_cargo_title)
+        results_layout.addWidget(self.input_cargo_table)
+        results_layout.addWidget(self.production_path_title)
         results_layout.addWidget(self.plan_table, 1)
+        results_layout.addWidget(self.output_launchpad_title)
+        results_layout.addWidget(self.output_launchpad_table)
         layout_title = QLabel(self._translator.text("pi_optimal_layout"))
         layout_title.setObjectName("cardTitle")
         results_layout.addWidget(layout_title)
@@ -422,9 +477,62 @@ class PiPlannerPage(QWidget):
                 factories=fill.final_factories,
                 duration=_format_duration(fill.fill_time),
             )
+            totals: dict[int, Decimal] = {}
+            for cargo in fill.input_cargo:
+                totals[cargo.launchpad_index] = (
+                    totals.get(cargo.launchpad_index, Decimal(0)) + cargo.volume_m3
+                )
+            self.input_cargo_table.setRowCount(len(fill.input_cargo))
+            for row, cargo in enumerate(fill.input_cargo):
+                cargo_values = (
+                    self._translator.text("pi_input_launchpad_value").format(
+                        index=cargo.launchpad_index
+                    ),
+                    cargo.commodity.name,
+                    self._tier_text(cargo.commodity.tier),
+                    f"{cargo.quantity:,}",
+                    f"{_format_decimal(cargo.volume_m3)} m³",
+                    self._translator.text("pi_input_fill_value").format(
+                        used=_format_decimal(totals[cargo.launchpad_index]),
+                        capacity=_format_decimal(fill.capacity_m3),
+                    ),
+                )
+                for column, value in enumerate(cargo_values):
+                    self.input_cargo_table.setItem(row, column, QTableWidgetItem(value))
+            self.input_cargo_table.resizeRowsToContents()
+            self.input_cargo_table.setMinimumHeight(
+                min(340, 82 + max(1, len(fill.input_cargo)) * 34)
+            )
+            self.input_cargo_title.show()
+            self.input_cargo_table.show()
+            output_values = (
+                self._translator.text("pi_output_launchpad_value"),
+                result.target.name,
+                f"{fill.product_quantity:,}",
+                f"{_format_decimal(fill.product_volume_m3)} / "
+                f"{_format_decimal(fill.capacity_m3)} m³",
+                f"{_format_decimal(fill.unused_volume_m3)} m³",
+                _format_duration(fill.fill_time),
+            )
+            self.output_launchpad_table.setRowCount(1)
+            for column, value in enumerate(output_values):
+                self.output_launchpad_table.setItem(0, column, QTableWidgetItem(value))
+            self.output_launchpad_title.show()
+            self.output_launchpad_table.show()
+        else:
+            self.input_cargo_table.setRowCount(0)
+            self.input_cargo_title.hide()
+            self.input_cargo_table.hide()
+            self.output_launchpad_table.setRowCount(0)
+            self.output_launchpad_title.hide()
+            self.output_launchpad_table.hide()
         self.result_label.setText(status)
         self.plan_table.setRowCount(len(result.lines))
-        for row, line in enumerate(result.lines):
+        display_lines = sorted(
+            result.lines,
+            key=lambda line: (int(line.commodity.tier), line.commodity.name.casefold()),
+        )
+        for row, line in enumerate(display_lines):
             values = (
                 f"{self._tier_text(line.commodity.tier)} · {line.commodity.name}",
                 self._translator.text("pi_plan_demand_compact").format(

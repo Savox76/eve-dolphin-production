@@ -2,6 +2,17 @@
 
 ## Unveröffentlicht
 
+## v0.4.5 – Vollständige PI-Startbeladung
+
+- alle Kombinationen aus P1- bis P4-Ziel, gültiger Zukaufstufe und einem bis drei
+  Eingangs-Launchpads automatisiert gegen Ein- und Ausgangsvolumen geprüft
+- Startgüter werden über beliebig viele Eingangs-Launchpads verteilt; ein Launchpad kann
+  mehrere unterschiedliche Güter aufnehmen
+- neue übersichtliche Startbeladungstabelle je Launchpad mit Produkt, Stufe, Menge,
+  Einzelvolumen und gesamter Launchpad-Belegung
+- maximale Endmenge bleibt auf vollständige Chargen begrenzt und wird sowohl gegen alle
+  Eingangskapazitäten als auch gegen das Ausgangs-Launchpad geprüft
+
 ## v0.4.4 – Scrollbarer PI-Zielplaner
 
 - Zielplanung und Logistikprofile liegen in einer horizontal und vertikal scrollbaren
