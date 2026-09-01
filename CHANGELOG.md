@@ -2,6 +2,17 @@
 
 ## Unveröffentlicht
 
+## v0.4.9 – Flüssiger Start und Ein-Instanz-Schutz
+
+- aktualisierte Windows-Anwendung wird nach erfolgreichem Austausch über den normalen
+  Windows-Anwendungsstart zuverlässig wieder geöffnet
+- ein fehlgeschlagener Neustart wird getrennt vom erfolgreichen Dateiaustausch protokolliert
+  und beim nächsten manuellen Start verständlich angezeigt
+- Hintergrunddienste beginnen erst nach dem ersten sichtbaren Fensteraufbau; die initiale
+  EVE-Datensynchronisation startet nach kurzer Verzögerung mit niedriger Thread-Priorität
+- eine profilspezifische Betriebssystem-Sperre verhindert den parallelen Start einer zweiten
+  Instanz und zeigt stattdessen einen deutschen oder englischen Hinweis
+
 ## v0.4.8 – Ausgeglichene Startressourcen
 
 - jedes Eingangsgut wird im gleichen Produktionsverhältnis auf alle gewählten

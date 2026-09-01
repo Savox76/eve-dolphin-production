@@ -4,6 +4,7 @@ import hashlib
 import io
 import json
 import subprocess
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -183,6 +184,46 @@ def test_update_applier_allows_legacy_client_time_to_finish(
     apply_staged_update(source, target, wait_pid=1234, restart=False)
 
     assert observed_timeouts == [10 * 60.0]
+
+
+def test_windows_restart_uses_shell_application_launch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    executable = tmp_path / "EVE-Dolphin.exe"
+    launched: list[Path] = []
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(applier_module, "_shell_execute_windows", launched.append)
+
+    applier_module._restart(executable)
+
+    assert launched == [executable]
+
+
+def test_successful_update_reports_restart_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source, target = _package_directories(tmp_path)
+
+    def fail_restart(_path: Path) -> None:
+        raise OSError("launch failed")
+
+    monkeypatch.setattr("eve_dolphin.updates.applier.os.chdir", lambda _path: None)
+    monkeypatch.setattr(applier_module, "_wait_for_process", lambda _pid, _timeout: True)
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=0),
+    )
+    monkeypatch.setattr(applier_module, "_restart", fail_restart)
+
+    with pytest.raises(UpdateApplyError, match="could not be restarted"):
+        apply_staged_update(source, target, wait_pid=1234, restart=True)
+
+    assert (target / "EVE-Dolphin.exe").read_text("utf-8") == "new"
+    state = read_update_state(source.parent)
+    assert state is not None
+    assert state.status is UpdateStateStatus.FAILED
+    assert state.error_code == "launch"
 
 
 def test_update_applier_rolls_back_failed_package(

@@ -93,7 +93,11 @@ def apply_staged_update(
         shutil.rmtree(backup)
     _record_state(update_dir, UpdateStateStatus.SUCCEEDED)
     if restart:
-        _restart(target / EXECUTABLE_NAME)
+        try:
+            _restart(target / EXECUTABLE_NAME)
+        except OSError as error:
+            _record_state(update_dir, UpdateStateStatus.FAILED, error_code="launch")
+            raise UpdateApplyError("updated application could not be restarted") from error
     return 0
 
 
@@ -146,13 +150,7 @@ def _wait_for_process(pid: int, timeout_seconds: float) -> bool:
 
 def _restart(executable: Path) -> None:
     if sys.platform == "win32":
-        flags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
-        subprocess.Popen(
-            [str(executable)],
-            close_fds=True,
-            creationflags=flags,
-            cwd=str(executable.parent),
-        )
+        _shell_execute_windows(executable)
     else:
         subprocess.Popen(
             [str(executable)],
@@ -160,6 +158,21 @@ def _restart(executable: Path) -> None:
             start_new_session=True,
             cwd=str(executable.parent),
         )
+
+
+def _shell_execute_windows(executable: Path) -> None:
+    """Start the installed GUI through Explorer's normal application launch path."""
+
+    result = ctypes.windll.shell32.ShellExecuteW(  # type: ignore[attr-defined]
+        None,
+        "open",
+        str(executable),
+        None,
+        str(executable.parent),
+        1,
+    )
+    if int(result) <= 32:
+        raise OSError(f"Windows could not restart the updated application ({result})")
 
 
 def _record_state(

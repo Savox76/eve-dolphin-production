@@ -53,6 +53,7 @@ ConfirmUnlink = Callable[[EveCharacter], bool]
 UnlinkCharacter = Callable[[int], bool]
 SyncCharacters = Callable[[], CharacterSyncBatch]
 AUTOMATIC_SYNC_INTERVAL_MS = 5 * 60 * 1000
+INITIAL_SYNC_DELAY_MS = 1500
 
 
 class CharacterSsoWorker(QThread):
@@ -305,7 +306,7 @@ class CharacterPage(QWidget):
         worker.character_linked.connect(self._character_linked)
         worker.failed.connect(self._authorization_failed)
         worker.finished.connect(self._authorization_finished)
-        worker.start()
+        worker.start(QThread.Priority.LowPriority)
 
     @Slot()
     def _authorize_industry(self) -> None:
@@ -516,9 +517,15 @@ class CharacterPage(QWidget):
         self._automatic_sync_active = True
         self._sync_timer.start()
         if self._repository.list_all():
-            QTimer.singleShot(0, self._start_sync)
+            self.status_label.setText(self._translator.text("automatic_sync_starting"))
+            QTimer.singleShot(INITIAL_SYNC_DELAY_MS, self._start_initial_sync)
         else:
             self.status_label.setText(self._translator.text("automatic_sync_waiting"))
+
+    @Slot()
+    def _start_initial_sync(self) -> None:
+        if self._automatic_sync_active:
+            self._start_sync()
 
     def stop_automatic_sync(self) -> None:
         self._automatic_sync_active = False
