@@ -72,6 +72,7 @@ class PiPlannerPage(QWidget):
         self.quantity_spin = QSpinBox()
         self.days_spin = QSpinBox()
         self.launchpad_capacity_spin = _decimal_spin(1, 1_000_000, 2)
+        self.input_launchpads_spin = QSpinBox()
         self.final_factories_spin = QSpinBox()
         self.command_center_combo = QComboBox()
         self.infrastructure_reserve_spin = _decimal_spin(0, 50, 1)
@@ -89,12 +90,13 @@ class PiPlannerPage(QWidget):
         self.result_label = QLabel(self._translator.text("pi_no_plan"))
         self.cost_label = QLabel()
         self.resource_label = QLabel()
-        self.plan_table = QTableWidget(0, 13)
-        self.layout_table = QTableWidget(0, 6)
+        self.plan_table = QTableWidget(0, 7)
+        self.layout_table = QTableWidget(0, 4)
         self.layout_diagram = PiLayoutDiagram()
         self.quantity_label = QLabel(self._translator.text("pi_quantity"))
         self.days_label = QLabel(self._translator.text("pi_days"))
         self.launchpad_capacity_label = QLabel(self._translator.text("pi_launchpad_capacity"))
+        self.input_launchpads_label = QLabel(self._translator.text("pi_input_launchpads"))
         self.final_factories_label = QLabel(self._translator.text("pi_final_factories"))
         self.extractor_heads_label = QLabel(self._translator.text("pi_extractor_heads"))
 
@@ -132,6 +134,8 @@ class PiPlannerPage(QWidget):
         self.days_spin.setValue(7)
         self.launchpad_capacity_spin.setValue(10_000)
         self.launchpad_capacity_spin.setSuffix(" m³")
+        self.input_launchpads_spin.setRange(1, 20)
+        self.input_launchpads_spin.setValue(1)
         self.final_factories_spin.setRange(1, 100)
         self.final_factories_spin.setValue(1)
         for level in range(6):
@@ -174,18 +178,12 @@ class PiPlannerPage(QWidget):
         self.plan_table.setHorizontalHeaderLabels(
             (
                 self._translator.text("pi_plan_product"),
-                self._translator.text("pi_plan_tier"),
                 self._translator.text("pi_plan_required"),
-                self._translator.text("pi_plan_per_day"),
                 self._translator.text("pi_plan_available"),
                 self._translator.text("pi_plan_output"),
-                self._translator.text("pi_plan_target_cycles"),
-                self._translator.text("pi_plan_cycles"),
                 self._translator.text("pi_plan_capacity"),
-                self._translator.text("pi_plan_additional_factories"),
                 self._translator.text("pi_plan_import"),
                 self._translator.text("pi_plan_missing"),
-                self._translator.text("pi_plan_excess"),
             )
         )
         self.plan_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -199,10 +197,8 @@ class PiPlannerPage(QWidget):
         self.layout_table.setHorizontalHeaderLabels(
             (
                 self._translator.text("pi_layout_stage"),
-                self._translator.text("pi_layout_factories"),
-                self._translator.text("pi_layout_cycles"),
-                self._translator.text("pi_layout_input_day"),
-                self._translator.text("pi_layout_output_day"),
+                self._translator.text("pi_layout_setup_compact"),
+                self._translator.text("pi_layout_flow_compact"),
                 self._translator.text("pi_layout_buffer"),
             )
         )
@@ -252,6 +248,7 @@ class PiPlannerPage(QWidget):
         form.addRow(self.quantity_label, self.quantity_spin)
         form.addRow(self.days_label, self.days_spin)
         form.addRow(self.launchpad_capacity_label, self.launchpad_capacity_spin)
+        form.addRow(self.input_launchpads_label, self.input_launchpads_spin)
         form.addRow(self.final_factories_label, self.final_factories_spin)
         form.addRow(self._translator.text("pi_profile"), self.profile_combo)
         form.addRow(self._translator.text("pi_operation_mode"), self.operation_combo)
@@ -386,6 +383,15 @@ class PiPlannerPage(QWidget):
             status = self._translator.text("pi_plan_blocked").format(reasons=reasons)
         if result.launchpad_fill is not None:
             fill = result.launchpad_fill
+            inputs = ", ".join(
+                f"{commodity.name} x {quantity:,}" for commodity, quantity in fill.input_quantities
+            )
+            status = f"{status}\n" + self._translator.text("pi_launchpad_input_result").format(
+                launchpads=fill.input_launchpads,
+                inputs=inputs,
+                used=_format_decimal(fill.input_volume_m3),
+                capacity=_format_decimal(fill.input_capacity_m3),
+            )
             status = f"{status}\n" + self._translator.text("pi_launchpad_result").format(
                 quantity=f"{fill.product_quantity:,}",
                 product=result.target.name,
@@ -399,19 +405,23 @@ class PiPlannerPage(QWidget):
         self.plan_table.setRowCount(len(result.lines))
         for row, line in enumerate(result.lines):
             values = (
-                line.commodity.name,
-                self._tier_text(line.commodity.tier),
-                f"{line.required:,}",
-                _format_decimal(line.required_per_day),
+                f"{self._tier_text(line.commodity.tier)} · {line.commodity.name}",
+                self._translator.text("pi_plan_demand_compact").format(
+                    quantity=f"{line.required:,}",
+                    per_day=_format_decimal(line.required_per_day),
+                ),
                 f"{line.available_at_deadline:,}",
-                f"{line.planned_output:,}",
-                f"{line.gross_cycles:,}",
-                f"{line.cycles:,}",
-                f"{line.available_factory_cycles:,}",
-                f"{line.additional_factories:,}",
+                self._translator.text("pi_plan_output_compact").format(
+                    quantity=f"{line.planned_output:,}", cycles=f"{line.cycles:,}"
+                ),
+                self._translator.text("pi_plan_capacity_compact").format(
+                    cycles=f"{line.available_factory_cycles:,}",
+                    factories=f"{line.additional_factories:,}",
+                ),
                 f"{(line.import_quantity or line.source_quantity):,}",
-                f"{line.unresolved_quantity:,}",
-                f"{line.excess_quantity:,}",
+                self._translator.text("pi_plan_missing_compact").format(
+                    missing=f"{line.unresolved_quantity:,}", excess=f"{line.excess_quantity:,}"
+                ),
             )
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
@@ -420,6 +430,7 @@ class PiPlannerPage(QWidget):
                         Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
                     )
                 self.plan_table.setItem(row, column, item)
+        self.plan_table.resizeRowsToContents()
         self.cost_label.setText(
             self._translator.text("pi_plan_costs").format(
                 import_volume=_format_decimal(result.import_volume_m3),
@@ -434,39 +445,49 @@ class PiPlannerPage(QWidget):
         )
         budget = result.infrastructure_budget
         if budget is not None:
-            self.resource_label.setText(
-                self._translator.text("pi_resource_budget_result").format(
-                    level=budget.command_center_level,
-                    used_cpu=f"{budget.used_cpu:,}",
-                    usable_cpu=f"{budget.total_cpu - budget.reserved_cpu:,}",
-                    total_cpu=f"{budget.total_cpu:,}",
-                    remaining_cpu=f"{budget.remaining_cpu:,}",
-                    used_power=f"{budget.used_power:,}",
-                    usable_power=f"{budget.total_power - budget.reserved_power:,}",
-                    total_power=f"{budget.total_power:,}",
-                    remaining_power=f"{budget.remaining_power:,}",
-                    reserve=_format_decimal(result.request.infrastructure_reserve_percent),
-                    launchpads=budget.launchpads,
-                    storage=budget.storage_facilities,
-                    ecus=budget.extractor_control_units,
-                    heads=budget.extractor_heads,
-                    basic=budget.basic_factories,
-                    advanced=budget.advanced_factories,
-                    high_tech=budget.high_tech_factories,
-                    copies=budget.maximum_layout_copies,
-                    final_factories=budget.maximum_final_factories,
-                )
+            resource_text = self._translator.text("pi_resource_budget_result").format(
+                level=budget.command_center_level,
+                used_cpu=f"{budget.used_cpu:,}",
+                usable_cpu=f"{budget.total_cpu - budget.reserved_cpu:,}",
+                total_cpu=f"{budget.total_cpu:,}",
+                remaining_cpu=f"{budget.remaining_cpu:,}",
+                used_power=f"{budget.used_power:,}",
+                usable_power=f"{budget.total_power - budget.reserved_power:,}",
+                total_power=f"{budget.total_power:,}",
+                remaining_power=f"{budget.remaining_power:,}",
+                reserve=_format_decimal(result.request.infrastructure_reserve_percent),
+                launchpads=budget.launchpads,
+                storage=budget.storage_facilities,
+                ecus=budget.extractor_control_units,
+                heads=budget.extractor_heads,
+                basic=budget.basic_factories,
+                advanced=budget.advanced_factories,
+                high_tech=budget.high_tech_factories,
+                copies=budget.maximum_layout_copies,
+                final_factories=budget.maximum_final_factories,
             )
+            if budget.required_planet_types:
+                planet_types = " / ".join(
+                    self._translator.text(f"planet_type_{planet_type}")
+                    for planet_type in budget.required_planet_types
+                )
+                resource_text += "\n" + self._translator.text("pi_required_planet_types").format(
+                    types=planet_types
+                )
+            self.resource_label.setText(resource_text)
         else:
             self.resource_label.clear()
         self.layout_table.setRowCount(len(result.layout))
         for row, stage in enumerate(result.layout):
             layout_values = (
                 f"{self._tier_text(stage.commodity.tier)} · {stage.commodity.name}",
-                f"{stage.factories:,}",
-                f"{stage.cycles:,}",
-                f"{stage.input_units_per_day:,}",
-                f"{stage.output_units_per_day:,}",
+                self._translator.text("pi_layout_setup_value").format(
+                    factories=f"{stage.factories:,}", cycles=f"{stage.cycles:,}"
+                ),
+                self._translator.text("pi_layout_flow_value").format(
+                    input=f"{stage.input_units_per_day:,}",
+                    output=f"{stage.output_units_per_day:,}",
+                ),
                 (
                     self._translator.text("pi_layout_storage_required")
                     if stage.buffer_storage
@@ -475,6 +496,7 @@ class PiPlannerPage(QWidget):
             )
             for column, value in enumerate(layout_values):
                 self.layout_table.setItem(row, column, QTableWidgetItem(value))
+        self.layout_table.resizeRowsToContents()
         self.layout_diagram.show_plan(
             result,
             source_label=self._translator.text(
@@ -514,6 +536,7 @@ class PiPlannerPage(QWidget):
             storage_strategy=PiStorageStrategy(strategy),
             goal_mode=PiGoalMode(goal),
             launchpad_capacity_m3=_spin_decimal(self.launchpad_capacity_spin),
+            input_launchpads=self.input_launchpads_spin.value(),
             final_factories=self.final_factories_spin.value(),
             command_center_level=int(self.command_center_combo.currentData()),
             infrastructure_reserve_percent=_spin_decimal(self.infrastructure_reserve_spin),
@@ -528,6 +551,8 @@ class PiPlannerPage(QWidget):
         self.days_spin.setVisible(not is_launchpad)
         self.launchpad_capacity_label.setVisible(is_launchpad)
         self.launchpad_capacity_spin.setVisible(is_launchpad)
+        self.input_launchpads_label.setVisible(is_launchpad)
+        self.input_launchpads_spin.setVisible(is_launchpad)
         self.final_factories_label.setVisible(is_launchpad)
         self.final_factories_spin.setVisible(is_launchpad)
 
@@ -563,6 +588,7 @@ class PiPlannerPage(QWidget):
         _restore_combo(self.storage_strategy_combo, request.storage_strategy.value)
         _restore_combo(self.goal_combo, request.goal_mode.value)
         self.launchpad_capacity_spin.setValue(float(request.launchpad_capacity_m3))
+        self.input_launchpads_spin.setValue(request.input_launchpads)
         self.final_factories_spin.setValue(request.final_factories)
         _restore_combo(self.command_center_combo, request.command_center_level)
         self.infrastructure_reserve_spin.setValue(float(request.infrastructure_reserve_percent))

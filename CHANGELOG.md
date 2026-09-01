@@ -2,6 +2,21 @@
 
 ## Unveröffentlicht
 
+## v0.4.3 – P4-Planetentypen und automatischer Updater-Neustart
+
+- kompakte Planungs- und Aufbautabellen mit sieben beziehungsweise vier Spalten für die
+  vollständige Darstellung bereits im normalen Anwendungsfenster
+- einstellbare Zahl der Eingangs-Launchpads auf Fabrikplaneten
+- automatische Startbeladung anhand der gewählten Zukaufstufe sowie daraus berechnete
+  vollständige Produktionszyklen, Endmenge, Ausgangsvolumen und Laufzeit
+- Ressourcenbudget berücksichtigt Eingangs- und Ausgangs-Launchpads getrennt
+- Datenbankschema 11 für gespeicherte Eingangs-Launchpads
+- P4-Produktionspläne weisen darauf hin, dass High-Tech-Fabriken nur auf kargen
+  (Barren) oder gemäßigten (Temperate) Planeten errichtet werden können
+- der Windows-Updater wartet auf das saubere Ende des Staging-Threads, beendet die laufende
+  Anwendung selbstständig und startet die aktualisierte Version anschließend neu
+- automatisierte Tests für die P4-Planeteneinschränkung und den Update-Shutdown
+
 ## v0.4.2 – PI-Ressourcenbudget und Zykluskorrektur
 
 - maximale PI-Planbarkeit nach Command-Center-Upgrades-Stufe sowie CPU und Energie
