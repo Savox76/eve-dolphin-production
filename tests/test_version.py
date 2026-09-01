@@ -12,4 +12,4 @@ def test_package_uses_single_dynamic_version_source() -> None:
     assert project["project"]["dynamic"] == ["version"]
     assert "version" not in project["project"]
     assert project["tool"]["hatch"]["version"]["path"] == "src/eve_dolphin/version.py"
-    assert __version__ == "0.4.10"
+    assert __version__ == "0.4.11"

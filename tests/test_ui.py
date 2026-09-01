@@ -27,6 +27,7 @@ from eve_dolphin.pi import (
     PiLaunchpadFill,
     PiLayoutStage,
     PiOperationMode,
+    PiPlanLine,
     PiPlanRequest,
     PiPlanResult,
     PiProfile,
@@ -114,6 +115,126 @@ def test_pi_planner_switches_to_launchpad_inputs(
     assert isinstance(page.tabs.widget(1), QScrollArea)
     assert page.plan_table.minimumWidth() == 1_020
     assert page.layout_table.minimumWidth() == 900
+    page.close()
+
+
+def test_pi_planner_shows_reverse_chain_before_launchpad_income(
+    qt_application: QApplication, tmp_path: Path
+) -> None:
+    database = Database(tmp_path / "client.sqlite3", tmp_path / "backups")
+    database.initialize()
+    page = PiPlannerPage(database, Translator("de"))
+    p1 = PiCommodity(11, "P1 Start", Decimal("0.38"), PiTier.BASIC)
+    p2 = PiCommodity(21, "P2 Zwischenprodukt", Decimal("1.5"), PiTier.REFINED)
+    p3 = PiCommodity(31, "P3 Zwischenprodukt", Decimal("6"), PiTier.SPECIALIZED)
+    p4 = PiCommodity(41, "P4 Ziel", Decimal("100"), PiTier.ADVANCED)
+
+    def line(
+        commodity: PiCommodity,
+        required: int,
+        cycles: int,
+        planned_output: int,
+        *,
+        income: int = 0,
+    ) -> PiPlanLine:
+        return PiPlanLine(
+            commodity=commodity,
+            required=required,
+            required_per_day=Decimal(required),
+            available_at_deadline=0,
+            used_from_available=0,
+            planned_output=planned_output,
+            gross_cycles=cycles,
+            cycles=cycles,
+            available_factory_cycles=cycles,
+            factory_shortfall_cycles=0,
+            additional_factories=0,
+            import_quantity=income,
+            unresolved_quantity=0,
+            excess_quantity=0,
+        )
+
+    request = PiPlanRequest(
+        41,
+        1,
+        1,
+        1,
+        source_tier=PiTier.BASIC,
+        goal_mode=PiGoalMode.LAUNCHPAD,
+    )
+    profile = PiProfile(
+        1,
+        "Test",
+        SpaceKind.HIGHSEC,
+        True,
+        Decimal(0),
+        Decimal(0),
+        Decimal(0),
+        Decimal("10000"),
+        Decimal(0),
+        PiTier.BASIC,
+    )
+    fill = PiLaunchpadFill(
+        Decimal("10000"),
+        1,
+        Decimal("100"),
+        Decimal("9900"),
+        1,
+        Decimal("10000"),
+        Decimal("15.2"),
+        ((p1, 40),),
+        (PiLaunchpadCargo(1, p3, p1, 40, Decimal("15.2")),),
+        timedelta(hours=1),
+        1,
+    )
+    result = PiPlanResult(
+        request=request,
+        profile=profile,
+        target=p4,
+        lines=(
+            line(p1, 40, 0, 0, income=40),
+            line(p2, 20, 4, 20),
+            line(p3, 6, 2, 6),
+            line(p4, 1, 1, 1),
+        ),
+        import_volume_m3=Decimal("15.2"),
+        export_volume_m3=Decimal("100"),
+        cargo_trips=1,
+        import_tax_isk=Decimal(0),
+        export_tax_isk=Decimal(0),
+        transport_cost_isk=Decimal(0),
+        risk_markup_isk=Decimal(0),
+        total_logistics_isk=Decimal(0),
+        blocked_reasons=(),
+        layout=(
+            PiLayoutStage(p2, 1, 4, 40, 20, False, (11,)),
+            PiLayoutStage(p3, 1, 2, 20, 6, False, (21,)),
+            PiLayoutStage(p4, 1, 1, 6, 1, False, (31,)),
+        ),
+        launchpad_fill=fill,
+    )
+
+    page._show_result(result)
+    qt_application.processEvents()
+
+    def cell(row: int, column: int) -> str:
+        item = page.plan_table.item(row, column)
+        assert item is not None
+        return item.text()
+
+    first_header = page.plan_table.horizontalHeaderItem(0)
+    assert first_header is not None
+    assert page.production_path_title.text() == "Reverse-Bedarf vom Zielprodukt bis zum Income"
+    assert first_header.text() == "Schritt / Produkt"
+    assert cell(0, 0).startswith("1. P4")
+    assert cell(0, 0).endswith("· P4 Ziel")
+    assert cell(3, 0).startswith("4. P1")
+    assert cell(3, 0).endswith("· P1 Start")
+    assert all(cell(row, 4) == "0" for row in range(4))
+    assert cell(3, 5) == "40"
+    result_text = page.result_label.text()
+    tier_positions = [result_text.index(tier) for tier in ("P4", "P3", "P2", "P1")]
+    assert tier_positions == sorted(tier_positions)
     page.close()
 
 

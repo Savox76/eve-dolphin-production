@@ -2,6 +2,21 @@
 
 ## Unveröffentlicht
 
+## v0.4.11 – Exakte PI-Reverse-Planung
+
+- Launchpad-Kolonien werden konsequent vom Zielprodukt rückwärts gerechnet: P4 benötigt
+  P3, P3 benötigt P2, P2 benötigt P1 und erst danach entstehen die Income-Mengen
+- vorhandene Bestände und Fabrikkapazitäten anderer Kolonien verändern den eigenständigen
+  Launchpad-Aufbau nicht mehr
+- die automatisch bestimmte Zielmenge wird bei Bedarf auf die größte vollständig passende
+  Rezeptkette reduziert, sodass keine Zwischenstufe nur wegen Chargenrundung überproduziert
+- die Ergebnistabelle beginnt beim Zielprodukt, zeigt je Stufe exakten Bedarf, Zyklen,
+  Produktion, Überschuss und Income und steht vor der Launchpad-Aufteilung
+- Fabrikkarten im grafischen Materialfluss zeigen den exakten Bedarf und die daraus
+  produzierte Menge zusätzlich zur Fabrik- und Zykluszahl
+- neue Tests prüfen eine absichtlich nicht teilbare Rezeptkette, die Trennung von
+  Live-Beständen sowie überschussfreie Kombinationen von P1 bis P4
+
 ## v0.4.10 – Verständliche PI-Produktionszweige
 
 - Eingangsressourcen werden nicht mehr künstlich auf jedes Launchpad verteilt, sondern

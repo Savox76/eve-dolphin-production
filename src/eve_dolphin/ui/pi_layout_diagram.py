@@ -54,6 +54,8 @@ class PiLayoutDiagram(QGraphicsView):
         heads_label: str = "heads",
         cycles_label: str = "cycles",
         branch_label: str = "Production branches",
+        needed_label: str = "needed",
+        produced_label: str = "produced",
     ) -> None:
         scene = self.scene()
         scene.clear()
@@ -70,6 +72,8 @@ class PiLayoutDiagram(QGraphicsView):
             heads_label=heads_label,
             cycles_label=cycles_label,
             branch_label=branch_label,
+            needed_label=needed_label,
+            produced_label=produced_label,
         )
 
         box_width = 240.0
@@ -165,6 +169,8 @@ def _graph(
     heads_label: str,
     cycles_label: str,
     branch_label: str,
+    needed_label: str,
+    produced_label: str,
 ) -> tuple[list[tuple[str, list[_DiagramNode]]], list[tuple[str, str]]]:
     source_nodes: list[_DiagramNode] = []
     source_outputs: dict[str, set[int]] = {}
@@ -251,9 +257,20 @@ def _graph(
 
     stages_by_tier: dict[PiTier, list[_DiagramNode]] = defaultdict(list)
     stages = {stage.commodity.type_id: stage for stage in result.layout}
+    lines = {line.commodity.type_id: line for line in result.lines}
     for stage in result.layout:
-        detail = f"{stage.factories} x {factory_label}\n{stage.cycles:,} {cycles_label}" + (
-            f"\n{buffer_label}" if stage.buffer_storage else ""
+        plan_line = lines.get(stage.commodity.type_id)
+        quantities = (
+            f"{plan_line.required:,} {needed_label}\n"
+            f"{stage.cycles:,} {cycles_label} → "
+            f"{plan_line.planned_output:,} {produced_label}\n"
+            if plan_line is not None
+            else f"{stage.cycles:,} {cycles_label}\n"
+        )
+        detail = (
+            quantities
+            + f"{stage.factories} x {factory_label}"
+            + (f"\n{buffer_label}" if stage.buffer_storage else "")
         )
         stages_by_tier[stage.commodity.tier].append(
             _DiagramNode(
