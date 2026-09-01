@@ -106,7 +106,15 @@ class PiPlannerService:
         request = _resolve_launchpad_request(request, catalog, target, source_tier)
         planning_window = _planning_window(request, catalog, target)
 
-        available, factory_capacity = self._planning_state(catalog, now, planning_window)
+        standalone_layout = request.goal_mode is PiGoalMode.LAUNCHPAD
+        if standalone_layout:
+            # Launchpad planning describes a new, self-contained colony. Existing
+            # inventories or factories on other colonies must not reduce the reverse
+            # recipe requirements shown to the user.
+            available: Counter[int] = Counter()
+            factory_capacity: Counter[int] = Counter()
+        else:
+            available, factory_capacity = self._planning_state(catalog, now, planning_window)
         demand: Counter[int] = Counter({target.type_id: request.target_quantity})
         line_data: dict[
             int, tuple[int, int, int, int, int, int, int, int, int, int, int, int, int]
@@ -152,8 +160,8 @@ class PiPlannerService:
             elif net > 0 and recipe is not None:
                 cycles = _ceil_div(net, recipe.output.quantity)
                 planned_output = cycles * recipe.output.quantity
-                available_cycles = factory_capacity[type_id]
-                capacity_shortfall = max(0, cycles - available_cycles)
+                available_cycles = cycles if standalone_layout else factory_capacity[type_id]
+                capacity_shortfall = 0 if standalone_layout else max(0, cycles - available_cycles)
                 cycles_per_factory = (
                     int(planning_window.total_seconds()) // recipe.cycle_time_seconds
                 )
@@ -214,6 +222,11 @@ class PiPlannerService:
                 ),
             )
         )
+        if standalone_layout and any(line.excess_quantity for line in lines):
+            raise ValueError(
+                "The selected launchpad capacity cannot be planned without intermediate "
+                "overproduction"
+            )
         layout = _layout(request, catalog, lines, planning_window)
         return _cost_result(
             request,
@@ -338,6 +351,8 @@ def _resolve_launchpad_request(
 ) -> PiPlanRequest:
     if request.goal_mode is PiGoalMode.MANUAL:
         return request
+    if source_tier >= target.tier:
+        raise ValueError("The starting tier must be below the selected target product")
     capacity_units = int(request.launchpad_capacity_m3 // target.volume_m3)
     if capacity_units <= 0:
         raise ValueError("Selected product does not fit into the launchpad capacity")
@@ -363,8 +378,26 @@ def _resolve_launchpad_request(
             low = candidate
     input_cycles = low
     cycles = min(output_cycles, input_cycles)
+    while cycles > 0:
+        if _reverse_chain_is_exact(cycles, recipe, catalog, request, source_tier):
+            branches = _launchpad_branches(cycles, recipe, catalog, request, source_tier)
+            try:
+                _allocate_launchpad_cargo(
+                    branches,
+                    catalog,
+                    request.input_launchpads,
+                    request.launchpad_capacity_m3,
+                )
+            except ValueError:
+                pass
+            else:
+                break
+        cycles -= 1
     if cycles <= 0:
-        raise ValueError("A complete production batch does not fit into the launchpad capacity")
+        raise ValueError(
+            "A complete production chain without overproduction does not fit into the "
+            "launchpad capacity"
+        )
     quantity = cycles * recipe.output.quantity
     batches = _ceil_div(cycles, request.final_factories)
     seconds = max(1, batches * recipe.cycle_time_seconds)
@@ -614,6 +647,40 @@ def _launchpad_branches(
                     pending.add(item.commodity.type_id)
         branches.append((target_input.commodity, demand))
     return tuple(branches)
+
+
+def _reverse_chain_is_exact(
+    target_cycles: int,
+    target_recipe: PiRecipe,
+    catalog: PiCatalog,
+    request: PiPlanRequest,
+    source_tier: PiTier,
+) -> bool:
+    stop_tier = source_tier if request.operation_mode is PiOperationMode.IMPORT else PiTier.RAW
+    for target_input in target_recipe.inputs:
+        demand: Counter[int] = Counter(
+            {target_input.commodity.type_id: target_cycles * target_input.quantity}
+        )
+        pending = {type_id for type_id in demand if catalog.commodities[type_id].tier > stop_tier}
+        while pending:
+            type_id = max(
+                pending,
+                key=lambda identifier: (
+                    int(catalog.commodities[identifier].tier),
+                    catalog.commodities[identifier].name.casefold(),
+                ),
+            )
+            pending.remove(type_id)
+            quantity = demand.pop(type_id)
+            recipe = catalog.recipe_for_output(type_id)
+            if recipe is None or quantity % recipe.output.quantity:
+                return False
+            cycles = quantity // recipe.output.quantity
+            for item in recipe.inputs:
+                demand[item.commodity.type_id] += cycles * item.quantity
+                if item.commodity.tier > stop_tier:
+                    pending.add(item.commodity.type_id)
+    return True
 
 
 def _layout(

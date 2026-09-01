@@ -348,10 +348,10 @@ class PiPlannerPage(QWidget):
         results_layout.setSpacing(10)
         results_layout.addWidget(self.result_label)
         results_layout.addWidget(self.resource_label)
-        results_layout.addWidget(self.input_cargo_title)
-        results_layout.addWidget(self.input_cargo_table)
         results_layout.addWidget(self.production_path_title)
         results_layout.addWidget(self.plan_table, 1)
+        results_layout.addWidget(self.input_cargo_title)
+        results_layout.addWidget(self.input_cargo_table)
         results_layout.addWidget(self.output_launchpad_title)
         results_layout.addWidget(self.output_launchpad_table)
         layout_title = QLabel(self._translator.text("pi_optimal_layout"))
@@ -461,6 +461,18 @@ class PiPlannerPage(QWidget):
             status = self._translator.text("pi_plan_blocked").format(reasons=reasons)
         if result.launchpad_fill is not None:
             fill = result.launchpad_fill
+            reverse_tiers = tuple(
+                dict.fromkeys(
+                    self._tier_text(line.commodity.tier)
+                    for line in sorted(
+                        result.lines,
+                        key=lambda line: -int(line.commodity.tier),
+                    )
+                )
+            )
+            status = f"{status}\n" + self._translator.text("pi_reverse_summary").format(
+                path=" → ".join(reverse_tiers)
+            )
             status = f"{status}\n" + self._translator.text("pi_launchpad_input_result").format(
                 launchpads=fill.input_launchpads,
                 used=_format_decimal(fill.input_volume_m3),
@@ -527,37 +539,100 @@ class PiPlannerPage(QWidget):
             self.output_launchpad_table.hide()
         self.result_label.setText(status)
         self.plan_table.setRowCount(len(result.lines))
-        display_lines = sorted(
-            result.lines,
-            key=lambda line: (int(line.commodity.tier), line.commodity.name.casefold()),
-        )
-        for row, line in enumerate(display_lines):
-            values = (
-                f"{self._tier_text(line.commodity.tier)} · {line.commodity.name}",
-                self._translator.text("pi_plan_demand_compact").format(
-                    quantity=f"{line.required:,}",
-                    per_day=_format_decimal(line.required_per_day),
-                ),
-                f"{line.available_at_deadline:,}",
-                self._translator.text("pi_plan_output_compact").format(
-                    quantity=f"{line.planned_output:,}", cycles=f"{line.cycles:,}"
-                ),
-                self._translator.text("pi_plan_capacity_compact").format(
-                    cycles=f"{line.available_factory_cycles:,}",
-                    factories=f"{line.additional_factories:,}",
-                ),
-                f"{(line.import_quantity or line.source_quantity):,}",
-                self._translator.text("pi_plan_missing_compact").format(
-                    missing=f"{line.unresolved_quantity:,}", excess=f"{line.excess_quantity:,}"
-                ),
-            )
-            for column, value in enumerate(values):
-                item = QTableWidgetItem(value)
-                if column > 0:
-                    item.setTextAlignment(
-                        Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        if result.launchpad_fill is not None:
+            self.production_path_title.setText(self._translator.text("pi_reverse_path_title"))
+            self.plan_table.setHorizontalHeaderLabels(
+                tuple(
+                    self._translator.text(key)
+                    for key in (
+                        "pi_reverse_stage",
+                        "pi_reverse_needed",
+                        "pi_reverse_cycles",
+                        "pi_reverse_output",
+                        "pi_reverse_excess",
+                        "pi_reverse_income",
+                        "pi_reverse_status",
                     )
-                self.plan_table.setItem(row, column, item)
+                )
+            )
+            display_lines = sorted(
+                result.lines,
+                key=lambda line: (-int(line.commodity.tier), line.commodity.name.casefold()),
+            )
+            for row, line in enumerate(display_lines, start=1):
+                income = line.import_quantity or line.source_quantity
+                if income:
+                    line_status = self._translator.text("pi_reverse_income_ready")
+                elif line.excess_quantity:
+                    line_status = self._translator.text("pi_reverse_overproduction").format(
+                        quantity=f"{line.excess_quantity:,}"
+                    )
+                else:
+                    line_status = self._translator.text("pi_reverse_exact")
+                values = (
+                    f"{row}. {self._tier_text(line.commodity.tier)} · {line.commodity.name}",
+                    f"{line.required:,}",
+                    f"{line.cycles:,}" if line.cycles else "—",
+                    f"{line.planned_output:,}" if line.planned_output else "—",
+                    f"{line.excess_quantity:,}",
+                    f"{income:,}" if income else "—",
+                    line_status,
+                )
+                for column, value in enumerate(values):
+                    item = QTableWidgetItem(value)
+                    if column in {1, 2, 3, 4, 5}:
+                        item.setTextAlignment(
+                            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+                        )
+                    self.plan_table.setItem(row - 1, column, item)
+        else:
+            self.production_path_title.setText(self._translator.text("pi_production_path_title"))
+            self.plan_table.setHorizontalHeaderLabels(
+                tuple(
+                    self._translator.text(key)
+                    for key in (
+                        "pi_plan_product",
+                        "pi_plan_required",
+                        "pi_plan_available",
+                        "pi_plan_output",
+                        "pi_plan_capacity",
+                        "pi_plan_import",
+                        "pi_plan_missing",
+                    )
+                )
+            )
+            display_lines = sorted(
+                result.lines,
+                key=lambda line: (int(line.commodity.tier), line.commodity.name.casefold()),
+            )
+            for row, line in enumerate(display_lines):
+                values = (
+                    f"{self._tier_text(line.commodity.tier)} · {line.commodity.name}",
+                    self._translator.text("pi_plan_demand_compact").format(
+                        quantity=f"{line.required:,}",
+                        per_day=_format_decimal(line.required_per_day),
+                    ),
+                    f"{line.available_at_deadline:,}",
+                    self._translator.text("pi_plan_output_compact").format(
+                        quantity=f"{line.planned_output:,}", cycles=f"{line.cycles:,}"
+                    ),
+                    self._translator.text("pi_plan_capacity_compact").format(
+                        cycles=f"{line.available_factory_cycles:,}",
+                        factories=f"{line.additional_factories:,}",
+                    ),
+                    f"{(line.import_quantity or line.source_quantity):,}",
+                    self._translator.text("pi_plan_missing_compact").format(
+                        missing=f"{line.unresolved_quantity:,}",
+                        excess=f"{line.excess_quantity:,}",
+                    ),
+                )
+                for column, value in enumerate(values):
+                    item = QTableWidgetItem(value)
+                    if column > 0:
+                        item.setTextAlignment(
+                            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+                        )
+                    self.plan_table.setItem(row, column, item)
         self.plan_table.resizeRowsToContents()
         self.cost_label.setText(
             self._translator.text("pi_plan_costs").format(
@@ -642,6 +717,8 @@ class PiPlannerPage(QWidget):
             heads_label=self._translator.text("pi_diagram_heads"),
             cycles_label=self._translator.text("pi_diagram_cycles"),
             branch_label=self._translator.text("pi_diagram_branches"),
+            needed_label=self._translator.text("pi_reverse_needed").lower(),
+            produced_label=self._translator.text("pi_reverse_output").lower(),
         )
 
     def _current_request(self) -> PiPlanRequest | None:

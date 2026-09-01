@@ -213,6 +213,78 @@ def test_launchpad_goal_derives_quantity_and_exact_fill_time(tmp_path: Path) -> 
     assert all(
         stage.factories == 1 for stage in result.layout if stage.commodity.type_id in {11, 12}
     )
+    assert all(line.excess_quantity == 0 for line in result.lines)
+
+
+def test_launchpad_reverse_plan_ignores_other_colony_inventory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+    planner = PiPlannerService(database, clock=lambda: NOW)
+
+    monkeypatch.setattr(
+        planner,
+        "_planning_state",
+        lambda _catalog, _now, _window: (
+            Counter({21: 1_000, 11: 1_000, 12: 1_000}),
+            Counter({21: 1_000, 11: 1_000, 12: 1_000}),
+        ),
+    )
+    result = planner.plan(
+        PiPlanRequest(
+            21,
+            1,
+            1,
+            profile.profile_id,
+            source_tier=PiTier.BASIC,
+            goal_mode=PiGoalMode.LAUNCHPAD,
+            launchpad_capacity_m3=Decimal("10"),
+            input_launchpads=4,
+        ),
+        "en",
+    )
+
+    assert result.request.target_quantity == 5
+    assert _line(result, 21).cycles == 1
+    assert _line(result, 11).import_quantity == 40
+    assert _line(result, 12).import_quantity == 40
+    assert all(line.available_at_deadline == 0 for line in result.lines)
+    assert all(line.used_from_available == 0 for line in result.lines)
+    assert all(line.factory_shortfall_cycles == 0 for line in result.lines)
+    assert "factory_capacity_shortfall" not in result.blocked_reasons
+
+
+def test_launchpad_reverse_plan_steps_down_to_zero_intermediate_excess(
+    tmp_path: Path,
+) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    _add_non_divisible_reverse_chain(database)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+
+    result = PiPlannerService(database, clock=lambda: NOW).plan(
+        PiPlanRequest(
+            23,
+            1,
+            1,
+            profile.profile_id,
+            source_tier=PiTier.RAW,
+            goal_mode=PiGoalMode.LAUNCHPAD,
+            launchpad_capacity_m3=Decimal("100"),
+        ),
+        "en",
+    )
+
+    assert result.request.target_quantity == 64
+    assert _line(result, 23).required == 64
+    assert _line(result, 13).required == 192
+    assert _line(result, 13).planned_output == 192
+    assert _line(result, 3).import_quantity == 144
+    assert all(line.excess_quantity == 0 for line in result.lines)
 
 
 def test_launchpad_goal_never_overfills_with_partial_output_batch(tmp_path: Path) -> None:
@@ -372,6 +444,7 @@ def test_every_launchpad_target_and_source_tier_combination_is_volume_exact(
     assert fill.product_volume_m3 <= fill.capacity_m3
     assert fill.input_volume_m3 <= fill.input_capacity_m3
     assert all(item.tier <= source_tier for item, _quantity in fill.input_quantities)
+    assert all(line.excess_quantity == 0 for line in result.lines)
 
     cargo_quantities: Counter[int] = Counter()
     cargo_volumes: dict[int, Decimal] = {}
@@ -772,6 +845,36 @@ def _seed_catalog(database: Database) -> None:
             """
         )
         connection.execute("INSERT INTO sde_planets VALUES (1, 4001, 3001, 4, 9001)")
+
+
+def _add_non_divisible_reverse_chain(database: Database) -> None:
+    with database.connect() as connection, connection:
+        connection.executemany(
+            """
+            INSERT INTO sde_types(
+                build_number, type_id, group_id, market_group_id, name_de, name_en,
+                volume, mass, portion_size, published, capacity
+            ) VALUES (1, ?, 1, NULL, ?, ?, ?, NULL, 1, 1, NULL)
+            """,
+            (
+                (3, "Rohstoff C", "Raw C", "0.01"),
+                (13, "P1 C", "P1 C", "0.38"),
+                (23, "P2 C", "P2 C", "1.5"),
+            ),
+        )
+        connection.executemany(
+            "INSERT INTO sde_planet_schematics VALUES (1, ?, 3600, ?, ?)",
+            ((103, "P1 C", "P1 C"), (203, "P2 C", "P2 C")),
+        )
+        connection.executemany(
+            "INSERT INTO sde_planet_schematic_types VALUES (1, ?, ?, ?, ?)",
+            (
+                (103, 3, 1, 3),
+                (103, 13, 0, 4),
+                (203, 13, 1, 3),
+                (203, 23, 0, 1),
+            ),
+        )
 
 
 def _forecast_colony(extractor: ExtractorDetails, raw_amount: int) -> PlanetColony:

@@ -163,6 +163,20 @@ CATALOG: dict[str, dict[str, str]] = {
             "geordnet; "
             "{used} von {capacity} m³ belegt."
         ),
+        "pi_reverse_summary": (
+            "Reverse-Berechnung {path}: alle Zwischenmengen passen ohne Überproduktion."
+        ),
+        "pi_reverse_path_title": "Reverse-Bedarf vom Zielprodukt bis zum Income",
+        "pi_reverse_stage": "Schritt / Produkt",
+        "pi_reverse_needed": "Exakt benötigt",
+        "pi_reverse_cycles": "Zyklen",
+        "pi_reverse_output": "Produziert",
+        "pi_reverse_excess": "Überschuss",
+        "pi_reverse_income": "Income-Menge",
+        "pi_reverse_status": "Ergebnis",
+        "pi_reverse_exact": "genau passend",
+        "pi_reverse_income_ready": "Startmenge",
+        "pi_reverse_overproduction": "+{quantity} Überproduktion",
         "pi_plan_demand_compact": "{quantity}\n{per_day} / Tag",
         "pi_plan_output_compact": "{quantity}\n{cycles} Zyklen",
         "pi_plan_capacity_compact": "{cycles}\n+{factories} Fabriken",
@@ -586,6 +600,20 @@ CATALOG: dict[str, dict[str, str]] = {
             "Initial load: {launchpads} input launchpad(s), arranged by production branch; "
             "{used} of {capacity} m³ used."
         ),
+        "pi_reverse_summary": (
+            "Reverse calculation {path}: all intermediate quantities fit without overproduction."
+        ),
+        "pi_reverse_path_title": "Reverse demand from target product to income",
+        "pi_reverse_stage": "Step / product",
+        "pi_reverse_needed": "Exact demand",
+        "pi_reverse_cycles": "Cycles",
+        "pi_reverse_output": "Produced",
+        "pi_reverse_excess": "Excess",
+        "pi_reverse_income": "Income quantity",
+        "pi_reverse_status": "Result",
+        "pi_reverse_exact": "exact fit",
+        "pi_reverse_income_ready": "starting quantity",
+        "pi_reverse_overproduction": "+{quantity} overproduction",
         "pi_plan_demand_compact": "{quantity}\n{per_day} / day",
         "pi_plan_output_compact": "{quantity}\n{cycles} cycles",
         "pi_plan_capacity_compact": "{cycles}\n+{factories} factories",
