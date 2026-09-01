@@ -7,6 +7,8 @@ from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import ROUND_CEILING, Decimal
+from itertools import permutations
+from math import gcd
 
 from eve_dolphin.characters import CharacterRepository
 from eve_dolphin.database import Database
@@ -343,17 +345,22 @@ def _resolve_launchpad_request(
     if recipe is None:
         raise ValueError("PI planning target has no production recipe")
     output_cycles = capacity_units // recipe.output.quantity
-    input_capacity = request.launchpad_capacity_m3 * request.input_launchpads
     low = 0
     high = output_cycles
     while low < high:
         candidate = (low + high + 1) // 2
-        inputs = _launchpad_inputs(candidate, recipe, catalog, request, source_tier)
-        input_volume = _commodity_volume(inputs, catalog)
-        if input_volume <= input_capacity:
-            low = candidate
-        else:
+        branches = _launchpad_branches(candidate, recipe, catalog, request, source_tier)
+        try:
+            _allocate_launchpad_cargo(
+                branches,
+                catalog,
+                request.input_launchpads,
+                request.launchpad_capacity_m3,
+            )
+        except ValueError:
             high = candidate - 1
+        else:
+            low = candidate
     input_cycles = low
     cycles = min(output_cycles, input_cycles)
     if cycles <= 0:
@@ -397,7 +404,16 @@ def _launchpad_fill(
     )
     product_volume = Decimal(request.target_quantity) * target.volume_m3
     source_tier = request.source_tier if request.source_tier is not None else PiTier.RAW
-    quantities = _launchpad_inputs(target_line.cycles, recipe, catalog, request, source_tier)
+    branches = _launchpad_branches(
+        target_line.cycles,
+        recipe,
+        catalog,
+        request,
+        source_tier,
+    )
+    quantities: Counter[int] = Counter()
+    for _branch, branch_quantities in branches:
+        quantities.update(branch_quantities)
     input_quantities = tuple(
         (catalog.commodities[type_id], quantity)
         for type_id, quantity in sorted(
@@ -410,7 +426,8 @@ def _launchpad_fill(
         start=Decimal(0),
     )
     input_cargo = _allocate_launchpad_cargo(
-        input_quantities,
+        branches,
+        catalog,
         request.input_launchpads,
         request.launchpad_capacity_m3,
     )
@@ -430,91 +447,173 @@ def _launchpad_fill(
 
 
 def _allocate_launchpad_cargo(
-    inputs: tuple[tuple[PiCommodity, int], ...],
+    branches: tuple[tuple[PiCommodity, Counter[int]], ...],
+    catalog: PiCatalog,
     launchpad_count: int,
     capacity_m3: Decimal,
 ) -> tuple[PiLaunchpadCargo, ...]:
-    # Every launchpad receives the same production ratio. Besides keeping the
-    # fill levels balanced, this makes each launchpad an interchangeable input
-    # set instead of scattering the tail of one commodity into the next pad.
-    allocations: list[dict[int, tuple[PiCommodity, int]]] = [
-        {} for _index in range(launchpad_count)
-    ]
-    used_capacity = [Decimal(0) for _index in range(launchpad_count)]
-    ordered_inputs = sorted(inputs, key=lambda item: item[0].name.casefold())
-    for commodity, quantity in ordered_inputs:
-        base, remainder = divmod(quantity, launchpad_count)
-        for index in range(launchpad_count):
-            if base > 0:
-                volume = Decimal(base) * commodity.volume_m3
-                allocations[index][commodity.type_id] = (commodity, base)
-                used_capacity[index] += volume
-        # Give indivisible remainder units to the currently least-filled pads.
-        for _unit in range(remainder):
-            candidates = [
-                index
-                for index in range(launchpad_count)
-                if used_capacity[index] + commodity.volume_m3 <= capacity_m3
-            ]
-            if not candidates:
-                raise ValueError("PI input goods cannot be distributed across the launchpads")
-            index = min(candidates, key=lambda candidate: (used_capacity[candidate], candidate))
-            previous = allocations[index].get(commodity.type_id)
-            allocations[index][commodity.type_id] = (
-                commodity,
-                (previous[1] if previous is not None else 0) + 1,
+    if not branches:
+        return ()
+    branch_order = {branch.type_id: index for index, (branch, _inputs) in enumerate(branches)}
+    commodities = {
+        type_id: catalog.commodities[type_id] for _branch, inputs in branches for type_id in inputs
+    }
+    candidates: list[
+        tuple[
+            tuple[int, int, int, int],
+            list[dict[int, Counter[int]]],
+        ]
+    ] = []
+    for order_index, ordered in enumerate(permutations(branches)):
+        for policy_index, prefer_empty in enumerate((True, False)):
+            try:
+                allocations = _pack_launchpad_branches(
+                    ordered,
+                    commodities,
+                    launchpad_count,
+                    capacity_m3,
+                    prefer_empty=prefer_empty,
+                )
+            except ValueError:
+                continue
+            branch_sets = [set(allocation) for allocation in allocations]
+            mixed_branches = sum(
+                max(0, len(branches_on_pad) - 1) for branches_on_pad in branch_sets
             )
-            used_capacity[index] += commodity.volume_m3
-
-    if any(volume > capacity_m3 for volume in used_capacity):
+            fragments = sum(len(branches_on_pad) for branches_on_pad in branch_sets)
+            candidates.append(
+                (
+                    (mixed_branches, fragments, order_index, policy_index),
+                    allocations,
+                )
+            )
+    if not candidates:
         raise ValueError("PI input goods cannot be distributed across the launchpads")
 
+    _score, allocations = min(candidates, key=lambda candidate: candidate[0])
+    branch_commodities = {branch.type_id: branch for branch, _inputs in branches}
     result: list[PiLaunchpadCargo] = []
-    for index, cargo in enumerate(allocations, start=1):
-        for commodity, allocated in sorted(
-            cargo.values(), key=lambda item: item[0].name.casefold()
+    for launchpad_index, allocation in enumerate(allocations, start=1):
+        for branch_type_id, cargo in sorted(
+            allocation.items(), key=lambda item: branch_order[item[0]]
         ):
-            volume = Decimal(allocated) * commodity.volume_m3
-            result.append(PiLaunchpadCargo(index, commodity, allocated, volume))
+            branch = branch_commodities[branch_type_id]
+            for type_id, quantity in sorted(
+                cargo.items(), key=lambda item: commodities[item[0]].name.casefold()
+            ):
+                commodity = commodities[type_id]
+                volume = Decimal(quantity) * commodity.volume_m3
+                result.append(
+                    PiLaunchpadCargo(
+                        launchpad_index,
+                        branch,
+                        commodity,
+                        quantity,
+                        volume,
+                    )
+                )
     return tuple(result)
 
 
-def _launchpad_inputs(
+def _pack_launchpad_branches(
+    branches: tuple[tuple[PiCommodity, Counter[int]], ...],
+    commodities: dict[int, PiCommodity],
+    launchpad_count: int,
+    capacity_m3: Decimal,
+    *,
+    prefer_empty: bool,
+) -> list[dict[int, Counter[int]]]:
+    allocations: list[dict[int, Counter[int]]] = [{} for _index in range(launchpad_count)]
+    used_capacity = [Decimal(0) for _index in range(launchpad_count)]
+    for branch, quantities in branches:
+        bundle_count = 0
+        for quantity in quantities.values():
+            bundle_count = gcd(bundle_count, quantity)
+        if bundle_count <= 0:
+            continue
+        bundle = Counter(
+            {type_id: quantity // bundle_count for type_id, quantity in quantities.items()}
+        )
+        bundle_volume = sum(
+            (
+                Decimal(quantity) * commodities[type_id].volume_m3
+                for type_id, quantity in bundle.items()
+            ),
+            start=Decimal(0),
+        )
+        if bundle_volume <= 0 or bundle_volume > capacity_m3:
+            raise ValueError("PI production branch does not fit into one launchpad")
+        remaining = bundle_count
+        while remaining > 0:
+            matching = [
+                index
+                for index, allocation in enumerate(allocations)
+                if branch.type_id in allocation
+                and used_capacity[index] + bundle_volume <= capacity_m3
+            ]
+            empty = [
+                index
+                for index, allocation in enumerate(allocations)
+                if not allocation and used_capacity[index] + bundle_volume <= capacity_m3
+            ]
+            mixed = [
+                index
+                for index, allocation in enumerate(allocations)
+                if allocation
+                and branch.type_id not in allocation
+                and used_capacity[index] + bundle_volume <= capacity_m3
+            ]
+            groups = (matching, empty, mixed) if prefer_empty else (matching, mixed, empty)
+            available = next((group for group in groups if group), None)
+            if available is None:
+                raise ValueError("PI production branches do not fit into the launchpads")
+            index = max(available, key=lambda candidate: (used_capacity[candidate], -candidate))
+            fitting = int((capacity_m3 - used_capacity[index]) // bundle_volume)
+            allocated_bundles = min(remaining, fitting)
+            cargo = allocations[index].setdefault(branch.type_id, Counter())
+            cargo.update(
+                {type_id: quantity * allocated_bundles for type_id, quantity in bundle.items()}
+            )
+            used_capacity[index] += bundle_volume * allocated_bundles
+            remaining -= allocated_bundles
+    return allocations
+
+
+def _launchpad_branches(
     target_cycles: int,
     target_recipe: PiRecipe,
     catalog: PiCatalog,
     request: PiPlanRequest,
     source_tier: PiTier,
-) -> Counter[int]:
-    demand: Counter[int] = Counter(
-        {item.commodity.type_id: target_cycles * item.quantity for item in target_recipe.inputs}
-    )
+) -> tuple[tuple[PiCommodity, Counter[int]], ...]:
     stop_tier = source_tier if request.operation_mode is PiOperationMode.IMPORT else PiTier.RAW
-    pending = {type_id for type_id in demand if catalog.commodities[type_id].tier > stop_tier}
-    while pending:
-        type_id = max(pending, key=lambda identifier: int(catalog.commodities[identifier].tier))
-        pending.remove(type_id)
-        quantity = demand.pop(type_id)
-        child = catalog.recipe_for_output(type_id)
-        if child is None:
-            demand[type_id] += quantity
-            continue
-        cycles = _ceil_div(quantity, child.output.quantity)
-        for item in child.inputs:
-            demand[item.commodity.type_id] += cycles * item.quantity
-            if item.commodity.tier > stop_tier:
-                pending.add(item.commodity.type_id)
-    return demand
-
-
-def _commodity_volume(quantities: Counter[int], catalog: PiCatalog) -> Decimal:
-    return sum(
-        (
-            Decimal(quantity) * catalog.commodities[type_id].volume_m3
-            for type_id, quantity in quantities.items()
-        ),
-        start=Decimal(0),
-    )
+    branches: list[tuple[PiCommodity, Counter[int]]] = []
+    for target_input in target_recipe.inputs:
+        demand: Counter[int] = Counter(
+            {target_input.commodity.type_id: target_cycles * target_input.quantity}
+        )
+        pending = {type_id for type_id in demand if catalog.commodities[type_id].tier > stop_tier}
+        while pending:
+            type_id = max(
+                pending,
+                key=lambda identifier: (
+                    int(catalog.commodities[identifier].tier),
+                    catalog.commodities[identifier].name.casefold(),
+                ),
+            )
+            pending.remove(type_id)
+            quantity = demand.pop(type_id)
+            child = catalog.recipe_for_output(type_id)
+            if child is None:
+                demand[type_id] += quantity
+                continue
+            cycles = _ceil_div(quantity, child.output.quantity)
+            for item in child.inputs:
+                demand[item.commodity.type_id] += cycles * item.quantity
+                if item.commodity.tier > stop_tier:
+                    pending.add(item.commodity.type_id)
+        branches.append((target_input.commodity, demand))
+    return tuple(branches)
 
 
 def _layout(
