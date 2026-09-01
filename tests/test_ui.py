@@ -226,11 +226,15 @@ def test_pi_planner_shows_reverse_chain_before_launchpad_income(
     assert first_header is not None
     assert page.production_path_title.text() == "Reverse-Bedarf vom Zielprodukt bis zum Income"
     assert first_header.text() == "Schritt / Produkt"
-    assert cell(0, 0).startswith("1. P4 · P4 Ziel")
-    assert cell(3, 0).startswith("4. P1 · P1 Start")
+    assert cell(0, 0).startswith("1. P4")
+    assert cell(0, 0).endswith("· P4 Ziel")
+    assert cell(3, 0).startswith("4. P1")
+    assert cell(3, 0).endswith("· P1 Start")
     assert all(cell(row, 4) == "0" for row in range(4))
     assert cell(3, 5) == "40"
-    assert "P4 → P3 → P2 → P1" in page.result_label.text()
+    result_text = page.result_label.text()
+    tier_positions = [result_text.index(tier) for tier in ("P4", "P3", "P2", "P1")]
+    assert tier_positions == sorted(tier_positions)
     page.close()
 
 
