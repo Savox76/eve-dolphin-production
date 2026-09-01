@@ -108,6 +108,7 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_quantity": "Zielmenge",
         "pi_days": "Zeitraum (Tage)",
         "pi_launchpad_capacity": "Launchpad-Kapazität",
+        "pi_input_launchpads": "Eingangs-Launchpads",
         "pi_final_factories": "Fabriken für das Endprodukt",
         "pi_command_center_level": "Command Center Upgrades",
         "pi_command_center_level_value": "Stufe {level}",
@@ -138,6 +139,14 @@ CATALOG: dict[str, dict[str, str]] = {
             "({unused} m³ frei). Mit {factories} Endfabrik(en) dauert die Produktion "
             "voraussichtlich {duration}."
         ),
+        "pi_launchpad_input_result": (
+            "Startbeladung: {launchpads} Eingangs-Launchpad(s) mit {inputs}; "
+            "{used} von {capacity} m³ belegt."
+        ),
+        "pi_plan_demand_compact": "{quantity}\n{per_day} / Tag",
+        "pi_plan_output_compact": "{quantity}\n{cycles} Zyklen",
+        "pi_plan_capacity_compact": "{cycles}\n+{factories} Fabriken",
+        "pi_plan_missing_compact": "{missing}\nÜberschuss {excess}",
         "pi_block_imports_require_customs_office": "Import benötigt ein Zollamt (POCO)",
         "pi_block_command_center_export_requires_multiple_launches": (
             "Export ohne POCO überschreitet 500 m³ und benötigt mehrere Starts"
@@ -157,6 +166,10 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_plan_target_cycles": "Soll-Zyklen",
         "pi_plan_cycles": "noch nötige Zyklen",
         "pi_layout_cycles": "Produktionszyklen",
+        "pi_layout_setup_compact": "Fabriken / Zyklen",
+        "pi_layout_flow_compact": "Eingang / Ausgang je Tag",
+        "pi_layout_setup_value": "{factories} Fabriken\n{cycles} Zyklen",
+        "pi_layout_flow_value": "{input} hinein\n{output} heraus",
         "pi_plan_capacity": "freie Zyklen",
         "pi_plan_additional_factories": "zusätzl. Fabriken",
         "pi_plan_import": "Extraktion / Zukauf",
@@ -177,6 +190,7 @@ CATALOG: dict[str, dict[str, str]] = {
             "Maximal {copies} vollständige Produktionsketten bzw. {final_factories} "
             "Endfabriken im gewählten Aufbau."
         ),
+        "pi_required_planet_types": "P4-Aufbau nur auf folgenden Planetentypen: {types}.",
         "pi_optimal_layout": "Empfohlener Planetenaufbau",
         "pi_graphical_layout": "Grafischer Materialfluss",
         "pi_diagram_extractors": "Extraktoren",
@@ -491,6 +505,7 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_quantity": "Target quantity",
         "pi_days": "Timeframe (days)",
         "pi_launchpad_capacity": "Launchpad capacity",
+        "pi_input_launchpads": "Input launchpads",
         "pi_final_factories": "Factories for final product",
         "pi_command_center_level": "Command Center Upgrades",
         "pi_command_center_level_value": "Level {level}",
@@ -521,6 +536,14 @@ CATALOG: dict[str, dict[str, str]] = {
             "({unused} m³ free). With {factories} final factory/factories, production "
             "takes approximately {duration}."
         ),
+        "pi_launchpad_input_result": (
+            "Initial load: {launchpads} input launchpad(s) with {inputs}; "
+            "{used} of {capacity} m³ used."
+        ),
+        "pi_plan_demand_compact": "{quantity}\n{per_day} / day",
+        "pi_plan_output_compact": "{quantity}\n{cycles} cycles",
+        "pi_plan_capacity_compact": "{cycles}\n+{factories} factories",
+        "pi_plan_missing_compact": "{missing}\nExcess {excess}",
         "pi_block_imports_require_customs_office": "imports require a customs office (POCO)",
         "pi_block_command_center_export_requires_multiple_launches": (
             "export without a POCO exceeds 500 m³ and requires multiple launches"
@@ -540,6 +563,10 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_plan_target_cycles": "Target cycles",
         "pi_plan_cycles": "remaining cycles",
         "pi_layout_cycles": "Production cycles",
+        "pi_layout_setup_compact": "Factories / cycles",
+        "pi_layout_flow_compact": "Input / output per day",
+        "pi_layout_setup_value": "{factories} factories\n{cycles} cycles",
+        "pi_layout_flow_value": "{input} in\n{output} out",
         "pi_plan_capacity": "free cycles",
         "pi_plan_additional_factories": "additional factories",
         "pi_plan_import": "Extraction / purchase",
@@ -560,6 +587,7 @@ CATALOG: dict[str, dict[str, str]] = {
             "Maximum {copies} complete production chains or {final_factories} final factories "
             "for the selected layout."
         ),
+        "pi_required_planet_types": "P4 layout only on these planet types: {types}.",
         "pi_optimal_layout": "Recommended planetary layout",
         "pi_graphical_layout": "Graphical material flow",
         "pi_diagram_extractors": "Extractors",

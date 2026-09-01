@@ -593,6 +593,15 @@ MIGRATIONS = (
             CHECK (extractor_heads_per_ecu BETWEEN 1 AND 10);
         """,
     ),
+    Migration(
+        version=11,
+        description="PI factory-colony input launchpads",
+        sql="""
+        ALTER TABLE pi_saved_plans
+            ADD COLUMN input_launchpads INTEGER NOT NULL DEFAULT 1
+            CHECK (input_launchpads BETWEEN 1 AND 20);
+        """,
+    ),
 )
 
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1].version

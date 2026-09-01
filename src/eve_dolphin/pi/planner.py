@@ -24,6 +24,7 @@ from eve_dolphin.pi.models import (
     PiPlanRequest,
     PiPlanResult,
     PiProfile,
+    PiRecipe,
     PiTier,
 )
 from eve_dolphin.pi.profiles import PiProfileRepository
@@ -91,20 +92,22 @@ class PiPlannerService:
         target = catalog.commodities.get(request.target_type_id)
         if target is None or request.target_type_id not in catalog.recipes_by_output:
             raise ValueError("PI planning target is not available in the active SDE")
-        request = _resolve_launchpad_request(request, catalog, target)
-        planning_window = _planning_window(request, catalog, target)
         profile = self._profiles.get(request.profile_id)
         if profile is None:
             raise ValueError("PI planning profile does not exist")
+        source_tier = (
+            request.source_tier if request.source_tier is not None else profile.supply_tier
+        )
+        if request.source_tier is None:
+            request = replace(request, source_tier=source_tier)
+        request = _resolve_launchpad_request(request, catalog, target, source_tier)
+        planning_window = _planning_window(request, catalog, target)
 
         available, factory_capacity = self._planning_state(catalog, now, planning_window)
         demand: Counter[int] = Counter({target.type_id: request.target_quantity})
         line_data: dict[
             int, tuple[int, int, int, int, int, int, int, int, int, int, int, int, int]
         ] = {}
-        source_tier = (
-            request.source_tier if request.source_tier is not None else profile.supply_tier
-        )
         pending = {target.type_id}
         while pending:
             type_id = max(
@@ -328,6 +331,7 @@ def _resolve_launchpad_request(
     request: PiPlanRequest,
     catalog: PiCatalog,
     target: PiCommodity,
+    source_tier: PiTier,
 ) -> PiPlanRequest:
     if request.goal_mode is PiGoalMode.MANUAL:
         return request
@@ -337,7 +341,20 @@ def _resolve_launchpad_request(
     recipe = catalog.recipe_for_output(target.type_id)
     if recipe is None:
         raise ValueError("PI planning target has no production recipe")
-    cycles = capacity_units // recipe.output.quantity
+    output_cycles = capacity_units // recipe.output.quantity
+    input_capacity = request.launchpad_capacity_m3 * request.input_launchpads
+    low = 0
+    high = output_cycles
+    while low < high:
+        candidate = (low + high + 1) // 2
+        inputs = _launchpad_inputs(candidate, recipe, catalog, request, source_tier)
+        input_volume = _commodity_volume(inputs, catalog)
+        if input_volume <= input_capacity:
+            low = candidate
+        else:
+            high = candidate - 1
+    input_cycles = low
+    cycles = min(output_cycles, input_cycles)
     if cycles <= 0:
         raise ValueError("A complete production batch does not fit into the launchpad capacity")
     quantity = cycles * recipe.output.quantity
@@ -378,13 +395,68 @@ def _launchpad_fill(
         _ceil_div(target_line.cycles, request.final_factories) * recipe.cycle_time_seconds
     )
     product_volume = Decimal(request.target_quantity) * target.volume_m3
+    source_tier = request.source_tier if request.source_tier is not None else PiTier.RAW
+    quantities = _launchpad_inputs(target_line.cycles, recipe, catalog, request, source_tier)
+    input_quantities = tuple(
+        (catalog.commodities[type_id], quantity)
+        for type_id, quantity in sorted(
+            quantities.items(),
+            key=lambda item: catalog.commodities[item[0]].name.casefold(),
+        )
+    )
+    input_volume = sum(
+        (Decimal(quantity) * commodity.volume_m3 for commodity, quantity in input_quantities),
+        start=Decimal(0),
+    )
     return PiLaunchpadFill(
         capacity_m3=request.launchpad_capacity_m3,
         product_quantity=request.target_quantity,
         product_volume_m3=product_volume,
         unused_volume_m3=max(Decimal(0), request.launchpad_capacity_m3 - product_volume),
+        input_launchpads=request.input_launchpads,
+        input_capacity_m3=request.launchpad_capacity_m3 * request.input_launchpads,
+        input_volume_m3=input_volume,
+        input_quantities=input_quantities,
         fill_time=timedelta(seconds=fill_seconds),
         final_factories=request.final_factories,
+    )
+
+
+def _launchpad_inputs(
+    target_cycles: int,
+    target_recipe: PiRecipe,
+    catalog: PiCatalog,
+    request: PiPlanRequest,
+    source_tier: PiTier,
+) -> Counter[int]:
+    demand: Counter[int] = Counter(
+        {item.commodity.type_id: target_cycles * item.quantity for item in target_recipe.inputs}
+    )
+    stop_tier = source_tier if request.operation_mode is PiOperationMode.IMPORT else PiTier.RAW
+    pending = {type_id for type_id in demand if catalog.commodities[type_id].tier > stop_tier}
+    while pending:
+        type_id = max(pending, key=lambda identifier: int(catalog.commodities[identifier].tier))
+        pending.remove(type_id)
+        quantity = demand.pop(type_id)
+        child = catalog.recipe_for_output(type_id)
+        if child is None:
+            demand[type_id] += quantity
+            continue
+        cycles = _ceil_div(quantity, child.output.quantity)
+        for item in child.inputs:
+            demand[item.commodity.type_id] += cycles * item.quantity
+            if item.commodity.tier > stop_tier:
+                pending.add(item.commodity.type_id)
+    return demand
+
+
+def _commodity_volume(quantities: Counter[int], catalog: PiCatalog) -> Decimal:
+    return sum(
+        (
+            Decimal(quantity) * catalog.commodities[type_id].volume_m3
+            for type_id, quantity in quantities.items()
+        ),
+        start=Decimal(0),
     )
 
 
@@ -460,7 +532,10 @@ def _infrastructure_budget(
     )
     extractor_heads = extractor_control_units * request.extractor_heads_per_ecu
 
-    fixed_cpu, fixed_power = _resource_sum((("launchpad", 1), ("storage", storage_facilities)))
+    launchpads = request.input_launchpads + 1 if request.goal_mode is PiGoalMode.LAUNCHPAD else 1
+    fixed_cpu, fixed_power = _resource_sum(
+        (("launchpad", launchpads), ("storage", storage_facilities))
+    )
     variable_cpu, variable_power = _resource_sum(
         (
             ("ecu", extractor_control_units),
@@ -500,7 +575,7 @@ def _infrastructure_budget(
         used_power=used_power,
         remaining_cpu=usable_cpu - used_cpu,
         remaining_power=usable_power - used_power,
-        launchpads=1,
+        launchpads=launchpads,
         storage_facilities=storage_facilities,
         extractor_control_units=extractor_control_units,
         extractor_heads=extractor_heads,
@@ -509,6 +584,7 @@ def _infrastructure_budget(
         high_tech_factories=high_tech_factories,
         maximum_layout_copies=maximum_layout_copies,
         maximum_final_factories=maximum_layout_copies * target_factories,
+        required_planet_types=("barren", "temperate") if high_tech_factories else (),
     )
 
 

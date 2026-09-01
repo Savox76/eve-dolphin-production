@@ -91,8 +91,12 @@ def test_pi_planner_switches_to_launchpad_inputs(
     assert page.quantity_spin.isHidden()
     assert page.days_spin.isHidden()
     assert not page.launchpad_capacity_spin.isHidden()
+    assert not page.input_launchpads_spin.isHidden()
     assert not page.final_factories_spin.isHidden()
     assert page.launchpad_capacity_spin.value() == 10_000
+    assert page.input_launchpads_spin.value() == 1
+    assert page.plan_table.columnCount() == 7
+    assert page.layout_table.columnCount() == 4
     page.close()
 
 
@@ -180,6 +184,20 @@ def test_main_window_shows_successful_update_after_restart(
     assert window.update_result_label.isVisibleTo(window)
     assert window.update_result_label.text() == "Update auf v0.3.1 erfolgreich installiert."
     window.close()
+
+
+def test_update_shutdown_closes_only_after_stage_worker_finishes(
+    qt_application: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository = _repository(tmp_path)
+    window = MainWindow(tmp_path / "client.sqlite3", Translator("de"), repository)
+    closed: list[bool] = []
+    monkeypatch.setattr(window, "close", lambda: closed.append(True))
+
+    window._update_shutdown_pending = True
+    window._update_stage_finished()
+
+    assert closed == [True]
 
 
 def test_planetary_page_shows_colony_status_and_sde_names(

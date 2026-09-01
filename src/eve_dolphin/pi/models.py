@@ -151,6 +151,7 @@ class PiPlanRequest:
     storage_strategy: PiStorageStrategy = PiStorageStrategy.DIRECT
     goal_mode: PiGoalMode = PiGoalMode.MANUAL
     launchpad_capacity_m3: Decimal = Decimal("10000")
+    input_launchpads: int = 1
     final_factories: int = 1
     command_center_level: int = 5
     infrastructure_reserve_percent: Decimal = Decimal("10")
@@ -167,6 +168,8 @@ class PiPlanRequest:
             raise ValueError("P4 cannot be used as a PI input tier")
         if self.launchpad_capacity_m3 <= 0:
             raise ValueError("PI launchpad capacity must be positive")
+        if not 1 <= self.input_launchpads <= 20:
+            raise ValueError("PI input launchpad count must be between 1 and 20")
         if not 1 <= self.final_factories <= 100:
             raise ValueError("PI final factory count must be between 1 and 100")
         if not 0 <= self.command_center_level <= 5:
@@ -213,6 +216,10 @@ class PiLaunchpadFill:
     product_quantity: int
     product_volume_m3: Decimal
     unused_volume_m3: Decimal
+    input_launchpads: int
+    input_capacity_m3: Decimal
+    input_volume_m3: Decimal
+    input_quantities: tuple[tuple[PiCommodity, int], ...]
     fill_time: timedelta
     final_factories: int
 
@@ -237,6 +244,7 @@ class PiInfrastructureBudget:
     high_tech_factories: int
     maximum_layout_copies: int
     maximum_final_factories: int
+    required_planet_types: tuple[str, ...] = ()
 
     @property
     def is_feasible(self) -> bool:

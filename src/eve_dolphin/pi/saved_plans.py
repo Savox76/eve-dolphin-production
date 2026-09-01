@@ -51,6 +51,7 @@ class SavedPiPlanRepository:
             request.storage_strategy.value,
             request.goal_mode.value,
             str(request.launchpad_capacity_m3),
+            request.input_launchpads,
             request.final_factories,
             request.command_center_level,
             str(request.infrastructure_reserve_percent),
@@ -64,10 +65,10 @@ class SavedPiPlanRepository:
                     INSERT INTO pi_saved_plans(
                         name, target_type_id, target_quantity, days, profile_id,
                         operation_mode, source_tier, storage_strategy, goal_mode,
-                        launchpad_capacity_m3_decimal, final_factories,
+                        launchpad_capacity_m3_decimal, input_launchpads, final_factories,
                         command_center_level, infrastructure_reserve_percent_decimal,
                         extractor_heads_per_ecu, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     values,
                 )
@@ -81,7 +82,8 @@ class SavedPiPlanRepository:
                     SET name = ?, target_type_id = ?, target_quantity = ?, days = ?,
                         profile_id = ?, operation_mode = ?, source_tier = ?,
                         storage_strategy = ?, goal_mode = ?,
-                        launchpad_capacity_m3_decimal = ?, final_factories = ?,
+                        launchpad_capacity_m3_decimal = ?, input_launchpads = ?,
+                        final_factories = ?,
                         command_center_level = ?, infrastructure_reserve_percent_decimal = ?,
                         extractor_heads_per_ecu = ?, updated_at = ?
                     WHERE id = ?
@@ -118,6 +120,7 @@ def _plan(row: sqlite3.Row) -> SavedPiPlan:
             storage_strategy=PiStorageStrategy(str(row["storage_strategy"])),
             goal_mode=PiGoalMode(str(row["goal_mode"])),
             launchpad_capacity_m3=Decimal(str(row["launchpad_capacity_m3_decimal"])),
+            input_launchpads=int(row["input_launchpads"]),
             final_factories=int(row["final_factories"]),
             command_center_level=int(row["command_center_level"]),
             infrastructure_reserve_percent=Decimal(

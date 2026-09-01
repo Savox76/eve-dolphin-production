@@ -11,7 +11,6 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QThread
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
-    QApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -113,6 +112,7 @@ class MainWindow(QMainWindow):
         self._update_dialog: UpdateDialog | None = None
         self._update_notified = False
         self._manual_update_check = False
+        self._update_shutdown_pending = False
 
         self.setWindowTitle(self.translator.text("app.title"))
         self.setMinimumSize(960, 640)
@@ -488,11 +488,12 @@ class MainWindow(QMainWindow):
             LOGGER.exception("Staged update helper could not be launched")
             self._update_stage_failed("launch")
             return
+        # Let the staging thread finish before closing the window. Leaving the
+        # Qt event loop here can keep the packaged Windows process alive, so
+        # the helper cannot replace it until the user closes it manually.
+        self._update_shutdown_pending = True
         if self.character_page is not None:
             self.character_page.stop_automatic_sync()
-        application = QApplication.instance()
-        if application is not None:
-            application.quit()
 
     def _update_stage_progress(self, percentage: int) -> None:
         if self._update_dialog is not None:
@@ -507,3 +508,5 @@ class MainWindow(QMainWindow):
         self._update_stage_worker = None
         if worker is not None:
             worker.deleteLater()
+        if self._update_shutdown_pending:
+            self.close()

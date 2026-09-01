@@ -51,6 +51,8 @@ Installationsordner freigibt.
 - Nur der Button `Update starten` lädt das feste Windows-Asset.
 - Während des Downloads zeigt das Fenster den Fortschritt in Prozent. Nach dem Neustart wird
   ein erfolgreicher Austausch oder ein sicher zurückgerollter Fehler im Client angezeigt.
+- Nach abgeschlossenem Download wartet der Client auf das Ende seines Staging-Threads,
+  schließt sich selbst und wird vom externen Updatehelfer in der neuen Version neu gestartet.
 - Herkunft, Dateiname, Downloadgröße, ZIP-Struktur, Buildinfo und GitHub-SHA-256-Digest werden
   geprüft.
 - Das neue Paket ersetzt die Anwendung erst nach deren Ende und besteht vor dem Neustart den

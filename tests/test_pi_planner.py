@@ -192,8 +192,10 @@ def test_launchpad_goal_derives_quantity_and_exact_fill_time(tmp_path: Path) -> 
             1,
             1,
             profile.profile_id,
+            source_tier=PiTier.BASIC,
             goal_mode=PiGoalMode.LAUNCHPAD,
             launchpad_capacity_m3=Decimal("10"),
+            input_launchpads=4,
             final_factories=2,
         ),
         "en",
@@ -224,17 +226,21 @@ def test_launchpad_goal_never_overfills_with_partial_output_batch(tmp_path: Path
             1,
             1,
             profile.profile_id,
+            source_tier=PiTier.BASIC,
             goal_mode=PiGoalMode.LAUNCHPAD,
             launchpad_capacity_m3=Decimal("10000"),
         ),
         "en",
     )
 
-    assert result.request.target_quantity == 6_665
-    assert _line(result, 21).gross_cycles == 1_333
+    assert result.request.target_quantity == 1_640
+    assert _line(result, 21).gross_cycles == 328
     assert result.launchpad_fill is not None
-    assert result.launchpad_fill.product_volume_m3 == Decimal("9997.5")
-    assert result.launchpad_fill.unused_volume_m3 == Decimal("2.5")
+    assert result.launchpad_fill.product_volume_m3 == Decimal("2460.0")
+    assert result.launchpad_fill.unused_volume_m3 == Decimal("7540.0")
+    assert result.launchpad_fill.input_launchpads == 1
+    assert result.launchpad_fill.input_volume_m3 == Decimal("9971.20")
+    assert result.launchpad_fill.input_capacity_m3 == Decimal("10000")
 
 
 def test_plan_reports_command_center_cpu_and_power_budget(tmp_path: Path) -> None:
@@ -264,6 +270,64 @@ def test_plan_reports_command_center_cpu_and_power_budget(tmp_path: Path) -> Non
     assert (budget.used_cpu, budget.used_power) == (4_100, 1_400)
     assert budget.maximum_layout_copies == 23
     assert budget.maximum_final_factories == 23
+    assert budget.required_planet_types == ()
+
+
+def test_p4_layout_requires_barren_or_temperate_planet(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+
+    result = PiPlannerService(database, clock=lambda: NOW).plan(
+        PiPlanRequest(
+            41,
+            1,
+            2,
+            profile.profile_id,
+            operation_mode=PiOperationMode.IMPORT,
+            source_tier=PiTier.SPECIALIZED,
+        ),
+        "en",
+    )
+
+    budget = result.infrastructure_budget
+    assert budget is not None
+    assert budget.high_tech_factories == 1
+    assert budget.required_planet_types == ("barren", "temperate")
+
+
+def test_p4_launchpad_goal_uses_selected_purchase_tier_for_initial_load(
+    tmp_path: Path,
+) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+
+    result = PiPlannerService(database, clock=lambda: NOW).plan(
+        PiPlanRequest(
+            41,
+            1,
+            1,
+            profile.profile_id,
+            operation_mode=PiOperationMode.IMPORT,
+            source_tier=PiTier.REFINED,
+            goal_mode=PiGoalMode.LAUNCHPAD,
+            launchpad_capacity_m3=Decimal("10000"),
+            input_launchpads=1,
+        ),
+        "en",
+    )
+
+    fill = result.launchpad_fill
+    assert fill is not None
+    assert result.request.target_quantity == 83
+    assert fill.input_volume_m3 == Decimal("9960.0")
+    assert tuple((item.type_id, quantity) for item, quantity in fill.input_quantities) == (
+        (21, 3320),
+        (22, 3320),
+    )
 
 
 def test_low_command_center_level_blocks_oversized_layout(tmp_path: Path) -> None:
@@ -355,6 +419,7 @@ def test_saved_pi_plans_can_be_created_edited_and_deleted(tmp_path: Path) -> Non
         PiStorageStrategy.BUFFERED,
         PiGoalMode.LAUNCHPAD,
         Decimal("10000"),
+        2,
         3,
         4,
         Decimal("12.5"),
@@ -366,6 +431,7 @@ def test_saved_pi_plans_can_be_created_edited_and_deleted(tmp_path: Path) -> Non
     assert repository.list_all() == (stored,)
     assert stored.request.goal_mode is PiGoalMode.LAUNCHPAD
     assert stored.request.launchpad_capacity_m3 == Decimal("10000")
+    assert stored.request.input_launchpads == 2
     assert stored.request.final_factories == 3
     assert stored.request.command_center_level == 4
     assert stored.request.infrastructure_reserve_percent == Decimal("12.5")
