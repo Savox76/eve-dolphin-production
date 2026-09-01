@@ -434,26 +434,48 @@ def _allocate_launchpad_cargo(
     launchpad_count: int,
     capacity_m3: Decimal,
 ) -> tuple[PiLaunchpadCargo, ...]:
-    remaining_capacity = [capacity_m3 for _index in range(launchpad_count)]
-    result: list[PiLaunchpadCargo] = []
-    for commodity, quantity in sorted(
-        inputs,
-        key=lambda item: (-item[0].volume_m3, item[0].name.casefold()),
-    ):
-        remaining_quantity = quantity
+    # Every launchpad receives the same production ratio. Besides keeping the
+    # fill levels balanced, this makes each launchpad an interchangeable input
+    # set instead of scattering the tail of one commodity into the next pad.
+    allocations: list[dict[int, tuple[PiCommodity, int]]] = [
+        {} for _index in range(launchpad_count)
+    ]
+    used_capacity = [Decimal(0) for _index in range(launchpad_count)]
+    ordered_inputs = sorted(inputs, key=lambda item: item[0].name.casefold())
+    for commodity, quantity in ordered_inputs:
+        base, remainder = divmod(quantity, launchpad_count)
         for index in range(launchpad_count):
-            if remaining_quantity <= 0:
-                break
-            fitting = int(remaining_capacity[index] // commodity.volume_m3)
-            allocated = min(remaining_quantity, fitting)
-            if allocated <= 0:
-                continue
+            if base > 0:
+                volume = Decimal(base) * commodity.volume_m3
+                allocations[index][commodity.type_id] = (commodity, base)
+                used_capacity[index] += volume
+        # Give indivisible remainder units to the currently least-filled pads.
+        for _unit in range(remainder):
+            candidates = [
+                index
+                for index in range(launchpad_count)
+                if used_capacity[index] + commodity.volume_m3 <= capacity_m3
+            ]
+            if not candidates:
+                raise ValueError("PI input goods cannot be distributed across the launchpads")
+            index = min(candidates, key=lambda candidate: (used_capacity[candidate], candidate))
+            previous = allocations[index].get(commodity.type_id)
+            allocations[index][commodity.type_id] = (
+                commodity,
+                (previous[1] if previous is not None else 0) + 1,
+            )
+            used_capacity[index] += commodity.volume_m3
+
+    if any(volume > capacity_m3 for volume in used_capacity):
+        raise ValueError("PI input goods cannot be distributed across the launchpads")
+
+    result: list[PiLaunchpadCargo] = []
+    for index, cargo in enumerate(allocations, start=1):
+        for commodity, allocated in sorted(
+            cargo.values(), key=lambda item: item[0].name.casefold()
+        ):
             volume = Decimal(allocated) * commodity.volume_m3
-            result.append(PiLaunchpadCargo(index + 1, commodity, allocated, volume))
-            remaining_capacity[index] -= volume
-            remaining_quantity -= allocated
-        if remaining_quantity:
-            raise ValueError("PI input goods cannot be distributed across the launchpads")
+            result.append(PiLaunchpadCargo(index, commodity, allocated, volume))
     return tuple(result)
 
 

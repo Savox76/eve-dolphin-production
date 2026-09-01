@@ -2,6 +2,16 @@
 
 ## Unveröffentlicht
 
+## v0.4.8 – Ausgeglichene Startressourcen
+
+- jedes Eingangsgut wird im gleichen Produktionsverhältnis auf alle gewählten
+  Eingangs-Launchpads verteilt; Mengen unterscheiden sich höchstens um eine Einheit
+- Launchpad-Füllstände werden bis auf unvermeidbare Rundungsreste ausgeglichen und bleiben
+  in einer stabilen alphabetischen Reihenfolge
+- die Grafik führt den Inhalt der Launchpads zunächst in geordnete Startprodukt-Knoten und
+  verzweigt erst danach zu den tatsächlich abhängigen Fabriken
+- vollständige Kombinationstests prüfen zusätzlich Mengengleichgewicht und Volumenbalance
+
 ## v0.4.7 – Zuverlässiger Windows-Updater
 
 - Update-Helfer startet erst, nachdem laufende EVE-Datensynchronisationen kontrolliert
