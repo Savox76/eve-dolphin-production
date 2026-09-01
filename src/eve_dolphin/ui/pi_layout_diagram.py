@@ -9,7 +9,13 @@ from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen, QPolygonF
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView
 
-from eve_dolphin.pi import PiOperationMode, PiPlanResult, PiTier
+from eve_dolphin.pi import (
+    PiLaunchpadCargo,
+    PiLayoutStage,
+    PiOperationMode,
+    PiPlanResult,
+    PiTier,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,6 +53,7 @@ class PiLayoutDiagram(QGraphicsView):
         ecu_label: str = "ECU",
         heads_label: str = "heads",
         cycles_label: str = "cycles",
+        branch_label: str = "Production branches",
     ) -> None:
         scene = self.scene()
         scene.clear()
@@ -62,18 +69,27 @@ class PiLayoutDiagram(QGraphicsView):
             ecu_label=ecu_label,
             heads_label=heads_label,
             cycles_label=cycles_label,
+            branch_label=branch_label,
         )
 
-        box_width = 210.0
-        box_height = 104.0
+        box_width = 240.0
         column_gap = 110.0
         row_gap = 30.0
         top_margin = 58.0
         margin = 28.0
-        max_rows = max(len(nodes) for _heading, nodes in columns)
+        node_heights = {
+            node.key: max(104.0, 58.0 + 18.0 * len(node.detail.splitlines()))
+            for _heading, nodes in columns
+            for node in nodes
+        }
+        column_heights = {
+            heading: sum(node_heights[node.key] for node in nodes)
+            + max(0, len(nodes) - 1) * row_gap
+            for heading, nodes in columns
+        }
         canvas_height = max(
             300.0,
-            top_margin + margin + max_rows * box_height + max(0, max_rows - 1) * row_gap,
+            top_margin + margin + max(column_heights.values()),
         )
         rects: dict[str, QRectF] = {}
 
@@ -86,11 +102,13 @@ class PiLayoutDiagram(QGraphicsView):
             heading_item.setDefaultTextColor(QColor("#9fb5d8"))
             heading_item.setTextWidth(box_width)
             heading_item.setPos(x, 12)
-            total_height = len(nodes) * box_height + max(0, len(nodes) - 1) * row_gap
+            total_height = column_heights[heading]
             y = top_margin + max(0.0, (canvas_height - top_margin - margin - total_height) / 2)
-            for index, node in enumerate(nodes):
-                top = y + index * (box_height + row_gap)
-                rects[node.key] = QRectF(x, top, box_width, box_height)
+            top = y
+            for node in nodes:
+                height = node_heights[node.key]
+                rects[node.key] = QRectF(x, top, box_width, height)
+                top += height + row_gap
 
         for start_key, end_key in edges:
             start_rect = rects.get(start_key)
@@ -146,24 +164,56 @@ def _graph(
     ecu_label: str,
     heads_label: str,
     cycles_label: str,
+    branch_label: str,
 ) -> tuple[list[tuple[str, list[_DiagramNode]]], list[tuple[str, str]]]:
     source_nodes: list[_DiagramNode] = []
     source_outputs: dict[str, set[int]] = {}
+    branch_nodes: list[_DiagramNode] = []
+    branch_outputs: dict[str, set[int]] = {}
+    branch_roots: dict[str, int] = {}
+    branch_edges: list[tuple[str, str]] = []
     fill = result.launchpad_fill
     if result.request.operation_mode is PiOperationMode.IMPORT and fill is not None:
-        cargo_by_launchpad: dict[int, list[tuple[str, int, int]]] = defaultdict(list)
+        cargo_by_launchpad: dict[int, list[PiLaunchpadCargo]] = defaultdict(list)
         for cargo in fill.input_cargo:
-            cargo_by_launchpad[cargo.launchpad_index].append(
-                (cargo.commodity.name, cargo.quantity, cargo.commodity.type_id)
-            )
+            cargo_by_launchpad[cargo.launchpad_index].append(cargo)
         for index in range(1, fill.input_launchpads + 1):
             cargo_items = cargo_by_launchpad.get(index, [])
             key = f"source-{index}"
-            detail = "\n".join(f"{name} x {quantity:,}" for name, quantity, _type_id in cargo_items)
+            by_branch: dict[int, list[PiLaunchpadCargo]] = defaultdict(list)
+            for cargo in cargo_items:
+                by_branch[cargo.branch_commodity.type_id].append(cargo)
+            detail_lines: list[str] = []
+            for branch_items in by_branch.values():
+                branch = branch_items[0].branch_commodity
+                detail_lines.append(branch.name)
+                detail_lines.extend(
+                    f"  {cargo.commodity.name} x {cargo.quantity:,}" for cargo in branch_items
+                )
+                branch_key = f"branch-{index}-{branch.type_id}"
+                branch_nodes.append(
+                    _DiagramNode(
+                        branch_key,
+                        branch.name,
+                        f"{input_label} {index}\n"
+                        + "\n".join(
+                            f"{cargo.commodity.name} x {cargo.quantity:,}" for cargo in branch_items
+                        ),
+                        "source",
+                    )
+                )
+                branch_outputs[branch_key] = {cargo.commodity.type_id for cargo in branch_items}
+                branch_roots[branch_key] = branch.type_id
+                branch_edges.append((key, branch_key))
             source_nodes.append(
-                _DiagramNode(key, f"{input_label} {index}", detail or "-", "source")
+                _DiagramNode(
+                    key,
+                    f"{input_label} {index}",
+                    "\n".join(detail_lines) or "-",
+                    "source",
+                )
             )
-            source_outputs[key] = {type_id for _name, _quantity, type_id in cargo_items}
+            source_outputs[key] = {cargo.commodity.type_id for cargo in cargo_items}
     elif result.request.operation_mode is PiOperationMode.EXTRACTOR:
         for index, line in enumerate(
             (line for line in result.lines if line.source_quantity > 0), start=1
@@ -195,14 +245,9 @@ def _graph(
     routing_nodes: list[_DiagramNode] = []
     routing_edges: list[tuple[str, str]] = []
     if result.request.operation_mode is PiOperationMode.IMPORT and fill is not None:
-        routed_outputs = {}
-        for commodity, quantity in fill.input_quantities:
-            key = f"material-{commodity.type_id}"
-            routing_nodes.append(_DiagramNode(key, commodity.name, f"{quantity:,} units", "source"))
-            routed_outputs[key] = {commodity.type_id}
-        for source_key, output_types in source_outputs.items():
-            for type_id in sorted(output_types):
-                routing_edges.append((source_key, f"material-{type_id}"))
+        routed_outputs = branch_outputs
+        routing_nodes = branch_nodes
+        routing_edges = branch_edges
 
     stages_by_tier: dict[PiTier, list[_DiagramNode]] = defaultdict(list)
     stages = {stage.commodity.type_id: stage for stage in result.layout}
@@ -216,12 +261,39 @@ def _graph(
             )
         )
 
+    branch_ranks: dict[int, int] = {}
+    for rank, branch_key in enumerate(routed_outputs):
+        root_type_id = branch_roots.get(branch_key)
+        if root_type_id is None:
+            continue
+        for stage_type_id in _branch_stage_ids(root_type_id, stages):
+            branch_ranks[stage_type_id] = min(branch_ranks.get(stage_type_id, rank), rank)
+    changed = True
+    while changed:
+        changed = False
+        for producer_type_id, producer_rank in tuple(branch_ranks.items()):
+            for consumer in result.layout:
+                if producer_type_id not in consumer.input_type_ids:
+                    continue
+                current = branch_ranks.get(consumer.commodity.type_id)
+                if current is None or producer_rank < current:
+                    branch_ranks[consumer.commodity.type_id] = producer_rank
+                    changed = True
+
     columns: list[tuple[str, list[_DiagramNode]]] = [(source_label, source_nodes)]
     if routing_nodes:
-        source_tier = result.request.source_tier or PiTier.RAW
-        columns.append((tier_labels[source_tier], routing_nodes))
+        columns.append((branch_label, routing_nodes))
     columns.extend(
-        (tier_labels[tier], sorted(nodes, key=lambda node: node.title.casefold()))
+        (
+            tier_labels[tier],
+            sorted(
+                nodes,
+                key=lambda node: (
+                    branch_ranks.get(int(node.key.removeprefix("stage-")), 1_000_000),
+                    node.title.casefold(),
+                ),
+            ),
+        )
         for tier, nodes in sorted(stages_by_tier.items(), key=lambda item: int(item[0]))
     )
     target_key = "target"
@@ -242,8 +314,14 @@ def _graph(
 
     edges = list(routing_edges)
     for source_key, output_types in routed_outputs.items():
+        root_type_id = branch_roots.get(source_key)
+        eligible_stage_ids = (
+            _branch_stage_ids(root_type_id, stages) if root_type_id is not None else set(stages)
+        )
         for stage in result.layout:
-            if output_types.intersection(stage.input_type_ids):
+            if stage.commodity.type_id in eligible_stage_ids and output_types.intersection(
+                stage.input_type_ids
+            ):
                 edges.append((source_key, f"stage-{stage.commodity.type_id}"))
     for producer_type_id in stages:
         for consumer in result.layout:
@@ -252,6 +330,26 @@ def _graph(
     if result.target.type_id in stages:
         edges.append((f"stage-{result.target.type_id}", target_key))
     return columns, edges
+
+
+def _branch_stage_ids(
+    root_type_id: int,
+    stages: dict[int, PiLayoutStage],
+) -> set[int]:
+    if root_type_id not in stages:
+        return {
+            type_id for type_id, stage in stages.items() if root_type_id in stage.input_type_ids
+        }
+    result = {root_type_id}
+    pending = [root_type_id]
+    while pending:
+        type_id = pending.pop()
+        stage = stages[type_id]
+        for input_type_id in stage.input_type_ids:
+            if input_type_id in stages and input_type_id not in result:
+                result.add(input_type_id)
+                pending.append(input_type_id)
+    return result
 
 
 def _add_arrow(scene: QGraphicsScene, start: QPointF, end: QPointF) -> None:

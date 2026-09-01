@@ -115,6 +115,7 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_input_launchpads": "Eingangs-Launchpads",
         "pi_input_cargo_title": "Startbeladung der Eingangs-Launchpads",
         "pi_input_launchpad_column": "Launchpad",
+        "pi_input_branch_column": "Produktionszweig",
         "pi_input_product_column": "Startprodukt",
         "pi_input_quantity_column": "Menge",
         "pi_input_volume_column": "Volumen",
@@ -158,7 +159,8 @@ CATALOG: dict[str, dict[str, str]] = {
             "voraussichtlich {duration}."
         ),
         "pi_launchpad_input_result": (
-            "Startbeladung: {launchpads} Eingangs-Launchpad(s) mit {inputs}; "
+            "Startbeladung: {launchpads} Eingangs-Launchpad(s), nach Produktionszweigen "
+            "geordnet; "
             "{used} von {capacity} m³ belegt."
         ),
         "pi_plan_demand_compact": "{quantity}\n{per_day} / Tag",
@@ -221,6 +223,7 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_diagram_ecu": "ECU",
         "pi_diagram_heads": "Köpfe",
         "pi_diagram_cycles": "Zyklen",
+        "pi_diagram_branches": "Produktionszweige",
         "pi_layout_stage": "Produktionsstufe",
         "pi_layout_factories": "Fabriken",
         "pi_layout_input_day": "Eingang/Tag",
@@ -536,6 +539,7 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_input_launchpads": "Input launchpads",
         "pi_input_cargo_title": "Initial input-launchpad cargo",
         "pi_input_launchpad_column": "Launchpad",
+        "pi_input_branch_column": "Production branch",
         "pi_input_product_column": "Starting product",
         "pi_input_quantity_column": "Quantity",
         "pi_input_volume_column": "Volume",
@@ -579,7 +583,7 @@ CATALOG: dict[str, dict[str, str]] = {
             "takes approximately {duration}."
         ),
         "pi_launchpad_input_result": (
-            "Initial load: {launchpads} input launchpad(s) with {inputs}; "
+            "Initial load: {launchpads} input launchpad(s), arranged by production branch; "
             "{used} of {capacity} m³ used."
         ),
         "pi_plan_demand_compact": "{quantity}\n{per_day} / day",
@@ -642,6 +646,7 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_diagram_ecu": "ECU",
         "pi_diagram_heads": "heads",
         "pi_diagram_cycles": "cycles",
+        "pi_diagram_branches": "Production branches",
         "pi_layout_stage": "Production tier",
         "pi_layout_factories": "Factories",
         "pi_layout_input_day": "Input/day",

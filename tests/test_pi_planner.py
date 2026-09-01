@@ -375,28 +375,33 @@ def test_every_launchpad_target_and_source_tier_combination_is_volume_exact(
 
     cargo_quantities: Counter[int] = Counter()
     cargo_volumes: dict[int, Decimal] = {}
-    cargo_units: dict[int, dict[int, int]] = {}
+    branch_cargo: dict[tuple[int, int], Counter[int]] = {}
+    branch_totals: dict[int, Counter[int]] = {}
     for cargo in fill.input_cargo:
         cargo_quantities[cargo.commodity.type_id] += cargo.quantity
         cargo_volumes[cargo.launchpad_index] = (
             cargo_volumes.get(cargo.launchpad_index, Decimal(0)) + cargo.volume_m3
         )
-        cargo_units.setdefault(cargo.commodity.type_id, {})[cargo.launchpad_index] = cargo.quantity
+        branch_cargo.setdefault((cargo.launchpad_index, cargo.branch_commodity.type_id), Counter())[
+            cargo.commodity.type_id
+        ] += cargo.quantity
+        branch_totals.setdefault(cargo.branch_commodity.type_id, Counter())[
+            cargo.commodity.type_id
+        ] += cargo.quantity
     assert cargo_quantities == Counter(
         {item.type_id: quantity for item, quantity in fill.input_quantities}
     )
     assert all(volume <= fill.capacity_m3 for volume in cargo_volumes.values())
-    volumes = [cargo_volumes.get(index, Decimal(0)) for index in range(1, input_launchpads + 1)]
-    rounding_tolerance = sum(
-        (commodity.volume_m3 for commodity, _quantity in fill.input_quantities),
-        start=Decimal(0),
-    )
-    assert max(volumes) - min(volumes) <= rounding_tolerance
-    for quantities_by_launchpad in cargo_units.values():
-        quantities = [
-            quantities_by_launchpad.get(index, 0) for index in range(1, input_launchpads + 1)
-        ]
-        assert max(quantities) - min(quantities) <= 1
+    assert all(1 <= launchpad_index <= input_launchpads for launchpad_index in cargo_volumes)
+    for (_launchpad_index, branch_type_id), quantities in branch_cargo.items():
+        totals = branch_totals[branch_type_id]
+        first_type_id = next(iter(totals))
+        assert set(quantities) == set(totals)
+        for type_id in totals:
+            assert (
+                quantities[type_id] * totals[first_type_id]
+                == quantities[first_type_id] * totals[type_id]
+            )
 
     next_quantity = (cycles + 1) * recipe.output.quantity
     next_result = planner.plan(
@@ -442,6 +447,38 @@ def test_one_input_launchpad_can_hold_multiple_starting_products(tmp_path: Path)
         cargo.commodity.type_id for cargo in fill.input_cargo if cargo.launchpad_index == 1
     }
     assert first_launchpad_products == {11, 12}
+
+
+def test_starting_products_are_grouped_by_final_recipe_branch(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    _seed_catalog(database)
+    profile = PiProfileRepository(database).list_all()[0]
+    assert profile.profile_id is not None
+
+    result = PiPlannerService(database, clock=lambda: NOW).plan(
+        PiPlanRequest(
+            41,
+            1,
+            1,
+            profile.profile_id,
+            source_tier=PiTier.REFINED,
+            goal_mode=PiGoalMode.LAUNCHPAD,
+            input_launchpads=2,
+        ),
+        "en",
+    )
+
+    fill = result.launchpad_fill
+    assert fill is not None
+    cargo_by_branch: dict[tuple[int, int], Counter[int]] = {}
+    for cargo in fill.input_cargo:
+        cargo_by_branch.setdefault(
+            (cargo.launchpad_index, cargo.branch_commodity.type_id), Counter()
+        )[cargo.commodity.type_id] += cargo.quantity
+    assert cargo_by_branch == {
+        (1, 31): Counter({21: 2000, 22: 2000}),
+        (2, 32): Counter({21: 2000, 22: 2000}),
+    }
 
 
 def test_low_command_center_level_blocks_oversized_layout(tmp_path: Path) -> None:

@@ -23,6 +23,8 @@ from eve_dolphin.pi import (
     NamedQuantity,
     PiCommodity,
     PiGoalMode,
+    PiLaunchpadCargo,
+    PiLaunchpadFill,
     PiLayoutStage,
     PiOperationMode,
     PiPlanRequest,
@@ -104,8 +106,8 @@ def test_pi_planner_switches_to_launchpad_inputs(
     assert page.input_launchpads_spin.value() == 1
     assert page.plan_table.columnCount() == 7
     assert page.layout_table.columnCount() == 4
-    assert page.input_cargo_table.columnCount() == 6
-    assert page.input_cargo_table.minimumWidth() == 900
+    assert page.input_cargo_table.columnCount() == 7
+    assert page.input_cargo_table.minimumWidth() == 1_020
     assert page.output_launchpad_table.columnCount() == 6
     assert page.output_launchpad_table.minimumWidth() == 900
     assert isinstance(page.tabs.widget(0), QScrollArea)
@@ -176,6 +178,95 @@ def test_pi_layout_diagram_renders_source_factories_and_launchpad(
     assert "2 x Fabrik" in texts
     assert "Pufferlager" in texts
     assert "Launchpad / Ziel" in texts
+    diagram.close()
+
+
+def test_pi_layout_diagram_groups_launchpad_cargo_by_production_branch(
+    qt_application: QApplication,
+) -> None:
+    p1_a = PiCommodity(11, "P1 A", Decimal("0.38"), PiTier.BASIC)
+    p1_b = PiCommodity(12, "P1 B", Decimal("0.38"), PiTier.BASIC)
+    branch = PiCommodity(21, "P2 branch", Decimal("1.5"), PiTier.REFINED)
+    target = PiCommodity(31, "P3 target", Decimal("6"), PiTier.SPECIALIZED)
+    request = PiPlanRequest(
+        31,
+        3,
+        1,
+        1,
+        source_tier=PiTier.BASIC,
+        goal_mode=PiGoalMode.LAUNCHPAD,
+        input_launchpads=2,
+    )
+    profile = PiProfile(
+        1,
+        "Test",
+        SpaceKind.HIGHSEC,
+        True,
+        Decimal(0),
+        Decimal(0),
+        Decimal(0),
+        Decimal("10000"),
+        Decimal(0),
+        PiTier.BASIC,
+    )
+    cargo = (
+        PiLaunchpadCargo(1, branch, p1_a, 40, Decimal("15.2")),
+        PiLaunchpadCargo(1, branch, p1_b, 40, Decimal("15.2")),
+    )
+    fill = PiLaunchpadFill(
+        Decimal("10000"),
+        3,
+        Decimal("18"),
+        Decimal("9982"),
+        2,
+        Decimal("20000"),
+        Decimal("30.4"),
+        ((p1_a, 40), (p1_b, 40)),
+        cargo,
+        timedelta(hours=1),
+        1,
+    )
+    result = PiPlanResult(
+        request=request,
+        profile=profile,
+        target=target,
+        lines=(),
+        import_volume_m3=Decimal("30.4"),
+        export_volume_m3=Decimal("18"),
+        cargo_trips=1,
+        import_tax_isk=Decimal(0),
+        export_tax_isk=Decimal(0),
+        transport_cost_isk=Decimal(0),
+        risk_markup_isk=Decimal(0),
+        total_logistics_isk=Decimal(0),
+        blocked_reasons=(),
+        layout=(
+            PiLayoutStage(branch, 1, 1, 80, 5, False, (11, 12)),
+            PiLayoutStage(target, 1, 1, 10, 3, False, (21,)),
+        ),
+        launchpad_fill=fill,
+    )
+    diagram = PiLayoutDiagram()
+    diagram.show_plan(
+        result,
+        source_label="Purchase / import",
+        launchpad_label="Launchpad / target",
+        buffer_label="Buffer",
+        factory_label="Factory",
+        tier_labels={tier: f"P{int(tier)}" for tier in PiTier},
+        branch_label="Production branches",
+    )
+    qt_application.processEvents()
+
+    texts = "\n".join(
+        item.toPlainText() for item in diagram.scene().items() if hasattr(item, "toPlainText")
+    )
+    assert "Input launchpad 1" in texts
+    assert "Input launchpad 2" in texts
+    assert "Production branches" in texts
+    assert "P2 branch" in texts
+    assert "P1 A x 40" in texts
+    assert "P1 B x 40" in texts
     diagram.close()
 
 

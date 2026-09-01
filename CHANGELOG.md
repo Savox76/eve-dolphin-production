@@ -2,6 +2,21 @@
 
 ## Unveröffentlicht
 
+## v0.4.10 – Verständliche PI-Produktionszweige
+
+- Eingangsressourcen werden nicht mehr künstlich auf jedes Launchpad verteilt, sondern
+  entlang der direkten Rezeptzweige des Zielprodukts gruppiert
+- jeder Teil eines Produktionszweigs enthält seine Startgüter im exakten Rezeptverhältnis;
+  nur wenn Kapazität oder Launchpad-Anzahl es erfordern, teilen sich Zweige ein Launchpad
+- die maximal mögliche Zielmenge wird gegen die echte Belegung jedes einzelnen Eingangs-
+  Launchpads statt nur gegen deren zusammengefasste Gesamtkapazität geprüft
+- die Startbeladungstabelle zeigt zu jedem Startprodukt zusätzlich den zugehörigen
+  Produktionszweig und bleibt in Rezept- und Launchpad-Reihenfolge
+- die Grafik führt vom Eingangs-Launchpad über eigene Produktionszweige zu den abhängigen
+  Fabriken; wachsende Karten zeigen auch umfangreiche Inhalte ohne abgeschnittenen Text
+- Kombinationstests für P1 bis P4, alle gültigen Startstufen und ein bis fünf Launchpads
+  prüfen Gesamtmengen, Einzelkapazitäten und das korrekte Mengenverhältnis jedes Zweigs
+
 ## v0.4.9 – Flüssiger Start und Ein-Instanz-Schutz
 
 - aktualisierte Windows-Anwendung wird nach erfolgreichem Austausch über den normalen

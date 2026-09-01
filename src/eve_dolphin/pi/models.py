@@ -214,6 +214,7 @@ class PiLayoutStage:
 @dataclass(frozen=True, slots=True)
 class PiLaunchpadCargo:
     launchpad_index: int
+    branch_commodity: PiCommodity
     commodity: PiCommodity
     quantity: int
     volume_m3: Decimal

@@ -92,7 +92,7 @@ class PiPlannerPage(QWidget):
         self.cost_label = QLabel()
         self.resource_label = QLabel()
         self.input_cargo_title = QLabel(self._translator.text("pi_input_cargo_title"))
-        self.input_cargo_table = QTableWidget(0, 6)
+        self.input_cargo_table = QTableWidget(0, 7)
         self.production_path_title = QLabel(self._translator.text("pi_production_path_title"))
         self.plan_table = QTableWidget(0, 7)
         self.output_launchpad_title = QLabel(self._translator.text("pi_output_launchpad_title"))
@@ -186,6 +186,7 @@ class PiPlannerPage(QWidget):
         self.input_cargo_table.setHorizontalHeaderLabels(
             (
                 self._translator.text("pi_input_launchpad_column"),
+                self._translator.text("pi_input_branch_column"),
                 self._translator.text("pi_input_product_column"),
                 self._translator.text("pi_plan_tier"),
                 self._translator.text("pi_input_quantity_column"),
@@ -196,10 +197,11 @@ class PiPlannerPage(QWidget):
         self.input_cargo_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.input_cargo_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.input_cargo_table.verticalHeader().setVisible(False)
-        self.input_cargo_table.setMinimumWidth(900)
+        self.input_cargo_table.setMinimumWidth(1_020)
         cargo_header = self.input_cargo_table.horizontalHeader()
         cargo_header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         cargo_header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        cargo_header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self.input_cargo_title.hide()
         self.input_cargo_table.hide()
 
@@ -459,12 +461,8 @@ class PiPlannerPage(QWidget):
             status = self._translator.text("pi_plan_blocked").format(reasons=reasons)
         if result.launchpad_fill is not None:
             fill = result.launchpad_fill
-            inputs = ", ".join(
-                f"{commodity.name} x {quantity:,}" for commodity, quantity in fill.input_quantities
-            )
             status = f"{status}\n" + self._translator.text("pi_launchpad_input_result").format(
                 launchpads=fill.input_launchpads,
-                inputs=inputs,
                 used=_format_decimal(fill.input_volume_m3),
                 capacity=_format_decimal(fill.input_capacity_m3),
             )
@@ -488,6 +486,7 @@ class PiPlannerPage(QWidget):
                     self._translator.text("pi_input_launchpad_value").format(
                         index=cargo.launchpad_index
                     ),
+                    cargo.branch_commodity.name,
                     cargo.commodity.name,
                     self._tier_text(cargo.commodity.tier),
                     f"{cargo.quantity:,}",
@@ -642,6 +641,7 @@ class PiPlannerPage(QWidget):
             ecu_label=self._translator.text("pi_diagram_ecu"),
             heads_label=self._translator.text("pi_diagram_heads"),
             cycles_label=self._translator.text("pi_diagram_cycles"),
+            branch_label=self._translator.text("pi_diagram_branches"),
         )
 
     def _current_request(self) -> PiPlanRequest | None:
