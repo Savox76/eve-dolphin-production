@@ -375,15 +375,28 @@ def test_every_launchpad_target_and_source_tier_combination_is_volume_exact(
 
     cargo_quantities: Counter[int] = Counter()
     cargo_volumes: dict[int, Decimal] = {}
+    cargo_units: dict[int, dict[int, int]] = {}
     for cargo in fill.input_cargo:
         cargo_quantities[cargo.commodity.type_id] += cargo.quantity
         cargo_volumes[cargo.launchpad_index] = (
             cargo_volumes.get(cargo.launchpad_index, Decimal(0)) + cargo.volume_m3
         )
+        cargo_units.setdefault(cargo.commodity.type_id, {})[cargo.launchpad_index] = cargo.quantity
     assert cargo_quantities == Counter(
         {item.type_id: quantity for item, quantity in fill.input_quantities}
     )
     assert all(volume <= fill.capacity_m3 for volume in cargo_volumes.values())
+    volumes = [cargo_volumes.get(index, Decimal(0)) for index in range(1, input_launchpads + 1)]
+    rounding_tolerance = sum(
+        (commodity.volume_m3 for commodity, _quantity in fill.input_quantities),
+        start=Decimal(0),
+    )
+    assert max(volumes) - min(volumes) <= rounding_tolerance
+    for quantities_by_launchpad in cargo_units.values():
+        quantities = [
+            quantities_by_launchpad.get(index, 0) for index in range(1, input_launchpads + 1)
+        ]
+        assert max(quantities) - min(quantities) <= 1
 
     next_quantity = (cycles + 1) * recipe.output.quantity
     next_result = planner.plan(

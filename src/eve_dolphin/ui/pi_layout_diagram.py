@@ -191,6 +191,19 @@ def _graph(
             )
             source_outputs[key] = {line.commodity.type_id}
 
+    routed_outputs = source_outputs
+    routing_nodes: list[_DiagramNode] = []
+    routing_edges: list[tuple[str, str]] = []
+    if result.request.operation_mode is PiOperationMode.IMPORT and fill is not None:
+        routed_outputs = {}
+        for commodity, quantity in fill.input_quantities:
+            key = f"material-{commodity.type_id}"
+            routing_nodes.append(_DiagramNode(key, commodity.name, f"{quantity:,} units", "source"))
+            routed_outputs[key] = {commodity.type_id}
+        for source_key, output_types in source_outputs.items():
+            for type_id in sorted(output_types):
+                routing_edges.append((source_key, f"material-{type_id}"))
+
     stages_by_tier: dict[PiTier, list[_DiagramNode]] = defaultdict(list)
     stages = {stage.commodity.type_id: stage for stage in result.layout}
     for stage in result.layout:
@@ -204,6 +217,9 @@ def _graph(
         )
 
     columns: list[tuple[str, list[_DiagramNode]]] = [(source_label, source_nodes)]
+    if routing_nodes:
+        source_tier = result.request.source_tier or PiTier.RAW
+        columns.append((tier_labels[source_tier], routing_nodes))
     columns.extend(
         (tier_labels[tier], sorted(nodes, key=lambda node: node.title.casefold()))
         for tier, nodes in sorted(stages_by_tier.items(), key=lambda item: int(item[0]))
@@ -224,8 +240,8 @@ def _graph(
         )
     )
 
-    edges: list[tuple[str, str]] = []
-    for source_key, output_types in source_outputs.items():
+    edges = list(routing_edges)
+    for source_key, output_types in routed_outputs.items():
         for stage in result.layout:
             if output_types.intersection(stage.input_type_ids):
                 edges.append((source_key, f"stage-{stage.commodity.type_id}"))
