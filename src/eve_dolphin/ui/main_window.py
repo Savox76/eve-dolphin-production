@@ -113,6 +113,8 @@ class MainWindow(QMainWindow):
         self._update_notified = False
         self._manual_update_check = False
         self._update_shutdown_pending = False
+        self._pending_staged_update: StagedUpdate | None = None
+        self._character_shutdown_connected = False
 
         self.setWindowTitle(self.translator.text("app.title"))
         self.setMinimumSize(960, 640)
@@ -482,15 +484,10 @@ class MainWindow(QMainWindow):
             or self._close_pending
         ):
             return
-        try:
-            self._launch_update(result)
-        except Exception:
-            LOGGER.exception("Staged update helper could not be launched")
-            self._update_stage_failed("launch")
-            return
-        # Let the staging thread finish before closing the window. Leaving the
-        # Qt event loop here can keep the packaged Windows process alive, so
-        # the helper cannot replace it until the user closes it manually.
+        # Do not start the replacement helper while a character synchronization
+        # is still active. That worker cannot be interrupted safely, and the
+        # helper would otherwise time out waiting for this process to exit.
+        self._pending_staged_update = result
         self._update_shutdown_pending = True
         if self.character_page is not None:
             self.character_page.stop_automatic_sync()
@@ -509,4 +506,27 @@ class MainWindow(QMainWindow):
         if worker is not None:
             worker.deleteLater()
         if self._update_shutdown_pending:
-            self.close()
+            self._continue_update_shutdown()
+
+    def _continue_update_shutdown(self) -> None:
+        if not self._update_shutdown_pending or self._pending_staged_update is None:
+            return
+        if self.character_page is not None and self.character_page.background_work_pending:
+            if not self._character_shutdown_connected:
+                self._character_shutdown_connected = True
+                self.character_page.authorization_stopped.connect(self._continue_update_shutdown)
+            self.character_page.cancel_pending_authorization()
+            return
+        staged = self._pending_staged_update
+        try:
+            if self._launch_update is None:
+                raise RuntimeError("update launcher is unavailable")
+            self._launch_update(staged)
+        except Exception:
+            LOGGER.exception("Staged update helper could not be launched")
+            self._pending_staged_update = None
+            self._update_shutdown_pending = False
+            self._update_stage_failed("launch")
+            return
+        self._pending_staged_update = None
+        self.close()
