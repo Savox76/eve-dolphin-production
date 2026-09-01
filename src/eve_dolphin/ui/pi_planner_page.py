@@ -141,7 +141,7 @@ class PiPlannerPage(QWidget):
         self.days_spin.setValue(7)
         self.launchpad_capacity_spin.setValue(10_000)
         self.launchpad_capacity_spin.setSuffix(" m³")
-        self.input_launchpads_spin.setRange(1, 20)
+        self.input_launchpads_spin.setRange(1, 5)
         self.input_launchpads_spin.setValue(1)
         self.final_factories_spin.setRange(1, 100)
         self.final_factories_spin.setValue(1)
@@ -637,6 +637,11 @@ class PiPlannerPage(QWidget):
             buffer_label=self._translator.text("pi_diagram_buffer"),
             factory_label=self._translator.text("pi_diagram_factory"),
             tier_labels={tier: self._tier_text(tier) for tier in PiTier},
+            input_label=self._translator.text("pi_diagram_input_launchpad"),
+            extractor_label=self._translator.text("pi_diagram_extractor"),
+            ecu_label=self._translator.text("pi_diagram_ecu"),
+            heads_label=self._translator.text("pi_diagram_heads"),
+            cycles_label=self._translator.text("pi_diagram_cycles"),
         )
 
     def _current_request(self) -> PiPlanRequest | None:

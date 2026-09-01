@@ -2,9 +2,22 @@
 
 ## Unveröffentlicht
 
+## v0.4.6 – Verzweigte PI-Koloniegrafik
+
+- Eingangs-Launchpads verbindlich auf ein bis fünf erweitert und alle gültigen
+  Ziel-/Startstufen-Kombinationen für jede dieser Anzahlen geprüft
+- bestehende gespeicherte Werte über fünf werden mit Datenbankschema 12 sicher auf fünf
+  begrenzt
+- Fabrikplanetengrafik beginnt bei jedem Eingangs-Launchpad samt gemischtem Inhalt und
+  verbindet die Güter mit ihren tatsächlich abhängigen Fabriken bis zum Ziel-Launchpad
+- Extraktorplanetengrafik beginnt je Rohstoff bei ECU und gewählter Kopfzahl und bildet
+  anschließend dieselben realen Rezeptabhängigkeiten ab
+- Grafik wird nicht mehr in die Fensterbreite skaliert; eine wachsende Zeichenfläche mit
+  eigenen Scrollleisten hält alle Launchpads, Fabriken und Verbindungen lesbar
+
 ## v0.4.5 – Vollständige PI-Startbeladung
 
-- alle Kombinationen aus P1- bis P4-Ziel, gültiger Zukaufstufe und einem bis drei
+- alle Kombinationen aus P1- bis P4-Ziel, gültiger Zukaufstufe und einem bis fünf
   Eingangs-Launchpads automatisiert gegen Ein- und Ausgangsvolumen geprüft
 - Startgüter werden über beliebig viele Eingangs-Launchpads verteilt; ein Launchpad kann
   mehrere unterschiedliche Güter aufnehmen

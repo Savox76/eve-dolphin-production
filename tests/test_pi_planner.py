@@ -337,7 +337,7 @@ def test_p4_launchpad_goal_uses_selected_purchase_tier_for_initial_load(
         (target_type_id, PiTier(source_tier), input_launchpads)
         for target_type_id, target_tier in ((11, 1), (21, 2), (31, 3), (41, 4))
         for source_tier in range(target_tier)
-        for input_launchpads in (1, 2, 3)
+        for input_launchpads in (1, 2, 3, 4, 5)
     ],
 )
 def test_every_launchpad_target_and_source_tier_combination_is_volume_exact(
