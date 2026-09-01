@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QScrollArea,
     QSpinBox,
     QTableWidget,
     QTableWidgetItem,
@@ -93,6 +94,7 @@ class PiPlannerPage(QWidget):
         self.plan_table = QTableWidget(0, 7)
         self.layout_table = QTableWidget(0, 4)
         self.layout_diagram = PiLayoutDiagram()
+        self.tabs = QTabWidget()
         self.quantity_label = QLabel(self._translator.text("pi_quantity"))
         self.days_label = QLabel(self._translator.text("pi_days"))
         self.launchpad_capacity_label = QLabel(self._translator.text("pi_launchpad_capacity"))
@@ -188,6 +190,7 @@ class PiPlannerPage(QWidget):
         )
         self.plan_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.plan_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.plan_table.setMinimumSize(1_020, 340)
         self.plan_table.verticalHeader().setVisible(False)
         header = self.plan_table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
@@ -203,6 +206,7 @@ class PiPlannerPage(QWidget):
             )
         )
         self.layout_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.layout_table.setMinimumSize(900, 220)
         self.layout_table.verticalHeader().setVisible(False)
         layout_header = self.layout_table.horizontalHeader()
         layout_header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
@@ -224,12 +228,27 @@ class PiPlannerPage(QWidget):
         detail.setObjectName("muted")
         detail.setWordWrap(True)
 
-        tabs = QTabWidget()
-        tabs.addTab(self._build_plan_tab(), self._translator.text("pi_plan_tab"))
-        tabs.addTab(self._build_profiles_tab(), self._translator.text("pi_profiles_tab"))
+        self.tabs.addTab(
+            self._scrollable(self._build_plan_tab()), self._translator.text("pi_plan_tab")
+        )
+        self.tabs.addTab(
+            self._scrollable(self._build_profiles_tab()),
+            self._translator.text("pi_profiles_tab"),
+        )
         layout.addWidget(title)
         layout.addWidget(detail)
-        layout.addWidget(tabs, 1)
+        layout.addWidget(self.tabs, 1)
+
+    @staticmethod
+    def _scrollable(content: QWidget) -> QScrollArea:
+        content.setMinimumWidth(1_100)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setWidget(content)
+        return scroll
 
     def _build_plan_tab(self) -> QWidget:
         page = QWidget()
@@ -288,7 +307,9 @@ class PiPlannerPage(QWidget):
         results_layout.addWidget(self.layout_diagram)
         results_layout.addWidget(self.cost_label)
         layout.addWidget(inputs)
-        layout.addWidget(results, 1)
+        self.layout_diagram.setMinimumHeight(260)
+        layout.addWidget(results)
+        layout.addStretch(1)
         return page
 
     def _build_profiles_tab(self) -> QWidget:

@@ -2,6 +2,13 @@
 
 ## Unveröffentlicht
 
+## v0.4.4 – Scrollbarer PI-Zielplaner
+
+- Zielplanung und Logistikprofile liegen in einer horizontal und vertikal scrollbaren
+  Ansicht statt alle Inhalte in das normale Fenster zu pressen
+- sinnvolle Mindestbreiten und -höhen für Planungs-, Aufbau- und Grafikbereiche
+- Tabellen behalten lesbare Spaltenbreiten und besitzen bei Bedarf eigene Scrollleisten
+
 ## v0.4.3 – P4-Planetentypen und automatischer Updater-Neustart
 
 - kompakte Planungs- und Aufbautabellen mit sieben beziehungsweise vier Spalten für die
