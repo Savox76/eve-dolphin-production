@@ -30,6 +30,7 @@ from eve_dolphin.pi.overview import (
     ColonyOverview,
     NamedCount,
     NamedQuantity,
+    PlanetaryCharacterOverview,
     PlanetaryOverviewService,
     StorageOverview,
 )
@@ -65,6 +66,7 @@ __all__ = [
     "PiRecipeItem",
     "PiStorageStrategy",
     "PiTier",
+    "PlanetaryCharacterOverview",
     "PlanetaryOverviewService",
     "SavedPiPlan",
     "SavedPiPlanRepository",

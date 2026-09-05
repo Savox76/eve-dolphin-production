@@ -51,6 +51,34 @@ CATALOG: dict[str, dict[str, str]] = {
             "Kolonien: {colonies} · Charaktere: {characters} · Extraktoren: "
             "{active} aktiv, {expired} abgelaufen, {incomplete} unvollständig"
         ),
+        "pi_character_coverage": (
+            "PI-Daten geladen: {loaded} von {connected} verbundenen Charakteren · "
+            "PI freigegeben: {authorized}"
+        ),
+        "pi_character_scope_note": (
+            "Fehlende Charaktere werden unten sichtbar markiert. Jeder EVE-Charakter muss "
+            "einzeln verbunden und für PI freigegeben werden."
+        ),
+        "pi_character_permission_missing": "PI-Freigabe fehlt",
+        "pi_character_permission_missing_detail": (
+            "Für {character} fehlt die PI-Freigabe der Anwendung. Wähle den Charakter unter "
+            "Einstellungen & Charaktere und klicke auf „PI freigeben“."
+        ),
+        "pi_character_sync_failed": "PI-Abruf fehlgeschlagen",
+        "pi_character_sync_failed_detail": (
+            "Die PI-Daten von {character} konnten zuletzt nicht abgerufen werden. Der Charakter "
+            "bleibt sichtbar; starte unter Einstellungen & Charaktere eine neue Synchronisation."
+        ),
+        "pi_character_data_missing": "PI-Daten noch nicht geladen",
+        "pi_character_data_missing_detail": (
+            "Für {character} liegt noch kein PI-Datenstand vor. Synchronisiere die EVE-Daten "
+            "unter Einstellungen & Charaktere."
+        ),
+        "pi_character_no_colonies": "Keine Kolonien von ESI gemeldet",
+        "pi_character_no_colonies_detail": (
+            "{character} ist für PI freigegeben und wurde synchronisiert, aber ESI hat aktuell "
+            "keine Kolonien für diesen Charakter gemeldet."
+        ),
         "pi_identity_detail": (
             "{character} · Planet {planet} ({planet_type}) · System {system} · "
             "Kommandozentrale Stufe {level}"
@@ -488,6 +516,34 @@ CATALOG: dict[str, dict[str, str]] = {
         "pi_summary": (
             "Colonies: {colonies} · Characters: {characters} · Extractors: "
             "{active} active, {expired} expired, {incomplete} incomplete"
+        ),
+        "pi_character_coverage": (
+            "PI data loaded: {loaded} of {connected} connected characters · "
+            "PI authorized: {authorized}"
+        ),
+        "pi_character_scope_note": (
+            "Missing characters remain visibly marked below. Every EVE character must be "
+            "connected and authorized for PI separately."
+        ),
+        "pi_character_permission_missing": "PI permission missing",
+        "pi_character_permission_missing_detail": (
+            "The app does not have PI permission for {character}. Select the character under "
+            "Settings & Characters and click “Authorize PI”."
+        ),
+        "pi_character_sync_failed": "PI fetch failed",
+        "pi_character_sync_failed_detail": (
+            "The latest PI fetch for {character} failed. The character remains visible; start "
+            "another synchronization under Settings & Characters."
+        ),
+        "pi_character_data_missing": "PI data not loaded yet",
+        "pi_character_data_missing_detail": (
+            "No PI data is stored for {character} yet. Synchronize EVE data under "
+            "Settings & Characters."
+        ),
+        "pi_character_no_colonies": "No colonies reported by ESI",
+        "pi_character_no_colonies_detail": (
+            "{character} is authorized for PI and synchronized, but ESI currently reports no "
+            "colonies for this character."
         ),
         "pi_identity_detail": (
             "{character} · Planet {planet} ({planet_type}) · System {system} · "

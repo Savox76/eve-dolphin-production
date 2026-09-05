@@ -33,9 +33,11 @@ from eve_dolphin.pi import (
     PiProfile,
     PiStorageStrategy,
     PiTier,
+    PlanetaryCharacterOverview,
     SpaceKind,
 )
 from eve_dolphin.sso.scopes import ScopePackage, scopes_for_packages
+from eve_dolphin.status import DataFreshness
 from eve_dolphin.sync.coordinator import CharacterSyncBatch, CharacterSyncOutcome
 from eve_dolphin.ui.blueprint_page import BlueprintPage
 from eve_dolphin.ui.character_page import (
@@ -497,6 +499,67 @@ def test_planetary_page_shows_colony_status_and_sde_names(
     assert "Wässrige Flüssigkeiten x 2" in page.detail_label.text()
     assert "Water x 1,250" in page.detail_label.text()
 
+    page.close()
+
+
+def test_planetary_page_keeps_characters_without_colony_data_visible(
+    qt_application: QApplication, tmp_path: Path
+) -> None:
+    database = Database(tmp_path / "client.sqlite3", tmp_path / "backups")
+    database.initialize()
+    colony = _colony_overview()
+    characters = (
+        PlanetaryCharacterOverview(
+            1001,
+            "Industrial Pilot",
+            True,
+            DataFreshness.CURRENT,
+            colony.snapshot_at,
+            1,
+        ),
+        PlanetaryCharacterOverview(
+            1002,
+            "Missing Scope Pilot",
+            False,
+            DataFreshness.MISSING,
+            None,
+            0,
+        ),
+        PlanetaryCharacterOverview(
+            1003,
+            "Sync Failed Pilot",
+            True,
+            DataFreshness.FAILED,
+            None,
+            0,
+        ),
+    )
+    page = PlanetaryPage(
+        database,
+        Translator("de"),
+        list_colonies=lambda _language: (colony,),
+        list_characters=lambda: characters,
+    )
+    qt_application.processEvents()
+
+    def cell_text(row: int, column: int) -> str:
+        item = page.table.item(row, column)
+        assert item is not None
+        return item.text()
+
+    assert page.table.rowCount() == 3
+    assert [cell_text(row, 0) for row in range(3)] == [
+        "Industrial Pilot",
+        "Missing Scope Pilot",
+        "Sync Failed Pilot",
+    ]
+    assert cell_text(1, 8) == "PI-Freigabe fehlt"
+    assert cell_text(2, 8) == "PI-Abruf fehlgeschlagen"
+    assert "PI-Daten geladen: 1 von 3" in page.summary_label.text()
+    page.table.selectRow(1)
+    qt_application.processEvents()
+    assert "PI freigeben" in page.detail_label.text()
+    assert page.storage_table.rowCount() == 0
     page.close()
 
 

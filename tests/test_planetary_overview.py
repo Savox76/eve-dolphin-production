@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -10,6 +11,8 @@ from eve_dolphin.characters import CharacterRepository, EveCharacter
 from eve_dolphin.database import Database
 from eve_dolphin.pi import PlanetaryOverviewService
 from eve_dolphin.sde import SdeRepository
+from eve_dolphin.sso.scopes import ScopePackage, scopes_for_packages
+from eve_dolphin.status import DataFreshness
 from eve_dolphin.sync.planetary_models import (
     ExtractorDetails,
     PlanetColony,
@@ -72,6 +75,54 @@ def test_overview_uses_type_ids_when_no_active_sde_exists(tmp_path: Path) -> Non
     assert all(value.name is None for value in result.pin_types)
     assert all(value.name is None for value in result.extractor_products)
     assert all(value.name is None for value in result.stored_contents)
+
+
+def test_overview_keeps_every_connected_character_visible(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    characters = CharacterRepository(database)
+    characters.upsert(
+        EveCharacter(
+            1001,
+            "Alpha Pilot",
+            "owner-1",
+            scopes_for_packages(ScopePackage.PLANETARY_INDUSTRY),
+            NOW,
+        )
+    )
+    characters.upsert(EveCharacter(1002, "Beta Pilot", "owner-2", (), NOW))
+    snapshots = PlanetarySnapshotRepository(database)
+    run_id = snapshots.start_run(1001, NOW)
+    snapshots.activate(run_id, 1001, NOW, (_colony(),), '"alpha"')
+
+    result = PlanetaryOverviewService(database, clock=lambda: NOW).list_characters()
+
+    assert [character.character_name for character in result] == ["Alpha Pilot", "Beta Pilot"]
+    assert result[0].has_planetary_permission is True
+    assert result[0].data_state is DataFreshness.CURRENT
+    assert result[0].colony_count == 1
+    assert result[1].has_planetary_permission is False
+    assert result[1].data_state is DataFreshness.MISSING
+    assert result[1].colony_count == 0
+
+
+def test_overview_combines_colonies_from_multiple_character_snapshots(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    characters = CharacterRepository(database)
+    for character_id, name in ((1001, "Alpha Pilot"), (1002, "Beta Pilot")):
+        characters.upsert(EveCharacter(character_id, name, f"owner-{character_id}", (), NOW))
+    snapshots = PlanetarySnapshotRepository(database)
+    alpha = _colony()
+    beta = replace(alpha, owner_id=1002, planet_id=4002)
+    for character_id, colony in ((1001, alpha), (1002, beta)):
+        run_id = snapshots.start_run(character_id, NOW)
+        snapshots.activate(run_id, character_id, NOW, (colony,), None)
+
+    result = PlanetaryOverviewService(database, clock=lambda: NOW).list_colonies("en")
+
+    assert [(colony.character_name, colony.planet_id) for colony in result] == [
+        ("Alpha Pilot", 4001),
+        ("Beta Pilot", 4002),
+    ]
 
 
 def test_type_name_lookup_validates_language_ids_and_active_build(tmp_path: Path) -> None:

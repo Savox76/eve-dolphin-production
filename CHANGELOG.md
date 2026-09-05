@@ -2,6 +2,19 @@
 
 ## Unveröffentlicht
 
+## v0.4.12 – Vollständige PI-Charakterübersicht
+
+- die PI-Ansicht berücksichtigt weiterhin alle synchronisierten Kolonien aller verbundenen
+  Charaktere und zeigt jetzt zusätzlich jeden verbundenen Charakter ohne Koloniedaten als
+  sichtbare Statuszeile statt ihn still auszublenden
+- fehlende PI-Freigaben, noch nicht geladene Daten, fehlgeschlagene Abrufe und von ESI leer
+  gemeldete Kolonielisten werden pro Charakter eindeutig unterschieden
+- die Zusammenfassung zeigt, für wie viele verbundene Charaktere PI freigegeben und ein
+  Koloniedatenstand geladen ist; Detailhinweise führen direkt zur nötigen Freigabe oder
+  Synchronisation
+- neue Service- und Qt-Regressionstests prüfen mehrere getrennte Charakter-Snapshots sowie
+  die sichtbaren Fehlerzustände weiterer PI-Charaktere
+
 ## v0.4.11 – Exakte PI-Reverse-Planung
 
 - Launchpad-Kolonien werden konsequent vom Zielprodukt rückwärts gerechnet: P4 benötigt

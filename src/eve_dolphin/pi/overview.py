@@ -19,6 +19,8 @@ from eve_dolphin.pi.models import (
     UniverseLocation,
 )
 from eve_dolphin.sde import SdeRepository
+from eve_dolphin.status import DataFreshness, DataStatusRepository
+from eve_dolphin.sync.planetary import PLANETARY_SCOPE
 from eve_dolphin.sync.planetary_models import PlanetColony
 from eve_dolphin.sync.planetary_repository import PlanetarySnapshotRepository
 
@@ -46,6 +48,16 @@ class StorageOverview:
     capacity_m3: Decimal
     fill_percent: Decimal
     contents: tuple[NamedQuantity, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class PlanetaryCharacterOverview:
+    character_id: int
+    character_name: str
+    has_planetary_permission: bool
+    data_state: DataFreshness
+    updated_at: datetime | None
+    colony_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,7 +112,34 @@ class PlanetaryOverviewService:
         self._snapshots = PlanetarySnapshotRepository(database)
         self._sde = SdeRepository(database)
         self._catalogs = PiCatalogRepository(database)
+        self._status = DataStatusRepository(database)
         self._clock = clock or (lambda: datetime.now(UTC))
+
+    def list_characters(self) -> tuple[PlanetaryCharacterOverview, ...]:
+        """Describe PI visibility for every locally connected character."""
+
+        now = self._clock()
+        if now.tzinfo is None:
+            raise ValueError("planetary overview clock must include a timezone")
+        status_by_id = {
+            status.character_id: status.planetary
+            for status in self._status.overview(now).characters
+        }
+        result = []
+        for character in self._characters.list_all():
+            status = status_by_id[character.character_id]
+            snapshot = self._snapshots.current(character.character_id)
+            result.append(
+                PlanetaryCharacterOverview(
+                    character_id=character.character_id,
+                    character_name=character.character_name,
+                    has_planetary_permission=PLANETARY_SCOPE in character.granted_scopes,
+                    data_state=status.state,
+                    updated_at=status.updated_at,
+                    colony_count=snapshot.colony_count if snapshot is not None else 0,
+                )
+            )
+        return tuple(result)
 
     def list_colonies(self, language: str) -> tuple[ColonyOverview, ...]:
         now = self._clock()
