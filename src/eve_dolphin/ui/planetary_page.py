@@ -28,10 +28,13 @@ from eve_dolphin.pi import (
     ForecastQuantity,
     NamedCount,
     NamedQuantity,
+    PlanetaryCharacterOverview,
     PlanetaryOverviewService,
 )
+from eve_dolphin.status import DataFreshness
 
 ListColonies = Callable[[str], tuple[ColonyOverview, ...]]
+ListCharacters = Callable[[], tuple[PlanetaryCharacterOverview, ...]]
 
 
 class PlanetaryPage(QWidget):
@@ -43,11 +46,17 @@ class PlanetaryPage(QWidget):
         translator: Translator,
         *,
         list_colonies: ListColonies | None = None,
+        list_characters: ListCharacters | None = None,
     ) -> None:
         super().__init__()
         self._translator = translator
-        self._list_colonies = list_colonies or PlanetaryOverviewService(database).list_colonies
+        overview = PlanetaryOverviewService(database)
+        self._list_colonies = list_colonies or overview.list_colonies
+        self._list_characters = list_characters or overview.list_characters
         self._colonies: tuple[ColonyOverview, ...] = ()
+        self._characters: tuple[PlanetaryCharacterOverview, ...] = ()
+        self._row_colonies: tuple[ColonyOverview | None, ...] = ()
+        self._row_characters: tuple[PlanetaryCharacterOverview | None, ...] = ()
 
         self.summary_label = QLabel()
         self.summary_label.setObjectName("planetarySummary")
@@ -160,8 +169,36 @@ class PlanetaryPage(QWidget):
         """Reload the overview after an atomic synchronization or character change."""
 
         self._colonies = self._list_colonies(self._translator.language)
-        self.table.setRowCount(len(self._colonies))
-        for row, colony in enumerate(self._colonies):
+        self._characters = self._list_characters()
+        states = {character.character_id: character for character in self._characters}
+        rows: list[tuple[ColonyOverview | None, PlanetaryCharacterOverview | None]] = [
+            (colony, states.get(colony.character_id)) for colony in self._colonies
+        ]
+        visible_character_ids = {colony.character_id for colony in self._colonies}
+        rows.extend(
+            (None, character)
+            for character in self._characters
+            if character.character_id not in visible_character_ids
+        )
+
+        def row_sort_key(
+            entry: tuple[ColonyOverview | None, PlanetaryCharacterOverview | None],
+        ) -> tuple[str, int, int]:
+            colony, character = entry
+            if colony is not None:
+                return (colony.character_name.casefold(), colony.solar_system_id, colony.planet_id)
+            assert character is not None
+            return (character.character_name.casefold(), -1, -1)
+
+        rows.sort(key=row_sort_key)
+        self._row_colonies = tuple(colony for colony, _character in rows)
+        self._row_characters = tuple(character for _colony, character in rows)
+        self.table.setRowCount(len(rows))
+        for row, (colony, character) in enumerate(rows):
+            if colony is None:
+                assert character is not None
+                self._show_character_without_colony(row, character)
+                continue
             values = (
                 colony.character_name,
                 colony.planet_name or str(colony.planet_id),
@@ -187,31 +224,62 @@ class PlanetaryPage(QWidget):
             self._color_attention_row(row, colony)
 
         self._update_summary()
-        if self._colonies:
+        if rows:
             self.table.selectRow(0)
         else:
             self.detail_label.setText(self._translator.text("pi_no_colonies"))
 
     def _update_summary(self) -> None:
-        if not self._colonies:
+        if not self._colonies and not self._characters:
             self.summary_label.setText(self._translator.text("pi_no_colonies"))
             return
-        self.summary_label.setText(
+        character_ids = {
+            *(colony.character_id for colony in self._colonies),
+            *(character.character_id for character in self._characters),
+        }
+        lines = [
             self._translator.text("pi_summary").format(
                 colonies=len(self._colonies),
-                characters=len({colony.character_id for colony in self._colonies}),
+                characters=len(character_ids),
                 active=sum(colony.active_extractors for colony in self._colonies),
                 expired=sum(colony.expired_extractors for colony in self._colonies),
                 incomplete=sum(colony.incomplete_extractors for colony in self._colonies),
             )
-        )
+        ]
+        if self._characters:
+            loaded = len({colony.character_id for colony in self._colonies})
+            authorized = sum(character.has_planetary_permission for character in self._characters)
+            lines.append(
+                self._translator.text("pi_character_coverage").format(
+                    loaded=loaded,
+                    connected=len(self._characters),
+                    authorized=authorized,
+                )
+            )
+            if loaded < len(self._characters):
+                lines.append(self._translator.text("pi_character_scope_note"))
+        self.summary_label.setText("\n".join(lines))
 
     def _update_detail(self) -> None:
         row = self.table.currentRow()
-        if row < 0 or row >= len(self._colonies):
+        if row < 0 or row >= len(self._row_colonies):
             self.detail_label.setText(self._translator.text("pi_no_selection"))
             return
-        colony = self._colonies[row]
+        colony = self._row_colonies[row]
+        if colony is None:
+            character = self._row_characters[row]
+            assert character is not None
+            status_key = self._character_status_key(character)
+            self.operation_label.setText(self._translator.text(status_key))
+            self.countdown_label.clear()
+            self.detail_label.setText(
+                self._translator.text(f"{status_key}_detail").format(
+                    character=character.character_name
+                )
+            )
+            self.storage_table.setRowCount(0)
+            self.storage_table.hide()
+            return
         self.operation_label.setText(
             self._translator.text(f"pi_mode_{colony.operation_mode.value}")
         )
@@ -308,10 +376,13 @@ class PlanetaryPage(QWidget):
 
     def _update_countdown(self) -> None:
         row = self.table.currentRow()
-        if row < 0 or row >= len(self._colonies):
+        if row < 0 or row >= len(self._row_colonies):
             self.countdown_label.clear()
             return
-        colony = self._colonies[row]
+        colony = self._row_colonies[row]
+        if colony is None:
+            self.countdown_label.clear()
+            return
         deadline = colony.next_expiry
         key = "pi_countdown_extractor"
         if colony.operation_mode.value == "import":
@@ -338,6 +409,47 @@ class PlanetaryPage(QWidget):
             item = self.table.item(row, column)
             if item is not None:
                 item.setForeground(color)
+
+    def _show_character_without_colony(
+        self, row: int, character: PlanetaryCharacterOverview
+    ) -> None:
+        status_key = self._character_status_key(character)
+        values = (
+            character.character_name,
+            self._translator.text("pi_none"),
+            self._translator.text("pi_none"),
+            self._translator.text("pi_none"),
+            "0",
+            self._translator.text("pi_none"),
+            "0",
+            (
+                _format_datetime(character.updated_at)
+                if character.updated_at is not None
+                else self._translator.text("pi_none")
+            ),
+            self._translator.text(status_key),
+            self._translator.text("pi_none"),
+            self._translator.text("pi_none"),
+        )
+        color = QColor("#fbbf24")
+        if character.data_state is DataFreshness.FAILED:
+            color = QColor("#ff6b6b")
+        for column, value in enumerate(values):
+            item = QTableWidgetItem(value)
+            if column in {1, 2, 3, 4, 5, 6, 7, 9, 10}:
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            item.setForeground(color if column in {0, 8} else QColor("#94a3b8"))
+            self.table.setItem(row, column, item)
+
+    @staticmethod
+    def _character_status_key(character: PlanetaryCharacterOverview) -> str:
+        if not character.has_planetary_permission:
+            return "pi_character_permission_missing"
+        if character.data_state is DataFreshness.FAILED:
+            return "pi_character_sync_failed"
+        if character.data_state is DataFreshness.MISSING:
+            return "pi_character_data_missing"
+        return "pi_character_no_colonies"
 
     def _extractor_status(self, colony: ColonyOverview) -> str:
         return self._translator.text("pi_extractor_compact").format(
